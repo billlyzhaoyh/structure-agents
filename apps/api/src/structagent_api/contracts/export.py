@@ -20,7 +20,12 @@ from structagent_api.contracts.models import (
     TaskDraftRequest,
     TaskSqlArtifact,
 )
-from structagent_api.contracts.simulation import SimulationRunResult, SimulationStudyArtifact
+from structagent_api.contracts.simulation import (
+    SimulationPlanRequest,
+    SimulationRunPlan,
+    SimulationRunResult,
+    SimulationStudyArtifact,
+)
 
 ROOT = Path(__file__).resolve().parents[5]
 SCHEMA_DIR = ROOT / "contracts" / "v1" / "schemas"
@@ -32,6 +37,8 @@ SCHEMA_FACTORIES: dict[str, SchemaFactory] = {
     "evaluation-result.schema.json": TypeAdapter(EvaluationResult).json_schema,
     "materialization-result.schema.json": MaterializationResult.model_json_schema,
     "run-record.schema.json": RunRecord.model_json_schema,
+    "simulation-plan-request.schema.json": SimulationPlanRequest.model_json_schema,
+    "simulation-run-plan.schema.json": SimulationRunPlan.model_json_schema,
     "simulation-run-result.schema.json": SimulationRunResult.model_json_schema,
     "simulation-study-artifact.schema.json": SimulationStudyArtifact.model_json_schema,
     "task-draft-outcome.schema.json": TypeAdapter(TaskDraftOutcome).json_schema,

@@ -14,6 +14,7 @@ from structagent_api.contracts.simulation import (
     RecommendationStatus,
     RunProvenance,
     RunValidationGate,
+    SimulationPlanRequest,
     SimulationRunResult,
     SimulationStudyArtifact,
     ValidationGateResult,
@@ -122,6 +123,19 @@ def test_default_study_round_trips_with_a_stable_digest() -> None:
     assert decoded == artifact
     assert contract_digest(decoded) == contract_digest(artifact)
     assert contract_digest(artifact).startswith("sha256:")
+
+
+def test_plan_request_requires_the_reviewed_agent_count() -> None:
+    with pytest.raises(ValidationError, match="agent count must match"):
+        SimulationPlanRequest(study=hm_promo_conjoint_v1(), agent_keys=("agent-1",))
+
+
+def test_plan_request_rejects_duplicate_pseudonymous_agents() -> None:
+    artifact = hm_promo_conjoint_v1()
+    keys = tuple(f"agent-{index:03d}" for index in range(399)) + ("agent-000",)
+
+    with pytest.raises(ValidationError, match="agent keys must be unique"):
+        SimulationPlanRequest(study=artifact, agent_keys=keys)
 
 
 def test_hard_gate_failure_can_only_return_a_withheld_result() -> None:

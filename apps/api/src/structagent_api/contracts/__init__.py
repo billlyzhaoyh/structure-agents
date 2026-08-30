@@ -24,6 +24,8 @@ from structagent_api.contracts.models import (
     TaskValidationReport,
 )
 from structagent_api.contracts.simulation import (
+    SimulationPlanRequest,
+    SimulationRunPlan,
     SimulationRunResult,
     SimulationStudyArtifact,
 )
@@ -45,6 +47,8 @@ __all__ = [
     "NeedsClarification",
     "RegressionEvaluationResult",
     "RunRecord",
+    "SimulationPlanRequest",
+    "SimulationRunPlan",
     "SimulationRunResult",
     "SimulationStudyArtifact",
     "TaskDraftOutcome",

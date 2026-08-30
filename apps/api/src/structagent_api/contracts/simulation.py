@@ -6,13 +6,14 @@ import hashlib
 import json
 from datetime import date
 from enum import StrEnum
-from typing import Literal, Self
+from typing import Annotated, Literal, Self
 
 from pydantic import Field, field_validator, model_validator
 
 from structagent_api.contracts.models import StrictModel
 
 ContractDigest = str
+AgentKey = Annotated[str, Field(min_length=1, max_length=200)]
 
 
 class DatasetStatus(StrEnum):
@@ -275,6 +276,91 @@ class SimulationStudyArtifact(StrictModel):
     respondent_model: RespondentModelPolicy
     validation: ValidationPolicy
     study: DiscreteChoiceStudySpec
+
+
+class SimulationPlanRequest(StrictModel):
+    """Reviewed study plus pseudonymous agents accepted by the design worker."""
+
+    schema_version: Literal["1"] = "1"
+    study: SimulationStudyArtifact
+    agent_keys: tuple[AgentKey, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def agent_inventory_matches_sampling_contract(self) -> Self:
+        if len(self.agent_keys) != len(set(self.agent_keys)):
+            raise ValueError("agent keys must be unique")
+        if len(self.agent_keys) != self.study.population.sampling.target_agents:
+            raise ValueError("agent count must match the reviewed sampling target")
+        return self
+
+
+class ChoiceAlternative(StrictModel):
+    """One ordered profile shown in a discrete-choice task."""
+
+    position: Literal[1, 2]
+    profile: tuple[ProfileLevel, ...] = Field(min_length=1)
+    is_control: bool
+
+    @field_validator("profile")
+    @classmethod
+    def profile_attributes_are_unique(
+        cls, profile: tuple[ProfileLevel, ...]
+    ) -> tuple[ProfileLevel, ...]:
+        attributes = [item.attribute for item in profile]
+        if len(attributes) != len(set(attributes)):
+            raise ValueError("choice profiles must define each attribute once")
+        return profile
+
+
+class ChoiceTask(StrictModel):
+    """One independently ordered pair plus the mandatory no-choice option."""
+
+    task_id: str = Field(min_length=1)
+    agent_key: str = Field(min_length=1)
+    sequence: int = Field(ge=1)
+    alternatives: tuple[ChoiceAlternative, ChoiceAlternative]
+    include_no_choice: Literal[True] = True
+
+    @model_validator(mode="after")
+    def alternatives_are_ordered_and_distinct(self) -> Self:
+        if tuple(item.position for item in self.alternatives) != (1, 2):
+            raise ValueError("choice alternatives must be stored in display order")
+        profiles = [item.profile for item in self.alternatives]
+        if profiles[0] == profiles[1]:
+            raise ValueError("choice alternatives must use distinct profiles")
+        return self
+
+
+class SimulationRunPlan(StrictModel):
+    """Canonical design-only output produced before respondent-model execution."""
+
+    schema_version: Literal["1"] = "1"
+    implementation_status: Literal["design_only"] = "design_only"
+    study_artifact_id: str = Field(min_length=1)
+    study_digest: ContractDigest = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    random_seed: int = Field(ge=0, le=2**32 - 1)
+    agent_count: int = Field(gt=0)
+    tasks_per_agent: int = Field(gt=0)
+    task_count: int = Field(gt=0)
+    tasks: tuple[ChoiceTask, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def counts_and_sequences_are_coherent(self) -> Self:
+        if self.task_count != len(self.tasks):
+            raise ValueError("task count does not match the task inventory")
+        agents = {task.agent_key for task in self.tasks}
+        if self.agent_count != len(agents):
+            raise ValueError("agent count does not match the task inventory")
+        if self.task_count != self.agent_count * self.tasks_per_agent:
+            raise ValueError("task count does not match the per-agent design")
+        for agent_key in agents:
+            sequences = tuple(task.sequence for task in self.tasks if task.agent_key == agent_key)
+            if sequences != tuple(range(1, self.tasks_per_agent + 1)):
+                raise ValueError("every agent must have one ordered, complete task sequence")
+        task_ids = [task.task_id for task in self.tasks]
+        if len(task_ids) != len(set(task_ids)):
+            raise ValueError("task IDs must be unique")
+        return self
 
 
 class ValidationGateResult(StrictModel):
