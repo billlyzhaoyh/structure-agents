@@ -13,6 +13,7 @@ from structagent_api import __version__
 from structagent_api.catalog import ACTIVE_DATASET_ID, REL_HM_DATASET, REL_HM_DEFAULT_TASKS
 from structagent_api.compiler import TaskCompiler, TaskCompilerError
 from structagent_api.compiler.agent import compiler_from_environment
+from structagent_api.compiler.service import draft_id_for
 from structagent_api.contracts import (
     DatasetDescriptor,
     DefaultTaskCatalog,
@@ -21,6 +22,7 @@ from structagent_api.contracts import (
     RunRecord,
     TaskClarificationRequest,
     TaskDraftRequest,
+    UnsupportedTaskDraft,
 )
 from structagent_api.settings import Settings
 
@@ -92,7 +94,13 @@ def create_app(
     @app.post("/v1/task-drafts", response_model=LiveTaskDraftOutcome, tags=["task-compiler"])
     async def create_task_draft(request: TaskDraftRequest) -> LiveTaskDraftOutcome:
         if request.dataset_id != "rel-hm":
-            raise HTTPException(status_code=404, detail="Dataset is not available in this demo")
+            return UnsupportedTaskDraft(
+                contract_version="v1",
+                outcome="unsupported",
+                draft_id=draft_id_for(request.dataset_id, request.prompt),
+                reason_code="unsupported_dataset",
+                explanation="V1 supports only RelBench H&M.",
+            )
         try:
             return await compiler.compile(request)
         except TaskCompilerError as error:

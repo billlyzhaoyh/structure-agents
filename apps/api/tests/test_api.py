@@ -79,7 +79,9 @@ def test_demo_routes_reject_unknown_contract_resources() -> None:
         json={"contract_version": "v1", "dataset_id": "unknown", "prompt": "Forecast sales"},
     )
 
-    assert unsupported_dataset.status_code == 404
+    assert unsupported_dataset.status_code == 200
+    assert unsupported_dataset.json()["outcome"] == "unsupported"
+    assert unsupported_dataset.json()["reason_code"] == "unsupported_dataset"
     assert client.get("/v1/runs/unknown").status_code == 404
     assert client.get("/v1/runs/unknown/evaluation").status_code == 404
 
