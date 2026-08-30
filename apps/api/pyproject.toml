@@ -1,0 +1,18 @@
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "structagent-api"
+version = "0.1.0"
+description = "Trusted API control plane for the StructAgent research demo."
+requires-python = ">=3.12,<3.13"
+license = "MIT"
+authors = [
+  { name = "Tony Kwok" },
+  { name = "Billy Zhao" },
+]
+dependencies = []
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/structagent_api"]
