@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+dist/
+build/
+
+# Environment and credentials
+.env
+.env.*
+!.env.example
+
+# Data, models, and run artifacts
+data/
+datasets/
+models/
+checkpoints/
+artifacts/
+runs/
+*.db
+*.duckdb
+*.sqlite
+
+# Frontend
+node_modules/
+coverage/
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/
+*.swp
