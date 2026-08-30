@@ -7,7 +7,7 @@ ENV_FILE_ARGS := $(if $(wildcard .env),--env-file .env,)
 export PRE_COMMIT_HOME
 export UV_CACHE_DIR
 
-.PHONY: help sync lock hooks format format-check lint typecheck test test-web test-materializer build contracts-export contracts-check quality-all check check-all serve-api serve-web hm-data-sync hm-data-verify materialize-hm-local materialize-hm-daytona-smoke materialize-hm-daytona-live simulation-plan-local simulation-plan-daytona-smoke simulation-edsl-daytona-smoke
+.PHONY: help sync lock hooks format format-check lint typecheck test test-web test-materializer build contracts-export contracts-check quality-all check check-all serve-api serve-web hm-data-sync hm-data-verify materialize-hm-local materialize-hm-daytona-smoke materialize-hm-daytona-live simulation-plan-local simulation-plan-daytona-smoke simulation-edsl-daytona-smoke simulation-demo-refresh simulation-demo-verify
 
 help: ## Show available commands
 	@awk 'BEGIN {FS = ":.*## "}; /^[a-zA-Z_-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -82,6 +82,12 @@ simulation-plan-daytona-smoke: ## Generate and verify the reviewed design in Day
 
 simulation-edsl-daytona-smoke: ## Run three real EDSL responses for one reviewed task
 	uv run $(ENV_FILE_ARGS) --frozen python scripts/smoke_edsl.py
+
+simulation-demo-refresh: ## Refresh the real H&M-conditioned simulation artifact cache
+	uv run $(ENV_FILE_ARGS) --frozen python scripts/simulation_demo.py refresh
+
+simulation-demo-verify: ## Verify the cached simulation artifact without network access
+	uv run --frozen python scripts/simulation_demo.py verify
 
 quality-all: format-check lint typecheck test test-web contracts-check ## Always-run local quality gate
 

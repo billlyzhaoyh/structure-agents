@@ -124,7 +124,7 @@ or arbitrary study program.
 Two operator-only commands manage the real artifact:
 
 - `make simulation-demo-refresh` performs a new full credentialed run and atomically promotes a
-  passing artifact; and
+  validated terminal artifact; and
 - `make simulation-demo-verify` validates the current cached artifact without network access.
 
 ## Frontend result contract

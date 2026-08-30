@@ -11,6 +11,11 @@ from daytona import CreateSandboxFromImageParams, Daytona, Image, Resources
 from pydantic import BaseModel, ConfigDict
 
 from structagent_api.contracts.simulation import canonical_contract_json, contract_digest
+from structagent_api.simulation.batch import (
+    SimulationBatchCheckpoint,
+    SimulationBatchRequest,
+    SimulationResponseBatch,
+)
 from structagent_api.simulation.edsl import (
     EDSL_VERSION,
     EdslSmokeRequest,
@@ -21,11 +26,13 @@ REMOTE_ROOT: Final = "/workspace/structagent"
 REMOTE_SOURCE: Final = f"{REMOTE_ROOT}/src"
 REMOTE_REQUEST: Final = f"{REMOTE_ROOT}/request.json"
 REMOTE_RESULT: Final = f"{REMOTE_ROOT}/result.json"
+REMOTE_CHECKPOINT: Final = f"{REMOTE_ROOT}/checkpoint.json"
 EXPECTED_PARROT_DOMAIN: Final = "api.expectedparrot.com"
 SIGNED_ARTIFACT_DOMAIN: Final = "storage.googleapis.com"
 DOMAIN_ALLOW_LIST: Final = f"{EXPECTED_PARROT_DOMAIN},{SIGNED_ARTIFACT_DOMAIN}"
 SANDBOX_TTL_MINUTES: Final = 15
 PROCESS_TIMEOUT_SECONDS: Final = 600
+BATCH_PROCESS_TIMEOUT_SECONDS: Final = 3600
 RUNTIME_CANARY_MARKER: Final = "structagent-edsl-canary"
 
 _SOURCE_FILES: Final = (
@@ -37,6 +44,8 @@ _SOURCE_FILES: Final = (
     "structagent_api/simulation/design.py",
     "structagent_api/simulation/edsl.py",
     "structagent_api/simulation/edsl_runner.py",
+    "structagent_api/simulation/batch.py",
+    "structagent_api/simulation/batch_runner.py",
 )
 
 
@@ -103,6 +112,18 @@ class EdslDaytonaReport(BaseModel):
     domain_allow_list: tuple[str, str]
     resources: dict[str, int]
     result: EdslSmokeResult
+    result_digest: str
+    runtime_canary_confirmed: bool
+    secret_transport: str
+
+
+class EdslBatchDaytonaReport(BaseModel):
+    """Sanitized evidence for a complete EDSL response batch."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    batch: SimulationResponseBatch
+    cleanup_confirmed: bool
     result_digest: str
     runtime_canary_confirmed: bool
     secret_transport: str
@@ -281,6 +302,125 @@ def execute_daytona_edsl_smoke(
         raise
     except Exception as error:
         raise EdslDaytonaError("provider_failure", "Daytona EDSL execution failed") from error
+    finally:
+        try:
+            client.delete(sandbox, timeout=60, wait=True)
+        except Exception as error:
+            raise EdslDaytonaError(
+                "sandbox_cleanup", "Daytona could not confirm EDSL cleanup"
+            ) from error
+    return report
+
+
+def execute_daytona_edsl_batch(
+    request: SimulationBatchRequest,
+    output_path: Path,
+    secret_name: str,
+    *,
+    checkpoint_path: Path | None = None,
+    client_factory: Callable[[], Any] | None = None,
+) -> EdslBatchDaytonaReport:
+    """Execute a complete reviewed response batch and verify cleanup and artifact integrity."""
+
+    if output_path.exists() or not output_path.parent.is_dir() or not secret_name:
+        raise EdslDaytonaError(
+            "batch_input", "EDSL batch output or secret configuration is invalid"
+        )
+    client = cast(DaytonaClient, (client_factory or Daytona)())
+    try:
+        sandbox = client.create(_sandbox_params(secret_name), timeout=180)
+    except Exception as error:
+        raise EdslDaytonaError(
+            "sandbox_create", "Daytona could not create the EDSL sandbox"
+        ) from error
+    try:
+        sandbox.refresh_data(request_timeout=30)
+        allowed = {item.strip() for item in (sandbox.domain_allow_list or "").split(",") if item}
+        if sandbox.public or allowed != {EXPECTED_PARROT_DOMAIN, SIGNED_ARTIFACT_DOMAIN}:
+            raise EdslDaytonaError(
+                "sandbox_policy", "Daytona did not confirm the private EDSL domain allowlist"
+            )
+        _create_remote_directories(sandbox)
+        _run_runtime_canary(sandbox)
+        _upload_sources(sandbox)
+        sandbox.fs.upload_file((canonical_contract_json(request) + "\n").encode(), REMOTE_REQUEST)
+        if checkpoint_path is not None and checkpoint_path.exists():
+            sandbox.fs.upload_file(str(checkpoint_path), REMOTE_CHECKPOINT)
+        response = sandbox.process.exec(
+            "python -m structagent_api.simulation.batch_runner "
+            f"{REMOTE_REQUEST} {REMOTE_RESULT} {REMOTE_CHECKPOINT}",
+            cwd=REMOTE_ROOT,
+            env={"PYTHONPATH": REMOTE_SOURCE},
+            timeout=BATCH_PROCESS_TIMEOUT_SECONDS,
+        )
+        try:
+            remote_checkpoint = sandbox.fs.download_file(REMOTE_CHECKPOINT)
+        except Exception:
+            remote_checkpoint = None
+        if checkpoint_path is not None and remote_checkpoint is not None:
+            try:
+                checkpoint = SimulationBatchCheckpoint.model_validate_json(remote_checkpoint)
+            except ValueError as error:
+                raise EdslDaytonaError(
+                    "artifact_manifest", "Daytona returned an invalid EDSL checkpoint"
+                ) from error
+            canonical_checkpoint = (canonical_contract_json(checkpoint) + "\n").encode()
+            if (
+                remote_checkpoint != canonical_checkpoint
+                or checkpoint.request_digest != contract_digest(request)
+            ):
+                raise EdslDaytonaError(
+                    "artifact_integrity", "Daytona EDSL checkpoint is not canonical or aligned"
+                )
+            checkpoint_path.write_bytes(canonical_checkpoint)
+        if response.exit_code != 0:
+            lines = [line for line in response.result.splitlines() if line.strip()]
+            try:
+                failed_evidence = json.loads(lines[-1])
+            except (IndexError, json.JSONDecodeError):
+                failed_evidence = {}
+            error_type = failed_evidence.get("error_type", "unknown")
+            if not isinstance(error_type, str) or not error_type.isidentifier():
+                error_type = "unknown"
+            raise EdslDaytonaError(
+                "batch_execution",
+                f"Daytona EDSL batch execution failed ({error_type})",
+            )
+        evidence = _parse_run_evidence(response.result)
+        contents = sandbox.fs.download_file(REMOTE_RESULT)
+        if contents is None:
+            raise EdslDaytonaError("artifact_download", "Daytona returned no EDSL batch bytes")
+        try:
+            batch = SimulationResponseBatch.model_validate_json(contents)
+        except ValueError as error:
+            raise EdslDaytonaError(
+                "artifact_manifest", "Daytona returned an invalid EDSL batch"
+            ) from error
+        canonical = (canonical_contract_json(batch) + "\n").encode()
+        digest = contract_digest(batch)
+        if contents != canonical or evidence.get("result_digest") != digest:
+            raise EdslDaytonaError(
+                "artifact_integrity", "EDSL batch evidence and artifact do not match"
+            )
+        if (
+            batch.base_response_count != request.plan.task_count
+            or batch.sentinel_response_count != len(request.sentinel_task_ids)
+        ):
+            raise EdslDaytonaError(
+                "artifact_integrity", "EDSL batch response counts are incomplete"
+            )
+        output_path.write_bytes(canonical)
+        report = EdslBatchDaytonaReport(
+            batch=batch,
+            cleanup_confirmed=True,
+            result_digest=digest,
+            runtime_canary_confirmed=True,
+            secret_transport="daytona_opaque_placeholder",
+        )
+    except EdslDaytonaError:
+        raise
+    except Exception as error:
+        raise EdslDaytonaError("provider_failure", "Daytona EDSL batch execution failed") from error
     finally:
         try:
             client.delete(sandbox, timeout=60, wait=True)
