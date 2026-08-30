@@ -13,6 +13,7 @@ from structagent_api.contracts import (
     TaskClarificationRequest,
     TaskSqlArtifact,
 )
+from structagent_api.contracts.models import ModelTaskPackage
 from structagent_api.materialization import (
     SYNTHETIC_CUTOFFS,
     create_synthetic_hm,
@@ -132,6 +133,7 @@ def test_rtj_request_rejects_checkpoint_task_mismatch(tmp_path: Path) -> None:
         RTJInferenceRequest(
             contract_version="v1",
             materialization_package_sha256=materialized.package_sha256,
+            model_input_sha256=materialized.model_input_sha256,
             model_input=materialized.model_input,
             source_revision="455df27c1458e093eac00133d5bbf41a8263a2e3",
             checkpoint=RTJCheckpointReference(
@@ -152,3 +154,18 @@ def test_rtj_request_schema_cannot_carry_evaluator_truth() -> None:
 
     assert "EvaluatorTruthPackage" not in rendered
     assert "test_truth" not in rendered
+
+
+def test_model_package_rejects_truth_named_test_input(tmp_path: Path) -> None:
+    dataset = create_synthetic_hm(tmp_path / "dataset")
+    materialized = materialize_default_task(
+        "rel-hm/user-churn",
+        dataset,
+        tmp_path / "output",
+        cutoffs=SYNTHETIC_CUTOFFS,
+    )
+    payload = materialized.model_input.model_dump(mode="json")
+    payload["test_rows"]["path"] = "test-truth.parquet"
+
+    with pytest.raises(ValidationError, match="allowlist"):
+        ModelTaskPackage.model_validate(payload)

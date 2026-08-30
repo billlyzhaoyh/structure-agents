@@ -643,6 +643,11 @@
     "model_input": {
       "$ref": "#/$defs/ModelTaskPackage"
     },
+    "model_input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Model Input Sha256",
+      "type": "string"
+    },
     "source_revision": {
       "const": "455df27c1458e093eac00133d5bbf41a8263a2e3",
       "title": "Source Revision",
@@ -652,6 +657,7 @@
   "required": [
     "contract_version",
     "materialization_package_sha256",
+    "model_input_sha256",
     "model_input",
     "source_revision",
     "checkpoint",
