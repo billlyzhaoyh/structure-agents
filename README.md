@@ -10,9 +10,9 @@ and no trademark registration or employer affiliation is claimed.
 ## Status
 
 This repository is a lightweight monorepo. It currently contains a typed API, a metadata-only
-H&M task catalog, guarded default-task materialization, versioned interface fixtures, a
-dependency-free frontend demo, a sealed RT-J inference core, and provider boundaries for
-future live task compilation and Modal execution.
+H&M task catalog, guarded default-task materialization, a bounded natural-language task
+compiler, versioned interface fixtures, a dependency-free frontend demo, a sealed RT-J
+inference core, and guarded OpenAI, Daytona, and Modal provider boundaries.
 
 Implemented today:
 
@@ -30,22 +30,24 @@ Implemented today:
 - a revision-pinned RT-J H&M adapter, masked-test preparation, sealed evaluator, and
   deterministic classification/regression vertical slices; and
 - a fakeable Modal controller enforcing exact uploads, isolation policy, preflight projection,
-  a combined 16-hour/$25 ceiling, and cleanup across success and failure paths.
+  a combined 16-hour/$25 ceiling, and cleanup across success and failure paths;
+- a guarded OpenAI task compiler that can clarify, reject, or produce review-required custom
+  H&M SQL after aggregate-only validation in one private Daytona sandbox; and
+- an explicit extension point for the concrete Modal SDK adapter.
 
 It does not yet:
 
-- call a language model;
 - expose live materialization or run orchestration through HTTP;
 - provide the concrete Modal SDK App/Volume adapter needed for a paid RT-J run;
 - ingest arbitrary databases;
-- generate custom prediction tasks; or
+- execute custom prediction tasks without human review; or
 - report observed model predictions or evaluation metrics.
 
 `apps/web` contains a dependency-free interactive Decision OS demo for the hackathon
 journey. Its fashion retail content is a small synthetic placeholder; its SQL database,
 Snowflake, Redshift, and BigQuery connection choices are mock UI only. The demo connects
-only to reviewed synthetic contract fixtures served by the local API; it does not add
-database, model, or live-provider integrations.
+to the local API. Catalog, run, and evaluation data remain fixtures; task drafting uses the
+live compiler when configured and otherwise shows an explicit unavailable state.
 
 See [architecture](docs/architecture.md), [product flow](docs/product-flow.md), the
 [H&M backend roadmap](docs/backend-roadmap.md), the isolated
@@ -65,14 +67,30 @@ make serve-web
 make contracts-check
 make test-materializer
 make test-rtj
+make test-compiler
 make materialize-hm-local
 ```
 
 The local API listens on `http://127.0.0.1:8000`. Alongside `GET /healthz`, it serves the
-reviewed H&M metadata and default-task catalog plus task-draft, run, and evaluation fixtures
-under `/v1` for frontend integration. These routes do not ingest data or execute RT-J.
+reviewed H&M metadata and default-task catalog plus run and evaluation fixtures under `/v1`.
+Task-draft routes compile custom H&M tasks only when both provider credentials are configured;
+otherwise they return a sanitized `503`. No route executes RT-J.
 
 The frontend demo will listen on `http://127.0.0.1:4173`.
+
+## Testing the task compiler
+
+Run the deterministic compiler, guarded SQL, and API tests without credentials or network:
+
+```bash
+make test-compiler
+```
+
+For local live compilation, add `OPENAI_API_KEY` and `DAYTONA_API_KEY` only to the ignored
+`.env`, verify the pinned H&M cache with `make hm-data-verify`, then start `make serve-api`.
+OpenAI runs only in the trusted API and receives reviewed schema metadata plus sanitized
+aggregate evidence. Daytona runs only the statically validated SQL in a private ephemeral CPU
+sandbox. Generated tasks always require human review before later materialization or inference.
 
 ## Testing the H&M default tasks
 

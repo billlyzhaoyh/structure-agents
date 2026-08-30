@@ -17,9 +17,6 @@ dev = [
 m3 = [
   "modal==1.5.5",
 ]
-m4 = [
-  "openai-agents==0.22.0",
-]
 
 [tool.uv]
 package = false

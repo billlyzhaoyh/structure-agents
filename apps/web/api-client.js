@@ -23,6 +23,9 @@ export function createApiClient({ baseUrl = DEFAULT_API_BASE, fetchImpl = global
     }
 
     if (!response.ok) {
+      if (response.status === 503) {
+        throw new ContractApiError("The StructAgent task compiler is unavailable", 503);
+      }
       throw new ContractApiError(`The StructAgent API returned ${response.status}`, response.status);
     }
     const payload = await response.json();
@@ -38,16 +41,19 @@ export function createApiClient({ baseUrl = DEFAULT_API_BASE, fetchImpl = global
       method: "POST",
       body: JSON.stringify({ contract_version: "v1", dataset_id: "rel-hm", prompt }),
     }),
+    clarifyTaskDraft: (draftId, clarification) => request(
+      `/v1/task-drafts/${encodeURIComponent(draftId)}/clarifications`,
+      { method: "POST", body: JSON.stringify(clarification) },
+    ),
     getRun: (runId) => request(`/v1/runs/${encodeURIComponent(runId)}`),
     getEvaluation: (runId) => request(`/v1/runs/${encodeURIComponent(runId)}/evaluation`),
   };
 }
 
 export function taskContractFrom(outcome) {
-  if (outcome?.outcome !== "draft_ready" || !outcome.contract) {
-    throw new ContractApiError("The objective still needs clarification");
-  }
-  return outcome.contract;
+  if (outcome?.outcome === "needs_clarification" || outcome?.outcome === "unsupported") return null;
+  if (outcome?.outcome === "draft_ready" && outcome.contract) return outcome.contract;
+  throw new ContractApiError("The task compiler returned an invalid outcome");
 }
 
 export function tableViewModels(dataset, rowLabels = {}) {
