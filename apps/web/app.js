@@ -228,6 +228,15 @@ function objectiveAgentGuidance(objective) {
   if (objective.apiError) {
     return `<div class="chat agent agent-task data-gap"><div class="agent-task-status"><span>${icon("warning")}</span><p><small>API connection</small><b>I couldn’t create the contract-backed task.</b></p></div><p>${escapeHtml(objective.apiError)}</p><button class="agent-action" data-run-rtj>Try the contract request again ${icon("arrow")}</button></div>`;
   }
+  if (objective.taskDraft?.outcome === "needs_clarification") {
+    const questions = objective.taskDraft.questions
+      .map((question) => `<li>${escapeHtml(question.prompt)}</li>`)
+      .join("");
+    return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("spark")}</span><p><small>Clarification needed</small><b>I need a little more detail before creating this task.</b></p></div><ul>${questions}</ul><p>The API has preserved these as typed clarification questions; answer collection is not yet wired into this demo screen.</p></div>`;
+  }
+  if (objective.taskDraft?.outcome === "unsupported") {
+    return `<div class="chat agent agent-task data-gap"><div class="agent-task-status"><span>${icon("warning")}</span><p><small>Unsupported V1 task</small><b>This objective cannot be compiled safely yet.</b></p></div><p>${escapeHtml(objective.taskDraft.explanation)}</p></div>`;
+  }
   if (objective.confirmed) {
     const contract = taskContractFrom(objective.taskDraft);
     return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("check")}</span><p><small>Objective ready</small><b>The V1 task contract is defined and linked to this objective.</b></p></div><div class="task-preview"><p><small>Entity</small><b>${escapeHtml(contract.entity.table)}</b></p><p><small>Outcome window</small><b>${contract.horizon.value} ${contract.horizon.unit}</b></p><p><small>Task</small><b>Sales regression</b></p></div><button class="agent-action" data-objective-view="insights">Open item insights ${icon("arrow")}</button></div>`;
@@ -361,11 +370,16 @@ function bind() {
     render();
     try {
       const taskDraft = await api.createTaskDraft(objective.title);
-      taskContractFrom(taskDraft);
+      const contract = taskContractFrom(taskDraft);
+      objective.taskDraft = taskDraft;
+      objective.apiStatus = "ready";
+      if (!contract) {
+        render();
+        return;
+      }
       const run = await api.getRun("fixture-hm-run");
       const evaluation = await api.getEvaluation(run.run_id);
       const latestRun = state.objectives.reduce((highest, item) => Math.max(highest, item.rtjRun ?? 0), 0);
-      objective.taskDraft = taskDraft;
       objective.run = run;
       objective.evaluation = evaluation;
       objective.confirmed = true;
