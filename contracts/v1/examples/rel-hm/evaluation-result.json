@@ -1,0 +1,35 @@
+{
+  "contract_version": "v1",
+  "fixture": true,
+  "implementation_status": "placeholder",
+  "run_id": "fixture-hm-run",
+  "dataset_id": "rel-hm",
+  "task_type": "regression",
+  "sample_count": 750,
+  "coverage": 0.96,
+  "target_unit": "dataset currency units",
+  "metrics": {
+    "mae": 12.4,
+    "rmse": 18.9,
+    "r2": 0.37
+  },
+  "provenance": {
+    "dataset_revision": "fixture-only",
+    "model_id": "rt-j-regression-placeholder",
+    "model_revision": "fixture-only",
+    "context_length": 512,
+    "duration_seconds": 0.0
+  },
+  "integrity_checks": [
+    {
+      "name": "point_in_time",
+      "status": "not_run",
+      "detail": "Synthetic fixture; no point-in-time validation executed."
+    },
+    {
+      "name": "prediction_truth_alignment",
+      "status": "not_run",
+      "detail": "Synthetic fixture; no predictions or evaluator truth exist."
+    }
+  ]
+}

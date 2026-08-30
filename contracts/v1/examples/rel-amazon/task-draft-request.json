@@ -1,0 +1,5 @@
+{
+  "contract_version": "v1",
+  "dataset_id": "rel-amazon",
+  "prompt": "Which active customers will stop reviewing products in the next 91 days?"
+}

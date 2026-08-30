@@ -1,0 +1,80 @@
+{
+  "contract_version": "v1",
+  "fixture": true,
+  "implementation_status": "metadata_only",
+  "dataset_id": "rel-hm",
+  "display_name": "RelBench H&M",
+  "description": "Metadata-only schema subset for an H&M retail-domain UI fixture.",
+  "supported_task_types": [
+    "binary_classification",
+    "regression"
+  ],
+  "tables": [
+    {
+      "name": "customer",
+      "columns": [
+        {
+          "name": "customer_id",
+          "data_type": "string",
+          "primary_key": true
+        },
+        {
+          "name": "age",
+          "data_type": "number"
+        }
+      ]
+    },
+    {
+      "name": "article",
+      "columns": [
+        {
+          "name": "article_id",
+          "data_type": "integer",
+          "primary_key": true
+        },
+        {
+          "name": "product_type_name",
+          "data_type": "categorical"
+        },
+        {
+          "name": "detail_desc",
+          "data_type": "text"
+        }
+      ]
+    },
+    {
+      "name": "transactions",
+      "columns": [
+        {
+          "name": "customer_id",
+          "data_type": "string",
+          "foreign_key": {
+            "table": "customer",
+            "column": "customer_id"
+          }
+        },
+        {
+          "name": "article_id",
+          "data_type": "integer",
+          "foreign_key": {
+            "table": "article",
+            "column": "article_id"
+          }
+        },
+        {
+          "name": "t_dat",
+          "data_type": "timestamp",
+          "time_column": true
+        },
+        {
+          "name": "price",
+          "data_type": "number"
+        },
+        {
+          "name": "sales_channel_id",
+          "data_type": "integer"
+        }
+      ]
+    }
+  ]
+}

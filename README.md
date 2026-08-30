@@ -9,9 +9,16 @@ and no trademark registration or employer affiliation is claimed.
 
 ## Status
 
-This repository is being established as a lightweight monorepo. The initial version
-contains only a health-check API, versioned interface fixtures, and documented extension
-points for a future frontend, task compiler, and RT-J execution worker.
+This repository is a lightweight monorepo. The initial version contains only a
+health-check API, versioned interface fixtures, and documented extension points for a
+future frontend, task compiler, and RT-J execution worker.
+
+Implemented today:
+
+- `GET /healthz` in a typed FastAPI application shell;
+- strict V1 Pydantic contracts with generated JSON Schemas;
+- validated, synthetic Amazon classification and H&M regression UI journeys; and
+- explicit placeholders for the frontend and isolated RT-J worker.
 
 It does not yet:
 
@@ -22,7 +29,8 @@ It does not yet:
 - generate prediction tasks; or
 - report real model results.
 
-See `docs/architecture.md` and `docs/product-flow.md` once the contract scaffold lands.
+See [architecture](docs/architecture.md), [product flow](docs/product-flow.md), and
+[data and licensing boundaries](docs/data-and-licensing.md).
 
 ## Development
 
@@ -33,10 +41,14 @@ make sync
 make hooks
 make check-all
 make serve-api
+make contracts-check
 ```
 
 The local API will listen on `http://127.0.0.1:8000`; its implemented endpoint will be
 `GET /healthz`.
+
+No frontend development server or port is configured. Frontend contributors can start
+from the schemas and clearly marked fixtures under `contracts/v1` without provider keys.
 
 ## Repository workflow
 
