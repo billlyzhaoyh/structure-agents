@@ -20,6 +20,8 @@ from structagent_api.contracts.inference import (
     RTJInferenceConfig,
     RTJInferenceRequest,
     RTJRuntimeProvenance,
+    SimulatedInferenceRequest,
+    SimulatedInferenceResponse,
 )
 from structagent_api.contracts.models import (
     ArtifactReference,
@@ -90,6 +92,8 @@ __all__ = [
     "RTJRuntimeProvenance",
     "RegressionEvaluationResult",
     "RunRecord",
+    "SimulatedInferenceRequest",
+    "SimulatedInferenceResponse",
     "TaskDraftOutcome",
     "TaskDraftRequest",
     "TaskClarificationRequest",

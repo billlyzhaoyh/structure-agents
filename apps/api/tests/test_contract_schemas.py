@@ -16,6 +16,8 @@ def test_schema_export_has_stable_expected_inventory() -> None:
         "prediction-package.schema.json",
         "rtj-inference-request.schema.json",
         "run-record.schema.json",
+        "simulated-inference-request.schema.json",
+        "simulated-inference-response.schema.json",
         "task-clarification-request.schema.json",
         "task-draft-outcome.schema.json",
         "task-draft-request.schema.json",

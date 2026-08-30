@@ -9,10 +9,12 @@ from pydantic import Field, model_validator
 from structagent_api.contracts.models import (
     ClassificationMetrics,
     ContractVersion,
+    EvaluationResult,
     IntegrityCheck,
     MaterializedFileReference,
     ModelTaskPackage,
     RegressionMetrics,
+    RunRecord,
     StrictModel,
     TaskType,
 )
@@ -179,3 +181,38 @@ BatchEvaluationResult = Annotated[
     BatchClassificationEvaluation | BatchRegressionEvaluation,
     Field(discriminator="task_type"),
 ]
+
+
+class SimulatedInferenceRequest(StrictModel):
+    """A no-provider demo request for a reviewed or compiled H&M task."""
+
+    contract_version: ContractVersion
+    dataset_id: Literal["rel-hm"]
+    task_id: str = Field(pattern=r"^rel-hm/(?:user-churn|item-sales|custom/[0-9a-f]{64})$")
+    task_type: TaskType
+
+    @model_validator(mode="after")
+    def validate_default_task_type(self) -> SimulatedInferenceRequest:
+        expected_type = {
+            "rel-hm/user-churn": "binary_classification",
+            "rel-hm/item-sales": "regression",
+        }.get(self.task_id)
+        if expected_type is not None and self.task_type != expected_type:
+            raise ValueError("simulated task type does not match the reviewed default")
+        return self
+
+
+class SimulatedInferenceResponse(StrictModel):
+    """Clearly labelled pseudo-random output for the interactive demo only."""
+
+    contract_version: ContractVersion
+    fixture: Literal[True]
+    implementation_status: Literal["simulated"]
+    run: RunRecord
+    evaluation: EvaluationResult
+
+    @model_validator(mode="after")
+    def validate_run_alignment(self) -> SimulatedInferenceResponse:
+        if self.run.run_id != self.evaluation.run_id:
+            raise ValueError("simulated run and evaluation IDs do not match")
+        return self

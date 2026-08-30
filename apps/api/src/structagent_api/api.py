@@ -23,10 +23,13 @@ from structagent_api.contracts import (
     EvaluationResult,
     LiveTaskDraftOutcome,
     RunRecord,
+    SimulatedInferenceRequest,
+    SimulatedInferenceResponse,
     TaskClarificationRequest,
     TaskDraftRequest,
     UnsupportedTaskDraft,
 )
+from structagent_api.inference.simulated import simulate_inference
 from structagent_api.materialization.daytona_executor import DaytonaExecutionError
 from structagent_api.materialization.daytona_service import materialize_synthetic_in_daytona
 from structagent_api.materialization.task_sql import TaskId
@@ -124,6 +127,16 @@ def create_app(
                     "message": "Synthetic Daytona materialization failed",
                 },
             ) from error
+
+    @app.post(
+        "/v1/inferences/simulated",
+        response_model=SimulatedInferenceResponse,
+        tags=["demo-contracts"],
+    )
+    def create_simulated_inference(
+        request: SimulatedInferenceRequest,
+    ) -> SimulatedInferenceResponse:
+        return simulate_inference(request)
 
     @app.post("/v1/task-drafts", response_model=LiveTaskDraftOutcome, tags=["task-compiler"])
     async def create_task_draft(request: TaskDraftRequest) -> LiveTaskDraftOutcome:

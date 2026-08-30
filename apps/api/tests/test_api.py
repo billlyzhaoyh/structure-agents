@@ -60,6 +60,7 @@ def test_openapi_exposes_catalog_and_fixture_backed_demo_routes() -> None:
     assert set(schema["paths"]) == {
         "/healthz",
         "/v1/datasets/rel-hm",
+        "/v1/inferences/simulated",
         "/v1/materializations/daytona",
         "/v1/runs/{run_id}",
         "/v1/runs/{run_id}/evaluation",
@@ -148,6 +149,50 @@ def test_hm_catalog_routes_return_reviewed_metadata_without_credentials() -> Non
         "rel-hm/item-sales",
     ]
     assert {task["source"] for task in tasks_response.json()["tasks"]} == {"default"}
+
+
+def test_simulated_inference_is_repeatable_and_explicitly_not_model_output() -> None:
+    client = TestClient(create_app(Settings(environment="test")))
+    request = {
+        "contract_version": "v1",
+        "dataset_id": "rel-hm",
+        "task_id": "rel-hm/item-sales",
+        "task_type": "regression",
+    }
+
+    first = client.post("/v1/inferences/simulated", json=request)
+    second = client.post("/v1/inferences/simulated", json=request)
+
+    assert first.status_code == 200
+    assert first.json() == second.json()
+    assert first.json()["implementation_status"] == "simulated"
+    assert first.json()["run"]["message"] == (
+        "Seeded pseudo-random demo result; no model inference occurred."
+    )
+    assert first.json()["evaluation"]["task_type"] == "regression"
+    assert first.json()["evaluation"]["provenance"]["model_id"] == "seeded-random-demo"
+    assert first.json()["evaluation"]["integrity_checks"][0]["status"] == "not_run"
+
+
+def test_simulated_inference_supports_churn_and_rejects_misaligned_defaults() -> None:
+    client = TestClient(create_app(Settings(environment="test")))
+    request = {
+        "contract_version": "v1",
+        "dataset_id": "rel-hm",
+        "task_id": "rel-hm/user-churn",
+        "task_type": "binary_classification",
+    }
+
+    response = client.post("/v1/inferences/simulated", json=request)
+    invalid = client.post(
+        "/v1/inferences/simulated",
+        json={**request, "task_type": "regression"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["evaluation"]["task_type"] == "binary_classification"
+    assert "auroc" in response.json()["evaluation"]["metrics"]
+    assert invalid.status_code == 422
 
 
 def test_default_task_catalog_rejects_unsupported_or_missing_dataset() -> None:

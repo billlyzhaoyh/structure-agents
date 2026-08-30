@@ -15,6 +15,8 @@ from structagent_api.contracts.inference import (
     BatchEvaluationResult,
     PredictionPackage,
     RTJInferenceRequest,
+    SimulatedInferenceRequest,
+    SimulatedInferenceResponse,
 )
 from structagent_api.contracts.models import (
     DatasetDescriptor,
@@ -45,6 +47,8 @@ SCHEMA_FACTORIES: dict[str, SchemaFactory] = {
     "live-task-draft-outcome.schema.json": TypeAdapter(LiveTaskDraftOutcome).json_schema,
     "prediction-package.schema.json": TypeAdapter(PredictionPackage).json_schema,
     "rtj-inference-request.schema.json": RTJInferenceRequest.model_json_schema,
+    "simulated-inference-request.schema.json": SimulatedInferenceRequest.model_json_schema,
+    "simulated-inference-response.schema.json": SimulatedInferenceResponse.model_json_schema,
     "run-record.schema.json": RunRecord.model_json_schema,
     "task-draft-outcome.schema.json": TypeAdapter(TaskDraftOutcome).json_schema,
     "task-draft-request.schema.json": TaskDraftRequest.model_json_schema,
