@@ -21,7 +21,7 @@ def test_only_controller_provider_sdks_are_locked_locally() -> None:
         assert f'name = "{package}"' not in lockfile
 
 
-def test_frontend_is_dependency_free_and_worker_is_documentation_only() -> None:
+def test_frontend_is_dependency_free_and_worker_is_scoped() -> None:
     web_files = {
         path.relative_to(ROOT / "apps" / "web")
         for path in (ROOT / "apps" / "web").rglob("*")
@@ -30,7 +30,7 @@ def test_frontend_is_dependency_free_and_worker_is_documentation_only() -> None:
     worker_files = [
         path.relative_to(ROOT / "workers" / "rtj")
         for path in (ROOT / "workers" / "rtj").rglob("*")
-        if path.is_file()
+        if path.is_file() and "__pycache__" not in path.parts
     ]
 
     assert web_files == {
@@ -45,7 +45,11 @@ def test_frontend_is_dependency_free_and_worker_is_documentation_only() -> None:
         Path("tests/workspace-state.test.mjs"),
         Path("workspace-state.js"),
     }
-    assert worker_files == [Path("README.md")]
+    assert set(worker_files) == {
+        Path("README.md"),
+        Path("__init__.py"),
+        Path("runtime.py"),
+    }
 
 
 def test_external_asset_cache_is_ignored() -> None:
