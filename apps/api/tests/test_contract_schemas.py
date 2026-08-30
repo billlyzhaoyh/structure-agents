@@ -8,9 +8,11 @@ def test_schema_export_has_stable_expected_inventory() -> None:
         "dataset-descriptor.schema.json",
         "default-task-catalog.schema.json",
         "evaluation-result.schema.json",
+        "materialization-result.schema.json",
         "run-record.schema.json",
         "task-draft-outcome.schema.json",
         "task-draft-request.schema.json",
+        "task-sql-artifact.schema.json",
     }
 
 

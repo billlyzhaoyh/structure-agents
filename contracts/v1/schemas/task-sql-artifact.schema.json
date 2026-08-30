@@ -1,0 +1,205 @@
+{
+  "$defs": {
+    "ArtifactReference": {
+      "additionalProperties": false,
+      "description": "Immutable provenance for a reviewed upstream artifact.",
+      "properties": {
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "repository_url": {
+          "minLength": 1,
+          "pattern": "^https://",
+          "title": "Repository Url",
+          "type": "string"
+        },
+        "revision": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Revision",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "repository_url",
+        "revision",
+        "path",
+        "sha256"
+      ],
+      "title": "ArtifactReference",
+      "type": "object"
+    },
+    "TaskValidationCheck": {
+      "additionalProperties": false,
+      "description": "One sanitized, machine-readable materialization check.",
+      "properties": {
+        "code": {
+          "minLength": 1,
+          "title": "Code",
+          "type": "string"
+        },
+        "detail": {
+          "minLength": 1,
+          "title": "Detail",
+          "type": "string"
+        },
+        "status": {
+          "const": "passed",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "status",
+        "detail"
+      ],
+      "title": "TaskValidationCheck",
+      "type": "object"
+    },
+    "TaskValidationReport": {
+      "additionalProperties": false,
+      "description": "Evidence attached only after every guarded check passes.",
+      "properties": {
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/TaskValidationCheck"
+          },
+          "minItems": 1,
+          "title": "Checks",
+          "type": "array"
+        },
+        "status": {
+          "const": "passed",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "checks"
+      ],
+      "title": "TaskValidationReport",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Reviewed DuckDB task query and the evidence required to execute it.",
+  "properties": {
+    "contract_version": {
+      "const": "v1",
+      "title": "Contract Version",
+      "type": "string"
+    },
+    "dataset_id": {
+      "const": "rel-hm",
+      "title": "Dataset Id",
+      "type": "string"
+    },
+    "dialect": {
+      "const": "duckdb",
+      "title": "Dialect",
+      "type": "string"
+    },
+    "entity_column": {
+      "enum": [
+        "customer_id",
+        "article_id"
+      ],
+      "title": "Entity Column",
+      "type": "string"
+    },
+    "entity_table": {
+      "enum": [
+        "customer",
+        "article"
+      ],
+      "title": "Entity Table",
+      "type": "string"
+    },
+    "horizon_days": {
+      "maximum": 7,
+      "minimum": 1,
+      "title": "Horizon Days",
+      "type": "integer"
+    },
+    "normalized_sql": {
+      "minLength": 1,
+      "title": "Normalized Sql",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/ArtifactReference"
+    },
+    "query_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Query Sha256",
+      "type": "string"
+    },
+    "source": {
+      "enum": [
+        "default",
+        "custom"
+      ],
+      "title": "Source",
+      "type": "string"
+    },
+    "sql": {
+      "minLength": 1,
+      "title": "Sql",
+      "type": "string"
+    },
+    "target_column": {
+      "enum": [
+        "churn",
+        "sales"
+      ],
+      "title": "Target Column",
+      "type": "string"
+    },
+    "task_id": {
+      "enum": [
+        "rel-hm/user-churn",
+        "rel-hm/item-sales"
+      ],
+      "title": "Task Id",
+      "type": "string"
+    },
+    "task_type": {
+      "enum": [
+        "binary_classification",
+        "regression"
+      ],
+      "title": "Task Type",
+      "type": "string"
+    },
+    "validation_report": {
+      "$ref": "#/$defs/TaskValidationReport"
+    }
+  },
+  "required": [
+    "contract_version",
+    "dataset_id",
+    "task_id",
+    "source",
+    "dialect",
+    "sql",
+    "normalized_sql",
+    "query_sha256",
+    "entity_table",
+    "entity_column",
+    "target_column",
+    "task_type",
+    "horizon_days",
+    "provenance",
+    "validation_report"
+  ],
+  "title": "TaskSqlArtifact",
+  "type": "object"
+}

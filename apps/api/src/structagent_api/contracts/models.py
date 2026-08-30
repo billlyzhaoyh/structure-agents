@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from pathlib import PurePosixPath
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 ContractVersion = Literal["v1"]
 TaskType = Literal["binary_classification", "regression"]
@@ -259,6 +260,154 @@ class DefaultTaskCatalog(StrictModel):
                 raise ValueError("default task dataset does not match its catalog")
             if not task.task_id.startswith(expected_prefix):
                 raise ValueError("default task ID does not match its catalog dataset")
+        return self
+
+
+class TaskValidationCheck(StrictModel):
+    """One sanitized, machine-readable materialization check."""
+
+    code: str = Field(min_length=1)
+    status: Literal["passed"]
+    detail: str = Field(min_length=1)
+
+
+class TaskValidationReport(StrictModel):
+    """Evidence attached only after every guarded check passes."""
+
+    status: Literal["passed"]
+    checks: list[TaskValidationCheck] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_unique_checks(self) -> TaskValidationReport:
+        codes = [check.code for check in self.checks]
+        if len(codes) != len(set(codes)):
+            raise ValueError("validation report contains duplicate check codes")
+        return self
+
+
+class TaskSqlArtifact(StrictModel):
+    """Reviewed DuckDB task query and the evidence required to execute it."""
+
+    contract_version: ContractVersion
+    dataset_id: Literal["rel-hm"]
+    task_id: Literal["rel-hm/user-churn", "rel-hm/item-sales"]
+    source: TaskSource
+    dialect: Literal["duckdb"]
+    sql: str = Field(min_length=1)
+    normalized_sql: str = Field(min_length=1)
+    query_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    entity_table: Literal["customer", "article"]
+    entity_column: Literal["customer_id", "article_id"]
+    target_column: Literal["churn", "sales"]
+    task_type: TaskType
+    horizon_days: int = Field(ge=1, le=7)
+    provenance: ArtifactReference
+    validation_report: TaskValidationReport
+
+    @model_validator(mode="after")
+    def validate_default_shape(self) -> TaskSqlArtifact:
+        expected = {
+            "rel-hm/user-churn": (
+                "customer",
+                "customer_id",
+                "churn",
+                "binary_classification",
+            ),
+            "rel-hm/item-sales": ("article", "article_id", "sales", "regression"),
+        }[self.task_id]
+        observed = (
+            self.entity_table,
+            self.entity_column,
+            self.target_column,
+            self.task_type,
+        )
+        if observed != expected:
+            raise ValueError("task SQL shape does not match its reviewed default")
+        return self
+
+
+class MaterializedFileReference(StrictModel):
+    """Content-addressed reference to an untracked Parquet artifact."""
+
+    path: str = Field(min_length=1)
+    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    row_count: int = Field(ge=0)
+    byte_count: int = Field(gt=0)
+    columns: list[str] = Field(min_length=1)
+
+    @field_validator("path")
+    @classmethod
+    def validate_relative_path(cls, value: str) -> str:
+        path = PurePosixPath(value)
+        if path.is_absolute() or ".." in path.parts or value != path.as_posix():
+            raise ValueError("artifact path must be a normalized relative POSIX path")
+        return value
+
+
+class DatasetTableReference(MaterializedFileReference):
+    """Pinned relational table supplied separately to the future inference worker."""
+
+    table: Literal["article", "customer", "transactions"]
+
+
+class ModelTaskPackage(StrictModel):
+    """Only the files that a future Modal RT-J worker may receive."""
+
+    contract_version: ContractVersion
+    dataset_id: Literal["rel-hm"]
+    dataset_revision: str = Field(pattern=r"^[0-9a-f]{40}$|^synthetic$")
+    task: TaskSqlArtifact
+    database_files: list[DatasetTableReference] = Field(min_length=3, max_length=3)
+    train_labels: MaterializedFileReference
+    validation_labels: MaterializedFileReference
+    test_rows: MaterializedFileReference
+
+    @model_validator(mode="after")
+    def validate_model_visible_files(self) -> ModelTaskPackage:
+        tables = {reference.table for reference in self.database_files}
+        if tables != {"article", "customer", "transactions"}:
+            raise ValueError("model package requires each reviewed H&M table exactly once")
+
+        labelled_columns = ["timestamp", self.task.entity_column, self.task.target_column]
+        if self.train_labels.columns != labelled_columns:
+            raise ValueError("train label columns do not match the task")
+        if self.validation_labels.columns != labelled_columns:
+            raise ValueError("validation label columns do not match the task")
+        if self.test_rows.columns != ["timestamp", self.task.entity_column]:
+            raise ValueError("model-visible test rows must not contain the target")
+        return self
+
+
+class EvaluatorTruthPackage(StrictModel):
+    """Evaluator-owned target file that must not enter model construction."""
+
+    contract_version: ContractVersion
+    dataset_id: Literal["rel-hm"]
+    task_id: Literal["rel-hm/user-churn", "rel-hm/item-sales"]
+    query_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    test_truth: MaterializedFileReference
+
+
+class MaterializationResult(StrictModel):
+    """Trusted-side result that preserves the model/evaluator separation."""
+
+    contract_version: ContractVersion
+    package_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    model_input: ModelTaskPackage
+    evaluator_truth: EvaluatorTruthPackage
+    validation_report: TaskValidationReport
+
+    @model_validator(mode="after")
+    def validate_package_alignment(self) -> MaterializationResult:
+        task = self.model_input.task
+        truth = self.evaluator_truth
+        if truth.task_id != task.task_id or truth.query_sha256 != task.query_sha256:
+            raise ValueError("evaluator truth does not match the model task")
+        if truth.test_truth.row_count != self.model_input.test_rows.row_count:
+            raise ValueError("model test rows and evaluator truth have different row counts")
+        expected_truth_columns = ["timestamp", task.entity_column, task.target_column]
+        if truth.test_truth.columns != expected_truth_columns:
+            raise ValueError("evaluator truth columns do not match the task")
         return self
 
 

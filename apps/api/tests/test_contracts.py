@@ -5,7 +5,13 @@ from typing import Any
 import pytest
 from pydantic import TypeAdapter, ValidationError
 from structagent_api.catalog import REL_HM_DEFAULT_TASKS
-from structagent_api.contracts import DatasetDescriptor, DefaultTaskCatalog, TaskDraftOutcome
+from structagent_api.contracts import (
+    DatasetDescriptor,
+    DefaultTaskCatalog,
+    MaterializedFileReference,
+    TaskDraftOutcome,
+    TaskSqlArtifact,
+)
 from structagent_api.contracts.models import IntegrityCheck
 
 
@@ -195,3 +201,47 @@ def test_default_task_catalog_rejects_unknown_or_recommendation_tasks() -> None:
 
     with pytest.raises(ValidationError):
         DefaultTaskCatalog.model_validate(recommendation)
+
+
+def test_materialized_file_paths_must_be_relative_and_normalized() -> None:
+    payload = {
+        "path": "../sealed/test-truth.parquet",
+        "sha256": "a" * 64,
+        "row_count": 1,
+        "byte_count": 10,
+        "columns": ["timestamp", "customer_id", "churn"],
+    }
+
+    with pytest.raises(ValidationError, match="normalized relative POSIX path"):
+        MaterializedFileReference.model_validate(payload)
+
+
+def test_task_sql_artifact_rejects_shape_that_disagrees_with_task_id() -> None:
+    payload = {
+        "contract_version": "v1",
+        "dataset_id": "rel-hm",
+        "task_id": "rel-hm/user-churn",
+        "source": "default",
+        "dialect": "duckdb",
+        "sql": "SELECT 1",
+        "normalized_sql": "SELECT 1",
+        "query_sha256": "a" * 64,
+        "entity_table": "article",
+        "entity_column": "article_id",
+        "target_column": "sales",
+        "task_type": "regression",
+        "horizon_days": 7,
+        "provenance": {
+            "repository_url": "https://example.com/repository",
+            "revision": "b" * 40,
+            "path": "manifest.yaml",
+            "sha256": "c" * 64,
+        },
+        "validation_report": {
+            "status": "passed",
+            "checks": [{"code": "static", "status": "passed", "detail": "Reviewed."}],
+        },
+    }
+
+    with pytest.raises(ValidationError, match="does not match its reviewed default"):
+        TaskSqlArtifact.model_validate(payload)
