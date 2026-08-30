@@ -11,8 +11,8 @@ and no trademark registration or employer affiliation is claimed.
 
 This repository is a lightweight monorepo. It currently contains a typed API, a metadata-only
 H&M task catalog, guarded default-task materialization, versioned interface fixtures, a
-dependency-free frontend demo, and documented extension points for a future task compiler
-and RT-J execution worker.
+dependency-free frontend demo, a sealed RT-J inference core, and provider boundaries for
+future live task compilation and Modal execution.
 
 Implemented today:
 
@@ -27,13 +27,16 @@ Implemented today:
 - checksum-verified staging of the approved, revision-pinned private H&M snapshot;
 - opt-in SQL materialization in a private ephemeral Daytona CPU sandbox, with network
   blocking, output validation, parity checks, and verified cleanup; and
-- explicit placeholders for the OpenAI task compiler and Modal RT-J worker.
+- a revision-pinned RT-J H&M adapter, masked-test preparation, sealed evaluator, and
+  deterministic classification/regression vertical slices; and
+- a fakeable Modal controller enforcing exact uploads, isolation policy, preflight projection,
+  a combined 16-hour/$25 ceiling, and cleanup across success and failure paths.
 
 It does not yet:
 
 - call a language model;
 - expose live materialization or run orchestration through HTTP;
-- download or execute RT-J on Modal;
+- provide the concrete Modal SDK App/Volume adapter needed for a paid RT-J run;
 - ingest arbitrary databases;
 - generate custom prediction tasks; or
 - report observed model predictions or evaluation metrics.
@@ -61,6 +64,7 @@ make serve-api
 make serve-web
 make contracts-check
 make test-materializer
+make test-rtj
 make materialize-hm-local
 ```
 
@@ -114,6 +118,34 @@ The live command requires the explicit acknowledgement shown above, verifies bot
 against the pinned official label files, transfers only checksum-verified inputs, and deletes
 the sandbox after execution. It is never part of CI. None of these commands runs a model:
 Modal remains the planned GPU boundary for RT-J inference.
+
+## Testing RT-J and the Modal boundary
+
+Run the deterministic RT-J adapter, worker-preparation, sealed-evaluation, upload-isolation,
+budget, and cleanup tests without credentials, model weights, or network access:
+
+```bash
+make test-rtj
+```
+
+The tests cover both reviewed H&M defaults at the fixed context-256 protocol. They use
+synthetic predictions and do not claim observed model results. The concrete Modal SDK
+App/Volume adapter and paid full-split run remain follow-up work.
+
+For local Modal authentication, prefer a profile stored outside the repository:
+
+```bash
+uv run modal token set --profile structure-agents
+```
+
+Set only `MODAL_PROFILE=structure-agents` in the ignored `.env`, then verify it with
+`make modal-auth-check`. A headless trusted controller may instead receive
+`MODAL_TOKEN_ID` and `MODAL_TOKEN_SECRET` from its secret manager. These account credentials
+must never be attached through `modal.Secret` or passed to the RT-J worker.
+
+RT-J use in this repository is limited to private, independent, non-commercial hackathon
+research. The source licence remains unresolved; do not redistribute or publicly deploy the
+source, weights, H&M data, predictions, or observed results.
 
 ## Repository workflow
 
