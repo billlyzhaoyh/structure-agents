@@ -278,6 +278,9 @@ populations.
   backend roadmap's approved H&M materialization boundary.
 - The first simulation slice establishes contracts and the reviewed default alongside the
   existing API, materializer, and frontend without advertising an executable simulation.
+- The implemented integration smoke may execute one reviewed task with placeholder traits to
+  prove the EDSL, model, Daytona Secret, firewall, artifact-verification, and cleanup boundaries.
+  It is never admitted as study evidence or reported as an H&M-conditioned result.
 - Test doubles are required for deterministic CI but are not the product implementation. The
   milestone is not complete until real H&M, Daytona, EDSL, respondent-model, compiler, and
   persistence paths pass credentialed end-to-end smoke runs.

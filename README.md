@@ -30,12 +30,14 @@ Implemented today:
 - opt-in SQL materialization in a private ephemeral Daytona CPU sandbox, with network
   blocking, output validation, parity checks, and verified cleanup;
 - opt-in execution of the simulation design planner in the same kind of private ephemeral
-  Daytona boundary, using placeholder agents and returning a verified canonical run plan; and
+  Daytona boundary, using placeholder agents and returning a verified canonical run plan;
+- an opt-in, three-repeat EDSL integration smoke using one system-pinned respondent model,
+  opaque Daytona Secret transport, private Expected Parrot results, and synthetic traits; and
 - explicit placeholders for the OpenAI task compiler and Modal RT-J worker.
 
 It does not yet:
 
-- call a language model;
+- execute a full simulation study against H&M-conditioned agents;
 - expose live materialization or run orchestration through HTTP;
 - download or execute RT-J on Modal;
 - ingest arbitrary databases;
@@ -43,8 +45,9 @@ It does not yet:
 - report observed model predictions or evaluation metrics.
 
 The simulation study catalog remains metadata-only. Its reviewed design can be compiled into
-choice tasks locally or in Daytona, but the planner does not access H&M rows, run EDSL, call a
-respondent model, or report simulated findings.
+choice tasks locally or in Daytona. A separate paid integration smoke proves one reviewed task
+can reach EDSL and the respondent model, but it uses synthetic placeholder traits, does not
+access H&M rows, and cannot report simulated findings.
 
 `apps/web` contains a dependency-free interactive Decision OS demo for the hackathon
 journey. Its fashion retail content is a small synthetic placeholder; its SQL database,
@@ -145,6 +148,20 @@ make simulation-plan-daytona-smoke
 
 Both commands produce 4,000 design-only tasks for 400 placeholder agents. They do not use the
 H&M dataset or execute EDSL/respondent-model inference.
+
+To exercise the genuine EDSL and respondent-model boundary for one reviewed task with an
+explicitly placeholder persona, add both `DAYTONA_API_KEY` and `EXPECTED_PARROT_API_KEY` to the
+ignored `.env` and run:
+
+```bash
+make simulation-edsl-daytona-smoke
+```
+
+The smoke creates a short-lived Daytona Secret scoped to Expected Parrot, mounts only its
+opaque placeholder into a domain-allowlisted sandbox, runs three private responses through
+EDSL 1.0.8 and the system-pinned `gpt-4.1-mini-2025-04-14`, downloads a canonical sanitized
+result, then deletes both the sandbox and temporary secret. It is a paid integration check,
+not a study result, and does not access H&M rows.
 
 ## Repository workflow
 
