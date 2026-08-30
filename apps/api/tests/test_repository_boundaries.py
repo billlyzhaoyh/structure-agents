@@ -6,11 +6,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 
 
-def test_model_and_language_provider_runtimes_are_not_locked_dependencies() -> None:
+def test_only_controller_provider_sdks_are_locked_locally() -> None:
     lockfile = (ROOT / "uv.lock").read_text(encoding="utf-8")
 
+    assert 'name = "modal"' in lockfile
+    assert 'name = "openai-agents"' in lockfile
+
     forbidden_packages = {
-        "openai",
         "relbench",
         "relational-transformer",
         "torch",

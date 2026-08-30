@@ -13,7 +13,7 @@ help: ## Show available commands
 	@awk 'BEGIN {FS = ":.*## "}; /^[a-zA-Z_-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 sync: ## Install exact dependencies from uv.lock
-	uv sync --all-packages --frozen
+	uv sync --all-packages --all-groups --frozen
 
 lock: ## Refresh uv.lock after an intentional dependency change
 	uv lock
