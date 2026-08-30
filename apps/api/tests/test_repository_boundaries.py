@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -44,3 +45,13 @@ def test_frontend_is_dependency_free_and_worker_is_documentation_only() -> None:
         Path("workspace-state.js"),
     }
     assert worker_files == [Path("README.md")]
+
+
+def test_external_asset_cache_is_ignored() -> None:
+    result = subprocess.run(
+        ["git", "check-ignore", "--quiet", ".artifacts/rel-hm/example.parquet"],
+        cwd=ROOT,
+        check=False,
+    )
+
+    assert result.returncode == 0
