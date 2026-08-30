@@ -10,10 +10,10 @@ and no trademark registration or employer affiliation is claimed.
 ## Status
 
 This repository is a lightweight monorepo. It currently contains a typed API, a metadata-only
-H&M task catalog, guarded default-task materialization, versioned interface fixtures, a
-dependency-free frontend demo, and documented extension points for a future task compiler
-and execution workers. It also contains versioned simulation contracts and a metadata-only
-reviewed H&M promotional study definition.
+H&M task catalog, guarded default-task materialization, a bounded natural-language task
+compiler, versioned interface fixtures, a dependency-free frontend demo, a sealed RT-J
+inference core, and guarded OpenAI, Daytona, and Modal provider boundaries. It also contains
+versioned simulation contracts and a metadata-only reviewed H&M promotional study definition.
 
 Implemented today:
 
@@ -30,21 +30,30 @@ Implemented today:
 - checksum-verified staging of the approved, revision-pinned private H&M snapshot;
 - opt-in SQL materialization in a private ephemeral Daytona CPU sandbox, with network
   blocking, output validation, parity checks, and verified cleanup;
-- explicit, synthetic-only Daytona materialization launches from the frontend for either
-  reviewed prediction default;
+- explicit, synthetic-only Daytona launches from the frontend for either reviewed default;
+- an explicitly simulated inference endpoint that returns repeatable pseudo-random metrics for
+  both reviewed task types without calling Modal or presenting the output as model evidence;
 - opt-in execution of the simulation design planner in the same kind of private ephemeral
   Daytona boundary, using placeholder agents and returning a verified canonical run plan;
 - an opt-in, three-repeat EDSL integration smoke using one system-pinned respondent model,
-  opaque Daytona Secret transport, private Expected Parrot results, and synthetic traits; and
-- explicit placeholders for the OpenAI task compiler and Modal RT-J worker.
+  opaque Daytona Secret transport, private Expected Parrot results, and synthetic traits;
+- a revision-pinned RT-J H&M adapter, masked-test preparation, sealed evaluator, and
+  deterministic classification/regression vertical slices;
+- a fakeable Modal controller enforcing exact uploads, isolation policy, preflight projection,
+  a combined 16-hour/$25 ceiling, and cleanup across success and failure paths;
+- a guarded OpenAI task compiler that can clarify, reject, or produce review-required custom
+  H&M SQL after aggregate-only validation in one private Daytona sandbox; and
+- a concrete undeployed Modal adapter using one anonymous volume, network-separated asset
+  staging and inference functions, exact model uploads, bounded admission, and verified cleanup.
 
 It does not yet:
 
 - execute a full simulation study against H&M-conditioned agents;
-- expose private H&M materialization, inference, or simulation orchestration through HTTP;
-- download or execute RT-J on Modal;
+- expose private H&M materialization, inference, simulation, or RT-J run orchestration through
+  HTTP;
+- complete the paid full-split RT-J acceptance run for both reviewed tasks;
 - ingest arbitrary databases;
-- generate custom prediction tasks; or
+- execute custom prediction tasks without human review; or
 - report observed model predictions or evaluation metrics.
 
 The simulation study catalog remains metadata-only. Its reviewed design can be compiled into
@@ -55,8 +64,9 @@ access H&M rows, and cannot report simulated findings.
 `apps/web` contains a dependency-free interactive Decision OS demo for the hackathon
 journey. Its fashion retail content is a small synthetic placeholder; its SQL database,
 Snowflake, Redshift, and BigQuery connection choices are mock UI only. The demo connects
-to reviewed synthetic contracts served by the local API and can explicitly request bounded
-synthetic Daytona materialization. It does not add database or model integrations.
+to the local API, can explicitly request bounded synthetic Daytona materialization, uses
+the live task compiler when configured, and can continue into a clearly labelled simulated
+result. Simulated metrics are seeded interface fixtures, not model results.
 
 See [architecture](docs/architecture.md), [product flow](docs/product-flow.md), the
 [H&M backend roadmap](docs/backend-roadmap.md), the isolated
@@ -77,19 +87,39 @@ make serve-api
 make serve-web
 make contracts-check
 make test-materializer
+make test-rtj
+make test-compiler
 make materialize-hm-local
 make simulation-plan-local
 ```
 
 The local API listens on `http://127.0.0.1:8000`. Alongside `GET /healthz`, it serves the
-reviewed H&M metadata and default-task catalog plus task-draft, run, and evaluation fixtures
-under `/v1` for frontend integration. It serves the metadata-only reviewed simulation study
-at `GET /v1/simulation-studies/defaults?dataset_id=rel-hm` and
-`POST /v1/materializations/daytona` launches one or two explicitly approved reviewed tasks
-against generated H&M-shaped data. The materialization route requires `DAYTONA_API_KEY` only
-in the ignored server environment; neither route executes RT-J or a full simulation.
+reviewed H&M metadata and default-task catalog plus run and evaluation fixtures under `/v1`.
+It serves the metadata-only reviewed simulation study at
+`GET /v1/simulation-studies/defaults?dataset_id=rel-hm`.
+`POST /v1/inferences/simulated` returns provider-free pseudo-random demo metrics and identifies
+them as simulated in both the response and UI.
+Task-draft routes compile custom H&M tasks only when both provider credentials are configured;
+otherwise they return a sanitized `503`. `POST /v1/materializations/daytona` launches one or
+two explicitly approved reviewed tasks against generated H&M-shaped data. It requires
+`DAYTONA_API_KEY` only in the ignored server environment. No HTTP route executes RT-J or a
+full simulation.
 
 The frontend demo will listen on `http://127.0.0.1:4173`.
+
+## Testing the task compiler
+
+Run the deterministic compiler, guarded SQL, and API tests without credentials or network:
+
+```bash
+make test-compiler
+```
+
+For local live compilation, add `OPENAI_API_KEY` and `DAYTONA_API_KEY` only to the ignored
+`.env`, verify the pinned H&M cache with `make hm-data-verify`, then start `make serve-api`.
+OpenAI runs only in the trusted API and receives reviewed schema metadata plus sanitized
+aggregate evidence. Daytona runs only the statically validated SQL in a private ephemeral CPU
+sandbox. Generated tasks always require human review before later materialization or inference.
 
 ## Testing the H&M default tasks
 
@@ -169,6 +199,52 @@ opaque placeholder into a domain-allowlisted sandbox, runs three private respons
 EDSL 1.0.8 and the system-pinned `gpt-5.6-luna`, downloads a canonical sanitized
 result, then deletes both the sandbox and temporary secret. It is a paid integration check,
 not a study result, and does not access H&M rows.
+
+## Testing RT-J and the Modal boundary
+
+Run the deterministic RT-J adapter, worker-preparation, sealed-evaluation, upload-isolation,
+budget, and cleanup tests without credentials, model weights, or network access:
+
+```bash
+make test-rtj
+```
+
+The tests cover both reviewed H&M defaults at the fixed context-256 protocol. Deterministic
+tests use synthetic predictions and do not claim observed model results. The live adapter is
+opt-in and never runs in CI.
+
+For local Modal authentication, prefer a profile stored outside the repository:
+
+```bash
+uv run modal token set --profile structure-agents
+```
+
+Set only `MODAL_PROFILE=structure-agents` in the ignored `.env`, then verify it with
+`make modal-auth-check`. A headless trusted controller may instead receive
+`MODAL_TOKEN_ID` and `MODAL_TOKEN_SECRET` from its secret manager. These account credentials
+must never be attached through `modal.Secret` or passed to the RT-J worker.
+
+After `materialize-hm-daytona-live` succeeds, a bounded real-data classification cohort can
+exercise the pinned RT-J source and checkpoint on an L4. Pass the pinned database directory,
+the downloaded `user-churn` materialization directory, and a new ignored output directory:
+
+```bash
+STRUCTAGENT_ALLOW_REAL_HM=1 STRUCTAGENT_ALLOW_RTJ_MODAL=1 \
+RTJ_DATASET_ROOT=.artifacts/rel-hm/<revision>/rel-hm/db \
+RTJ_MATERIALIZATION_ROOT=.artifacts/runs/<daytona-run>/tasks/user-churn \
+RTJ_OUTPUT_ROOT=.artifacts/runs/<new-rtj-run> \
+make rtj-modal-live
+```
+
+The default is a deterministic balanced cohort of 32 real test entities. Modal receives the
+three database tables, model-visible train/validation labels, and masked cohort rows; test
+truth remains local and is joined only after predictions are downloaded and sealed. Private
+predictions, metrics, and provenance are written below the ignored output directory. This is
+an integration and resource smoke test, not a full-split quality benchmark.
+
+RT-J use in this repository is limited to private, independent, non-commercial hackathon
+research. The source licence remains unresolved; do not redistribute or publicly deploy the
+source, weights, H&M data, predictions, or observed results.
 
 ## Repository workflow
 

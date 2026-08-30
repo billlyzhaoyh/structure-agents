@@ -54,6 +54,28 @@ test("the client launches an explicitly approved reviewed task in Daytona", asyn
   });
 });
 
+test("the client requests an explicitly simulated inference result", async () => {
+  const calls = [];
+  const client = createApiClient({
+    baseUrl: "http://api.test",
+    fetchImpl: async (...args) => {
+      calls.push(args);
+      return response({ contract_version: "v1", implementation_status: "simulated" });
+    },
+  });
+
+  await client.runSimulatedInference("rel-hm/item-sales", "regression");
+
+  assert.equal(calls[0][0], "http://api.test/v1/inferences/simulated");
+  assert.equal(calls[0][1].method, "POST");
+  assert.deepEqual(JSON.parse(calls[0][1].body), {
+    contract_version: "v1",
+    dataset_id: "rel-hm",
+    task_id: "rel-hm/item-sales",
+    task_type: "regression",
+  });
+});
+
 test("the client loads the reviewed rel-hm default-task catalog", async () => {
   const calls = [];
   const client = createApiClient({
@@ -92,14 +114,46 @@ test("the client rejects unavailable and incompatible APIs", async () => {
   await assert.rejects(incompatible.getDataset(), /unsupported contract version/);
 });
 
-test("task outcomes must be ready before the UI can run them", () => {
+test("clarification and unsupported responses are normal non-runnable outcomes", () => {
   const contract = { horizon: { value: 7, unit: "days" } };
 
   assert.equal(taskContractFrom({ outcome: "draft_ready", contract }), contract);
-  assert.throws(
-    () => taskContractFrom({ outcome: "needs_clarification", questions: [] }),
-    ContractApiError,
-  );
+  assert.equal(taskContractFrom({ outcome: "needs_clarification", questions: [] }), null);
+  assert.equal(taskContractFrom({ outcome: "unsupported", reason_code: "unsupported_target" }), null);
+  assert.throws(() => taskContractFrom({ outcome: "unknown" }), ContractApiError);
+});
+
+test("clarification requests carry cumulative history to the stateless route", async () => {
+  const calls = [];
+  const client = createApiClient({
+    baseUrl: "http://api.test",
+    fetchImpl: async (...args) => {
+      calls.push(args);
+      return response({ contract_version: "v1", outcome: "needs_clarification", questions: [] });
+    },
+  });
+  const payload = {
+    contract_version: "v1",
+    dataset_id: "rel-hm",
+    original_prompt: "Predict demand",
+    prior_questions: [{ question_id: "horizon" }],
+    answers: [{ question_id: "horizon", value: "7 days" }],
+  };
+
+  await client.clarifyTaskDraft("draft_abc", payload);
+
+  assert.equal(calls[0][0], "http://api.test/v1/task-drafts/draft_abc/clarifications");
+  assert.deepEqual(JSON.parse(calls[0][1].body), payload);
+});
+
+test("503 is exposed as an explicit compiler unavailable state", async () => {
+  const client = createApiClient({ fetchImpl: async () => response({}, { ok: false, status: 503 }) });
+
+  await assert.rejects(client.createTaskDraft("Predict demand"), (error) => {
+    assert.equal(error.status, 503);
+    assert.match(error.message, /compiler is unavailable/);
+    return true;
+  });
 });
 
 test("dataset descriptors map to the schema explorer without inventing keys", () => {

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
 
 import pytest
@@ -48,6 +50,11 @@ def test_default_tasks_materialize_with_sealed_truth(
     ]
     assert result.model_input.test_rows.row_count == result.evaluator_truth.test_truth.row_count
     assert "test_truth" not in result.model_input.model_dump(mode="json")
+    model_input_payload = result.model_input.model_dump(mode="json")
+    expected_model_digest = hashlib.sha256(
+        json.dumps(model_input_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    assert result.model_input_sha256 == expected_model_digest
     assert (output_dir / "manifest.json").is_file()
     assert result.package_sha256 in (output_dir / "manifest.json").read_text(encoding="utf-8")
 

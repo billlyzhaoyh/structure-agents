@@ -35,6 +35,265 @@
       "title": "ArtifactReference",
       "type": "object"
     },
+    "CompilerProvenance": {
+      "additionalProperties": false,
+      "description": "Non-sensitive provenance for one agent-compiled query.",
+      "properties": {
+        "attempt_count": {
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Attempt Count",
+          "type": "integer"
+        },
+        "instructions_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Instructions Sha256",
+          "type": "string"
+        },
+        "model": {
+          "minLength": 1,
+          "title": "Model",
+          "type": "string"
+        },
+        "prompt_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Prompt Sha256",
+          "type": "string"
+        },
+        "schema_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Schema Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "model",
+        "prompt_sha256",
+        "schema_sha256",
+        "instructions_sha256",
+        "attempt_count"
+      ],
+      "title": "CompilerProvenance",
+      "type": "object"
+    },
+    "CustomTaskSqlArtifact": {
+      "additionalProperties": false,
+      "description": "Validated DuckDB query produced by the trusted task compiler.",
+      "properties": {
+        "contract_version": {
+          "const": "v1",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "dataset_id": {
+          "const": "rel-hm",
+          "title": "Dataset Id",
+          "type": "string"
+        },
+        "dialect": {
+          "const": "duckdb",
+          "title": "Dialect",
+          "type": "string"
+        },
+        "entity_column": {
+          "enum": [
+            "customer_id",
+            "article_id"
+          ],
+          "title": "Entity Column",
+          "type": "string"
+        },
+        "entity_table": {
+          "enum": [
+            "customer",
+            "article"
+          ],
+          "title": "Entity Table",
+          "type": "string"
+        },
+        "horizon_days": {
+          "maximum": 7,
+          "minimum": 1,
+          "title": "Horizon Days",
+          "type": "integer"
+        },
+        "normalized_sql": {
+          "minLength": 1,
+          "title": "Normalized Sql",
+          "type": "string"
+        },
+        "provenance": {
+          "$ref": "#/$defs/CompilerProvenance"
+        },
+        "query_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Query Sha256",
+          "type": "string"
+        },
+        "source": {
+          "const": "custom",
+          "title": "Source",
+          "type": "string"
+        },
+        "sql": {
+          "minLength": 1,
+          "title": "Sql",
+          "type": "string"
+        },
+        "target_column": {
+          "const": "target",
+          "title": "Target Column",
+          "type": "string"
+        },
+        "task_id": {
+          "pattern": "^rel-hm/custom/[0-9a-f]{64}$",
+          "title": "Task Id",
+          "type": "string"
+        },
+        "task_type": {
+          "enum": [
+            "binary_classification",
+            "regression"
+          ],
+          "title": "Task Type",
+          "type": "string"
+        },
+        "validation_report": {
+          "$ref": "#/$defs/TaskValidationReport"
+        }
+      },
+      "required": [
+        "contract_version",
+        "dataset_id",
+        "task_id",
+        "source",
+        "dialect",
+        "sql",
+        "normalized_sql",
+        "query_sha256",
+        "entity_table",
+        "entity_column",
+        "target_column",
+        "task_type",
+        "horizon_days",
+        "provenance",
+        "validation_report"
+      ],
+      "title": "CustomTaskSqlArtifact",
+      "type": "object"
+    },
+    "DefaultTaskSqlArtifact": {
+      "additionalProperties": false,
+      "description": "Reviewed DuckDB query for one pinned default task.",
+      "properties": {
+        "contract_version": {
+          "const": "v1",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "dataset_id": {
+          "const": "rel-hm",
+          "title": "Dataset Id",
+          "type": "string"
+        },
+        "dialect": {
+          "const": "duckdb",
+          "title": "Dialect",
+          "type": "string"
+        },
+        "entity_column": {
+          "enum": [
+            "customer_id",
+            "article_id"
+          ],
+          "title": "Entity Column",
+          "type": "string"
+        },
+        "entity_table": {
+          "enum": [
+            "customer",
+            "article"
+          ],
+          "title": "Entity Table",
+          "type": "string"
+        },
+        "horizon_days": {
+          "maximum": 7,
+          "minimum": 1,
+          "title": "Horizon Days",
+          "type": "integer"
+        },
+        "normalized_sql": {
+          "minLength": 1,
+          "title": "Normalized Sql",
+          "type": "string"
+        },
+        "provenance": {
+          "$ref": "#/$defs/ArtifactReference"
+        },
+        "query_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Query Sha256",
+          "type": "string"
+        },
+        "source": {
+          "const": "default",
+          "title": "Source",
+          "type": "string"
+        },
+        "sql": {
+          "minLength": 1,
+          "title": "Sql",
+          "type": "string"
+        },
+        "target_column": {
+          "enum": [
+            "churn",
+            "sales"
+          ],
+          "title": "Target Column",
+          "type": "string"
+        },
+        "task_id": {
+          "enum": [
+            "rel-hm/user-churn",
+            "rel-hm/item-sales"
+          ],
+          "title": "Task Id",
+          "type": "string"
+        },
+        "task_type": {
+          "enum": [
+            "binary_classification",
+            "regression"
+          ],
+          "title": "Task Type",
+          "type": "string"
+        },
+        "validation_report": {
+          "$ref": "#/$defs/TaskValidationReport"
+        }
+      },
+      "required": [
+        "contract_version",
+        "dataset_id",
+        "task_id",
+        "source",
+        "dialect",
+        "sql",
+        "normalized_sql",
+        "query_sha256",
+        "entity_table",
+        "entity_column",
+        "target_column",
+        "task_type",
+        "horizon_days",
+        "provenance",
+        "validation_report"
+      ],
+      "title": "DefaultTaskSqlArtifact",
+      "type": "object"
+    },
     "TaskValidationCheck": {
       "additionalProperties": false,
       "description": "One sanitized, machine-readable materialization check.",
@@ -89,117 +348,19 @@
       "type": "object"
     }
   },
-  "additionalProperties": false,
-  "description": "Reviewed DuckDB task query and the evidence required to execute it.",
-  "properties": {
-    "contract_version": {
-      "const": "v1",
-      "title": "Contract Version",
-      "type": "string"
+  "discriminator": {
+    "mapping": {
+      "custom": "#/$defs/CustomTaskSqlArtifact",
+      "default": "#/$defs/DefaultTaskSqlArtifact"
     },
-    "dataset_id": {
-      "const": "rel-hm",
-      "title": "Dataset Id",
-      "type": "string"
-    },
-    "dialect": {
-      "const": "duckdb",
-      "title": "Dialect",
-      "type": "string"
-    },
-    "entity_column": {
-      "enum": [
-        "customer_id",
-        "article_id"
-      ],
-      "title": "Entity Column",
-      "type": "string"
-    },
-    "entity_table": {
-      "enum": [
-        "customer",
-        "article"
-      ],
-      "title": "Entity Table",
-      "type": "string"
-    },
-    "horizon_days": {
-      "maximum": 7,
-      "minimum": 1,
-      "title": "Horizon Days",
-      "type": "integer"
-    },
-    "normalized_sql": {
-      "minLength": 1,
-      "title": "Normalized Sql",
-      "type": "string"
-    },
-    "provenance": {
-      "$ref": "#/$defs/ArtifactReference"
-    },
-    "query_sha256": {
-      "pattern": "^[0-9a-f]{64}$",
-      "title": "Query Sha256",
-      "type": "string"
-    },
-    "source": {
-      "enum": [
-        "default",
-        "custom"
-      ],
-      "title": "Source",
-      "type": "string"
-    },
-    "sql": {
-      "minLength": 1,
-      "title": "Sql",
-      "type": "string"
-    },
-    "target_column": {
-      "enum": [
-        "churn",
-        "sales"
-      ],
-      "title": "Target Column",
-      "type": "string"
-    },
-    "task_id": {
-      "enum": [
-        "rel-hm/user-churn",
-        "rel-hm/item-sales"
-      ],
-      "title": "Task Id",
-      "type": "string"
-    },
-    "task_type": {
-      "enum": [
-        "binary_classification",
-        "regression"
-      ],
-      "title": "Task Type",
-      "type": "string"
-    },
-    "validation_report": {
-      "$ref": "#/$defs/TaskValidationReport"
-    }
+    "propertyName": "source"
   },
-  "required": [
-    "contract_version",
-    "dataset_id",
-    "task_id",
-    "source",
-    "dialect",
-    "sql",
-    "normalized_sql",
-    "query_sha256",
-    "entity_table",
-    "entity_column",
-    "target_column",
-    "task_type",
-    "horizon_days",
-    "provenance",
-    "validation_report"
-  ],
-  "title": "TaskSqlArtifact",
-  "type": "object"
+  "oneOf": [
+    {
+      "$ref": "#/$defs/DefaultTaskSqlArtifact"
+    },
+    {
+      "$ref": "#/$defs/CustomTaskSqlArtifact"
+    }
+  ]
 }

@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="StructAgent pitch deck: the SME decision-team gap, why now, and the database-to-experiment loop."
+    />
+    <title>Decision OS Pitch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=Caveat:wght@500;600&display=swap" />
+  </head>
+  <body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #f6f7fb;
+    --white: #ffffff;
+    --ink: #192238;
+    --muted: #6f788e;
+    --line: #e1e5ed;
+    --line-strong: #aab3c5;
+    --cloud: #e9edf5;
+    --cobalt: #2255ff;
+    --cobalt-soft: #dce5ff;
+    --citron: #d8f55d;
+    --green: #24755a;
+    --green-soft: #ddf0e9;
+    --warning: #bd5338;
+    --warning-soft: #f9e5df;
+    --warning-line: #efc7ba;
+    --shadow-sm: 0 1px 2px rgba(19, 28, 48, .05), 0 6px 18px rgba(19, 28, 48, .04);
+    --shadow-md: 0 14px 36px rgba(19, 28, 48, .09);
+    --sans: Inter, "Avenir Next", Avenir, "Segoe UI", sans-serif;
+    --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    --hand: Caveat, "Segoe Print", cursive;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    color: var(--ink);
+    background: var(--paper);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, p, ul { margin: 0; }
+  button { font: inherit; border: 0; cursor: pointer; }
+  :focus-visible { outline: 3px solid var(--citron); outline-offset: 3px; }
+
+  /* ---------- deck chrome ---------- */
+  .deck-bar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    height: 56px;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--line);
+    background: rgba(255, 255, 255, .88);
+    backdrop-filter: blur(18px);
+  }
+  .brand { display: flex; align-items: center; gap: 11px; font-size: 12px; font-weight: 700; letter-spacing: -.01em; }
+  .brand-glyph {
+    width: 17px; height: 17px;
+    border: 5px solid var(--cobalt);
+    border-radius: 50%;
+    box-shadow: 8px 0 0 -5px var(--paper), 8px 0 0 -1px var(--citron);
+  }
+  .deck-bar .spacer { flex: 1; }
+  .counter { font: 700 9px/1 var(--mono); letter-spacing: .12em; color: var(--muted); text-transform: uppercase; }
+  .nav { display: flex; gap: 6px; }
+  .nav button {
+    display: grid; place-items: center;
+    width: 32px; height: 32px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--white);
+    color: var(--ink);
+    box-shadow: var(--shadow-sm);
+    transition: border-color .16s ease, background-color .16s ease;
+  }
+  .nav button:hover:not(:disabled) { border-color: var(--line-strong); background: #fbfcfe; }
+  .nav button:disabled { opacity: .38; cursor: not-allowed; }
+  .nav button svg { width: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .stage { flex: 1; display: grid; place-items: center; padding: 18px; min-height: 0; }
+  .slide {
+    container-type: size;
+    display: flex;
+    flex-direction: column;
+    width: min(100%, (100dvh - 92px) * 16 / 9);
+    aspect-ratio: 16 / 9;
+    padding: 4cqw 4.2cqw 3.4cqw;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--white);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+  }
+  .slide[hidden] { display: none; }
+
+  .eyebrow {
+    display: block;
+    color: var(--cobalt);
+    font: 700 1.15cqw/1 var(--mono);
+    text-transform: uppercase;
+    letter-spacing: .13em;
+  }
+  .slide h1 {
+    margin: 1.5cqw 0 0;
+    max-width: 66cqw;
+    font-size: 3.7cqw;
+    line-height: 1.02;
+    letter-spacing: -.04em;
+    text-wrap: balance;
+  }
+
+  .scope {
+    display: inline-flex;
+    align-items: center;
+    gap: .8cqw;
+    align-self: flex-start;
+    margin-top: 1.4cqw;
+    padding: .8cqw 1.2cqw;
+    border: 1px solid var(--line);
+    border-radius: 50px;
+    background: var(--cloud);
+    color: var(--muted);
+    font-size: 1.2cqw;
+    line-height: 1.35;
+  }
+  .scope i { font-size: 1.6cqw; font-style: normal; line-height: 1; }
+  .scope b { color: var(--ink); }
+
+  .tag {
+    display: inline-block;
+    padding: .55cqw .8cqw;
+    border-radius: 50px;
+    font: 700 .88cqw/1 var(--mono);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+  }
+  .tag.out { color: var(--warning); background: var(--warning-soft); border: 1px solid var(--warning-line); }
+  .tag.now { color: var(--green); background: var(--green-soft); border: 1px solid #b6d9cd; }
+
+  /* ---------- title slide ---------- */
+  .slide.cover {
+    justify-content: center;
+    gap: 0;
+    padding: 6cqw 6cqw 4.6cqw;
+    border-color: #0d1526;
+    background: radial-gradient(120% 120% at 12% 8%, #1c2b48 0%, #111a2d 55%, #0c1424 100%);
+    color: #eef1f7;
+  }
+  .cover-mark { display: flex; align-items: center; gap: 1.4cqw; }
+  .cover-mark span {
+    width: 2.2cqw; height: 2.2cqw;
+    border: .62cqw solid var(--cobalt);
+    border-radius: 50%;
+    box-shadow: 1.05cqw 0 0 -.66cqw #111a2d, 1.05cqw 0 0 -.12cqw var(--citron);
+  }
+  .cover-mark b { font-size: 2.6cqw; letter-spacing: -.035em; }
+  .cover-mark i { font-style: normal; color: #8b97b1; font: 700 1.1cqw/1 var(--mono); text-transform: uppercase; letter-spacing: .14em; }
+  .cover h1 {
+    margin-top: 3.4cqw;
+    max-width: 74cqw;
+    font-size: 5.6cqw;
+    line-height: .98;
+    color: #ffffff;
+  }
+  .cover h1 mark { background: none; color: var(--citron); }
+  .cover .cover-sub {
+    margin-top: 2.2cqw;
+    max-width: 56cqw;
+    color: #aeb8ca;
+    font-size: 1.65cqw;
+    line-height: 1.5;
+  }
+  .cover-foot {
+    display: flex;
+    align-items: center;
+    gap: 1.2cqw;
+    margin-top: auto;
+    padding-top: 2.6cqw;
+    border-top: 1px solid #2c3852;
+    color: #8b97b1;
+    font: 700 1.05cqw/1 var(--mono);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+  }
+  .cover-foot em { font-style: normal; color: var(--citron); }
+  .cover-foot .dot { color: #46536e; }
+
+  /* ---------- slide 1: three pillars ---------- */
+  .pillars {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.3cqw;
+    margin-top: 1.8cqw;
+  }
+  .pillar {
+    display: flex;
+    flex-direction: column;
+    padding: 2cqw 1.9cqw 1.8cqw;
+    border: 1px solid var(--line);
+    border-radius: 1.2cqw;
+    background: var(--paper);
+    box-shadow: var(--shadow-sm);
+  }
+  .pillar.now { border-color: var(--cobalt-soft); background: linear-gradient(180deg, #f1f5ff 0%, var(--white) 62%); }
+  .pillar .glyph { font-size: 3.9cqw; line-height: 1; }
+  .pillar b { margin-top: 1.3cqw; font-size: 2cqw; line-height: 1.06; letter-spacing: -.03em; }
+  .pillar small { margin-top: .9cqw; color: var(--muted); font-size: 1.22cqw; line-height: 1.5; }
+
+  .roles { list-style: none; padding: 0; margin: 1.4cqw 0 0; display: flex; flex-direction: column; gap: .8cqw; }
+  .roles li { display: flex; align-items: center; gap: .8cqw; font-size: 1.25cqw; font-weight: 700; letter-spacing: -.01em; }
+  .roles li i { font-size: 1.7cqw; font-style: normal; line-height: 1; }
+
+  .shift {
+    margin-top: 1.4cqw;
+    color: var(--cobalt);
+    font: 700 1.02cqw/1.55 var(--mono);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+  .pillar .tag { align-self: flex-start; margin-top: auto; }
+
+  .stack { list-style: none; padding: 0; margin: 1.2cqw 0 0; display: flex; flex-direction: column; gap: 1.2cqw; }
+  .stack li { display: flex; flex-direction: column; padding-left: 1cqw; border-left: .18cqw solid var(--cobalt-soft); }
+  .stack li b { display: flex; align-items: center; gap: .6cqw; margin-top: 0; font-size: 1.45cqw; line-height: 1.2; letter-spacing: -.02em; }
+  .stack li i { font-size: 1.5cqw; font-style: normal; line-height: 1; }
+  .stack li small { margin-top: .45cqw; font-size: 1.12cqw; line-height: 1.45; }
+  .stack .shift { margin-top: .6cqw; font-size: .95cqw; }
+
+  /* ---------- slide 2: the flow ---------- */
+  .solution-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 2.6cqw; }
+  .head-left { display: flex; flex-direction: column; align-items: flex-start; max-width: 58cqw; }
+
+  .dataset {
+    flex: none;
+    width: 27cqw;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1.4cqw 1.5cqw;
+    border: 1px solid var(--line);
+    border-radius: 1cqw;
+    background: var(--paper);
+    box-shadow: var(--shadow-sm);
+  }
+  .dataset .tag { margin-bottom: 1cqw; }
+  .dataset .name { display: flex; align-items: center; gap: .7cqw; font-size: 1.6cqw; font-weight: 700; letter-spacing: -.02em; }
+  .dataset .name i { font-size: 1.7cqw; font-style: normal; line-height: 1; }
+  .dataset code { margin-top: .5cqw; color: var(--cobalt); font: 700 1cqw/1 var(--mono); }
+  .dataset ul { list-style: none; padding: 0; margin: 1cqw 0 0; display: flex; flex-direction: column; gap: .6cqw; width: 100%; }
+  .dataset li { display: flex; gap: .7cqw; font-size: 1.1cqw; line-height: 1.35; }
+  .dataset li i { font-size: 1.2cqw; font-style: normal; line-height: 1.2; }
+  .dataset li em { font-style: normal; font-family: var(--mono); font-weight: 700; }
+  .dataset small { margin-top: 1cqw; color: var(--muted); font-size: .98cqw; line-height: 1.45; }
+  .tag.data { color: var(--cobalt); background: var(--cobalt-soft); border: 1px solid #bccfff; }
+
+  figure { margin: 0; flex: 1; min-height: 0; display: flex; flex-direction: column; margin-top: 1.6cqw; }
+  .canvas {
+    flex: 1;
+    min-height: 0;
+    padding: 1cqw 0 .4cqw;
+    background-image: radial-gradient(var(--line) .8px, transparent .8px);
+    background-size: 1.1cqw 1.1cqw;
+    border-radius: 1cqw;
+  }
+  .canvas svg { display: block; width: 100%; height: 100%; }
+  .caveat {
+    flex: none;
+    display: flex;
+    align-items: flex-start;
+    gap: 1cqw;
+    margin-top: 1.4cqw;
+    padding: 1.1cqw 1.3cqw;
+    border-left: .3cqw solid var(--warning);
+    border-radius: 0 .7cqw .7cqw 0;
+    background: var(--warning-soft);
+    font-size: 1.2cqw;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  .caveat .glyph { font-size: 1.7cqw; line-height: 1.2; }
+  .caveat b { color: var(--warning); }
+
+  .sk-fill { fill: var(--white); }
+  .sk-line { fill: none; stroke: var(--ink); stroke-width: 2.2; stroke-linejoin: round; }
+  .sk-ghost { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linejoin: round; opacity: .3; }
+  .sk-line.accent { stroke: var(--cobalt); }
+  .sk-ghost.accent { stroke: var(--cobalt); }
+  .sk-line.warn { stroke: var(--warning); stroke-dasharray: 9 6; }
+  .sk-ghost.warn { stroke: var(--warning); }
+  .sk-win { fill: var(--citron); stroke: var(--ink); stroke-width: 2.2; }
+  .flow { fill: none; stroke: var(--ink); stroke-width: 2.4; stroke-linecap: round; }
+  .flow.loop { stroke: var(--muted); stroke-width: 2; stroke-dasharray: 7 7; }
+  .t-title { font-family: var(--sans); font-size: 19px; font-weight: 700; fill: var(--ink); letter-spacing: -.01em; }
+  .t-sub { font-family: var(--sans); font-size: 13px; fill: var(--muted); }
+  .t-emoji { font-size: 30px; }
+  .t-hand { font-family: var(--hand); font-size: 21px; font-weight: 600; fill: var(--muted); }
+  .t-hand.on { fill: var(--cobalt); }
+  .t-hand.warn { fill: var(--warning); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<header class="deck-bar">
+  <span class="brand"><span class="brand-glyph"></span>StructAgent — Decision OS</span>
+  <span class="spacer"></span>
+  <span class="counter" id="counter">01 / 03 · StructAgent</span>
+  <span class="nav">
+    <button id="prev" aria-label="Previous slide"><svg viewBox="0 0 24 24"><path d="M15 5 8 12l7 7" /></svg></button>
+    <button id="next" aria-label="Next slide"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7" /></svg></button>
+  </span>
+</header>
+
+<main class="stage">
+  <!-- ============ COVER ============ -->
+  <section class="slide cover" id="slide-0" aria-label="Title">
+    <span class="cover-mark">
+      <span></span>
+      <b>StructAgent</b>
+      <i>by StructureML</i>
+    </span>
+    <h1>The <mark>Decision OS</mark> for B2C business owners.</h1>
+    <p class="cover-sub">Connect the database you already have, and get to an intervention that has been simulated, tested and measured &mdash; without hiring a data science team to do it.</p>
+    <span class="cover-foot">
+      <span>Data</span><span class="dot">&rarr;</span>
+      <span>Prediction</span><span class="dot">&rarr;</span>
+      <span>Simulation</span><span class="dot">&rarr;</span>
+      <em>Banked win</em>
+    </span>
+  </section>
+
+  <!-- ============ SLIDE 1 ============ -->
+  <section class="slide" id="slide-1" aria-label="The problem and why now">
+    <span class="eyebrow">The problem · why now</span>
+    <h1>Let business owners run robustly tested interventions — at scale.</h1>
+    <p class="scope"><i>🛍️</i><span>Retail is the worked example throughout — the same loop fits <b>any B2C business</b> measured on conversion, app installs, purchase, subscription, churn or upsell.</span></p>
+
+    <div class="pillars">
+      <article class="pillar">
+        <span class="glyph">💸</span>
+        <b>The team that makes that possible</b>
+        <small>Three specialists, working as one, before a single decision changes.</small>
+        <ul class="roles">
+          <li><i>🧮</i>Data scientist</li>
+          <li><i>🤖</i>ML engineer</li>
+          <li><i>🧠</i>Behavioural scientist</li>
+        </ul>
+        <span class="tag out">Out of reach for an SME</span>
+      </article>
+
+      <article class="pillar now">
+        <span class="glyph">📉</span>
+        <b>The two hard parts got cheap</b>
+        <ul class="stack">
+          <li>
+            <b><i>🕸️</i>Relational foundation models</b>
+            <small>Point at the database exactly as it is. No pipelines, no feature engineering.</small>
+            <p class="shift">A modelling project &rarr; a connection</p>
+          </li>
+          <li>
+            <b><i>👥</i>Generative agent simulation</b>
+            <small>Test how real customers respond to a move, thousands of times over.</small>
+            <p class="shift">A research budget &rarr; a rounding error</p>
+          </li>
+        </ul>
+        <span class="tag now">Commoditising</span>
+      </article>
+
+      <article class="pillar now">
+        <span class="glyph">🧩</span>
+        <b>Agents are the glue</b>
+        <small>The connective work between a schema, a business and the systems it runs on used to mean people in a room. An agent carries it now.</small>
+        <ul class="roles">
+          <li><i>🗄️</i>Reads the data as it is</li>
+          <li><i>🧠</i>Holds the business context</li>
+          <li><i>🔧</i>Does the integration legwork</li>
+        </ul>
+        <span class="tag now">Now possible</span>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============ SLIDE 2 ============ -->
+  <section class="slide" id="slide-2" aria-label="The solution" hidden>
+    <div class="solution-head">
+      <div class="head-left">
+        <span class="eyebrow">The solution</span>
+        <h1>From database connection to the experiment worth running in production.</h1>
+        <p class="scope"><i>🛍️</i><span>Shown with a <b>retail</b> schema &mdash; swap in a subscription, app or marketing database and the loop is identical: the objective becomes conversion, install, purchase or retention.</span></p>
+      </div>
+
+      <aside class="dataset">
+        <span class="tag data">The dataset we used</span>
+        <span class="name"><i>👚</i>RelBench H&amp;M</span>
+        <code>rel-hm</code>
+        <ul>
+          <li><i>🗄️</i><span>Three linked tables &mdash; <em>customer</em> &middot; <em>transactions</em> &middot; <em>article</em></span></li>
+          <li><i>🎯</i><span>Two objectives &mdash; 7-day customer churn, 7-day article sales</span></li>
+        </ul>
+        <small>A public relational benchmark on real H&amp;M retail structure. The competition data itself stays with its own terms &mdash; we don&rsquo;t redistribute it.</small>
+      </aside>
+    </div>
+
+    <figure>
+      <div class="canvas">
+        <svg viewBox="0 0 1400 470" role="img"
+             aria-label="Flow diagram: your data and your objective feed a relational graph foundation model, which predicts into a decision space where agent simulation shortlists interventions; the shortlist becomes one live experiment — hands-on to launch today — which banks a measured win, and every result loops back to retrain the model.">
+          <defs>
+            <marker id="ah" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0 0.5 L10 5 L0 9.5 z" fill="#192238" />
+            </marker>
+            <marker id="ah-soft" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0 0.5 L10 5 L0 9.5 z" fill="#6f788e" />
+            </marker>
+          </defs>
+
+          <!-- A: your data -->
+          <g transform="rotate(-0.5 137 115)">
+            <rect class="sk-ghost" x="34" y="59" width="215" height="120" rx="9" />
+            <rect class="sk-fill" x="30" y="55" width="215" height="120" rx="9" />
+            <rect class="sk-line" x="30" y="55" width="215" height="120" rx="9" />
+            <text class="t-emoji" x="137" y="102" text-anchor="middle">🗄️</text>
+            <text class="t-title" x="137" y="130" text-anchor="middle">Your database</text>
+            <text class="t-sub" x="137" y="152" text-anchor="middle">CRM · orders · ledger</text>
+          </g>
+
+          <!-- B: your objective -->
+          <g transform="rotate(0.45 137 325)">
+            <rect class="sk-ghost" x="34" y="269" width="215" height="120" rx="9" />
+            <rect class="sk-fill" x="30" y="265" width="215" height="120" rx="9" />
+            <rect class="sk-line" x="30" y="265" width="215" height="120" rx="9" />
+            <text class="t-emoji" x="137" y="312" text-anchor="middle">🎯</text>
+            <text class="t-title" x="137" y="340" text-anchor="middle">Your objective</text>
+            <text class="t-sub" x="137" y="362" text-anchor="middle">what winning means here</text>
+          </g>
+
+          <!-- C: relational foundation model -->
+          <g transform="rotate(-0.35 447 220)">
+            <rect class="sk-ghost accent" x="324" y="124" width="255" height="200" rx="10" />
+            <rect class="sk-fill" x="320" y="120" width="255" height="200" rx="10" />
+            <rect class="sk-line accent" x="320" y="120" width="255" height="200" rx="10" />
+            <text class="t-emoji" x="447" y="182" text-anchor="middle">🕸️</text>
+            <text class="t-title" x="447" y="216" text-anchor="middle">Relational graph</text>
+            <text class="t-title" x="447" y="240" text-anchor="middle">foundation model</text>
+            <text class="t-sub" x="447" y="270" text-anchor="middle">your schema, as it is</text>
+            <text class="t-sub" x="447" y="292" text-anchor="middle">who churns · who buys · what next</text>
+          </g>
+
+          <!-- D: decision space -->
+          <g transform="rotate(0.4 777 220)">
+            <rect class="sk-ghost accent" x="654" y="124" width="255" height="200" rx="10" />
+            <rect class="sk-fill" x="650" y="120" width="255" height="200" rx="10" />
+            <rect class="sk-line accent" x="650" y="120" width="255" height="200" rx="10" />
+            <text class="t-emoji" x="777" y="182" text-anchor="middle">👥</text>
+            <text class="t-title" x="777" y="216" text-anchor="middle">Decision space</text>
+            <text class="t-title" x="777" y="240" text-anchor="middle">agent simulation</text>
+            <text class="t-sub" x="777" y="270" text-anchor="middle">thousands of moves, simulated</text>
+            <text class="t-sub" x="777" y="292" text-anchor="middle">discount · message · timing · offer</text>
+          </g>
+
+          <!-- E: experiment -->
+          <g transform="rotate(-0.4 1080 220)">
+            <rect class="sk-ghost warn" x="984" y="124" width="200" height="200" rx="10" />
+            <rect class="sk-fill" x="980" y="120" width="200" height="200" rx="10" />
+            <rect class="sk-line warn" x="980" y="120" width="200" height="200" rx="10" />
+            <text class="t-emoji" x="1080" y="188" text-anchor="middle">🧪</text>
+            <text class="t-title" x="1080" y="224" text-anchor="middle">One live</text>
+            <text class="t-title" x="1080" y="248" text-anchor="middle">experiment</text>
+            <text class="t-sub" x="1080" y="278" text-anchor="middle">on real customers</text>
+          </g>
+
+          <!-- F: banked win -->
+          <g transform="rotate(0.6 1305 220)">
+            <rect class="sk-ghost" x="1244" y="149" width="130" height="145" rx="10" />
+            <rect class="sk-win" x="1240" y="145" width="130" height="145" rx="10" />
+            <text class="t-emoji" x="1305" y="205" text-anchor="middle">📈</text>
+            <text class="t-title" x="1305" y="240" text-anchor="middle">Banked</text>
+            <text class="t-title" x="1305" y="264" text-anchor="middle">win</text>
+          </g>
+
+          <!-- flows -->
+          <path class="flow" d="M248 118 C 282 116, 292 152, 314 176" marker-end="url(#ah)" />
+          <path class="flow" d="M248 322 C 282 324, 292 288, 314 265" marker-end="url(#ah)" />
+          <path class="flow" d="M578 220 C 604 214, 624 227, 644 220" marker-end="url(#ah)" />
+          <path class="flow" d="M908 220 C 934 214, 954 227, 974 220" marker-end="url(#ah)" />
+          <path class="flow" d="M1183 220 C 1202 215, 1218 226, 1235 220" marker-end="url(#ah)" />
+          <path class="flow loop" d="M1305 292 C 1305 372, 1288 414, 1214 416 L 520 421 C 458 423, 448 396, 447 328" marker-end="url(#ah-soft)" />
+
+          <!-- hand-written labels -->
+          <text class="t-hand" x="286" y="146" text-anchor="middle">connect</text>
+          <text class="t-hand" x="286" y="304" text-anchor="middle">brief us</text>
+          <text class="t-hand on" x="611" y="199" text-anchor="middle">predicts</text>
+          <text class="t-hand on" x="941" y="199" text-anchor="middle">shortlist</text>
+          <text class="t-hand" x="1209" y="199" text-anchor="middle">launch</text>
+          <text class="t-hand" x="447" y="98" text-anchor="middle">no pipelines, no feature engineering</text>
+          <text class="t-hand" x="777" y="98" text-anchor="middle">fail cheaply here, not in the market</text>
+          <text class="t-hand warn" x="1080" y="352" text-anchor="middle">hands-on today</text>
+          <text class="t-hand" x="830" y="452" text-anchor="middle">every result retrains the model</text>
+        </svg>
+      </div>
+
+      <p class="caveat">
+        <span class="glyph">🔧</span>
+        <span><b>Where we&rsquo;re light today — the launch step.</b> Plenty of our customers aren&rsquo;t digital-native businesses, so putting an intervention live is integration and process work with the team, not flipping a flag on a website or an app.</span>
+      </p>
+    </figure>
+  </section>
+</main>
+
+<script>
+  (function () {
+    var slides = [
+      { el: document.getElementById('slide-0'), label: 'StructAgent' },
+      { el: document.getElementById('slide-1'), label: 'The problem' },
+      { el: document.getElementById('slide-2'), label: 'The solution' }
+    ];
+    var counter = document.getElementById('counter');
+    var prev = document.getElementById('prev');
+    var next = document.getElementById('next');
+    var index = 0;
+
+    function render() {
+      slides.forEach(function (s, i) { s.el.hidden = i !== index; });
+      counter.textContent = '0' + (index + 1) + ' / 0' + slides.length + ' · ' + slides[index].label;
+      prev.disabled = index === 0;
+      next.disabled = index === slides.length - 1;
+    }
+    function go(delta) {
+      index = Math.min(slides.length - 1, Math.max(0, index + delta));
+      render();
+    }
+
+    prev.addEventListener('click', function () { go(-1); });
+    next.addEventListener('click', function () { go(1); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { go(1); e.preventDefault(); }
+      if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(-1); e.preventDefault(); }
+    });
+    render();
+  })();
+</script>
+
+  </body>
+</html>

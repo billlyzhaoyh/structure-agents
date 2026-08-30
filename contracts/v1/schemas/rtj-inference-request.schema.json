@@ -1,0 +1,668 @@
+{
+  "$defs": {
+    "ArtifactReference": {
+      "additionalProperties": false,
+      "description": "Immutable provenance for a reviewed upstream artifact.",
+      "properties": {
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "repository_url": {
+          "minLength": 1,
+          "pattern": "^https://",
+          "title": "Repository Url",
+          "type": "string"
+        },
+        "revision": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Revision",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "repository_url",
+        "revision",
+        "path",
+        "sha256"
+      ],
+      "title": "ArtifactReference",
+      "type": "object"
+    },
+    "CompilerProvenance": {
+      "additionalProperties": false,
+      "description": "Non-sensitive provenance for one agent-compiled query.",
+      "properties": {
+        "attempt_count": {
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Attempt Count",
+          "type": "integer"
+        },
+        "instructions_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Instructions Sha256",
+          "type": "string"
+        },
+        "model": {
+          "minLength": 1,
+          "title": "Model",
+          "type": "string"
+        },
+        "prompt_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Prompt Sha256",
+          "type": "string"
+        },
+        "schema_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Schema Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "model",
+        "prompt_sha256",
+        "schema_sha256",
+        "instructions_sha256",
+        "attempt_count"
+      ],
+      "title": "CompilerProvenance",
+      "type": "object"
+    },
+    "CustomTaskSqlArtifact": {
+      "additionalProperties": false,
+      "description": "Validated DuckDB query produced by the trusted task compiler.",
+      "properties": {
+        "contract_version": {
+          "const": "v1",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "dataset_id": {
+          "const": "rel-hm",
+          "title": "Dataset Id",
+          "type": "string"
+        },
+        "dialect": {
+          "const": "duckdb",
+          "title": "Dialect",
+          "type": "string"
+        },
+        "entity_column": {
+          "enum": [
+            "customer_id",
+            "article_id"
+          ],
+          "title": "Entity Column",
+          "type": "string"
+        },
+        "entity_table": {
+          "enum": [
+            "customer",
+            "article"
+          ],
+          "title": "Entity Table",
+          "type": "string"
+        },
+        "horizon_days": {
+          "maximum": 7,
+          "minimum": 1,
+          "title": "Horizon Days",
+          "type": "integer"
+        },
+        "normalized_sql": {
+          "minLength": 1,
+          "title": "Normalized Sql",
+          "type": "string"
+        },
+        "provenance": {
+          "$ref": "#/$defs/CompilerProvenance"
+        },
+        "query_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Query Sha256",
+          "type": "string"
+        },
+        "source": {
+          "const": "custom",
+          "title": "Source",
+          "type": "string"
+        },
+        "sql": {
+          "minLength": 1,
+          "title": "Sql",
+          "type": "string"
+        },
+        "target_column": {
+          "const": "target",
+          "title": "Target Column",
+          "type": "string"
+        },
+        "task_id": {
+          "pattern": "^rel-hm/custom/[0-9a-f]{64}$",
+          "title": "Task Id",
+          "type": "string"
+        },
+        "task_type": {
+          "enum": [
+            "binary_classification",
+            "regression"
+          ],
+          "title": "Task Type",
+          "type": "string"
+        },
+        "validation_report": {
+          "$ref": "#/$defs/TaskValidationReport"
+        }
+      },
+      "required": [
+        "contract_version",
+        "dataset_id",
+        "task_id",
+        "source",
+        "dialect",
+        "sql",
+        "normalized_sql",
+        "query_sha256",
+        "entity_table",
+        "entity_column",
+        "target_column",
+        "task_type",
+        "horizon_days",
+        "provenance",
+        "validation_report"
+      ],
+      "title": "CustomTaskSqlArtifact",
+      "type": "object"
+    },
+    "DatasetTableReference": {
+      "additionalProperties": false,
+      "description": "Pinned relational table supplied separately to the future inference worker.",
+      "properties": {
+        "byte_count": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Count",
+          "type": "integer"
+        },
+        "columns": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Columns",
+          "type": "array"
+        },
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "row_count": {
+          "minimum": 0,
+          "title": "Row Count",
+          "type": "integer"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "table": {
+          "enum": [
+            "article",
+            "customer",
+            "transactions"
+          ],
+          "title": "Table",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256",
+        "row_count",
+        "byte_count",
+        "columns",
+        "table"
+      ],
+      "title": "DatasetTableReference",
+      "type": "object"
+    },
+    "DefaultTaskSqlArtifact": {
+      "additionalProperties": false,
+      "description": "Reviewed DuckDB query for one pinned default task.",
+      "properties": {
+        "contract_version": {
+          "const": "v1",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "dataset_id": {
+          "const": "rel-hm",
+          "title": "Dataset Id",
+          "type": "string"
+        },
+        "dialect": {
+          "const": "duckdb",
+          "title": "Dialect",
+          "type": "string"
+        },
+        "entity_column": {
+          "enum": [
+            "customer_id",
+            "article_id"
+          ],
+          "title": "Entity Column",
+          "type": "string"
+        },
+        "entity_table": {
+          "enum": [
+            "customer",
+            "article"
+          ],
+          "title": "Entity Table",
+          "type": "string"
+        },
+        "horizon_days": {
+          "maximum": 7,
+          "minimum": 1,
+          "title": "Horizon Days",
+          "type": "integer"
+        },
+        "normalized_sql": {
+          "minLength": 1,
+          "title": "Normalized Sql",
+          "type": "string"
+        },
+        "provenance": {
+          "$ref": "#/$defs/ArtifactReference"
+        },
+        "query_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Query Sha256",
+          "type": "string"
+        },
+        "source": {
+          "const": "default",
+          "title": "Source",
+          "type": "string"
+        },
+        "sql": {
+          "minLength": 1,
+          "title": "Sql",
+          "type": "string"
+        },
+        "target_column": {
+          "enum": [
+            "churn",
+            "sales"
+          ],
+          "title": "Target Column",
+          "type": "string"
+        },
+        "task_id": {
+          "enum": [
+            "rel-hm/user-churn",
+            "rel-hm/item-sales"
+          ],
+          "title": "Task Id",
+          "type": "string"
+        },
+        "task_type": {
+          "enum": [
+            "binary_classification",
+            "regression"
+          ],
+          "title": "Task Type",
+          "type": "string"
+        },
+        "validation_report": {
+          "$ref": "#/$defs/TaskValidationReport"
+        }
+      },
+      "required": [
+        "contract_version",
+        "dataset_id",
+        "task_id",
+        "source",
+        "dialect",
+        "sql",
+        "normalized_sql",
+        "query_sha256",
+        "entity_table",
+        "entity_column",
+        "target_column",
+        "task_type",
+        "horizon_days",
+        "provenance",
+        "validation_report"
+      ],
+      "title": "DefaultTaskSqlArtifact",
+      "type": "object"
+    },
+    "MaterializedFileReference": {
+      "additionalProperties": false,
+      "description": "Content-addressed reference to an untracked Parquet artifact.",
+      "properties": {
+        "byte_count": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Count",
+          "type": "integer"
+        },
+        "columns": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Columns",
+          "type": "array"
+        },
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "row_count": {
+          "minimum": 0,
+          "title": "Row Count",
+          "type": "integer"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256",
+        "row_count",
+        "byte_count",
+        "columns"
+      ],
+      "title": "MaterializedFileReference",
+      "type": "object"
+    },
+    "ModelTaskPackage": {
+      "additionalProperties": false,
+      "description": "Only the files that a future Modal RT-J worker may receive.",
+      "properties": {
+        "contract_version": {
+          "const": "v1",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "database_files": {
+          "items": {
+            "$ref": "#/$defs/DatasetTableReference"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Database Files",
+          "type": "array"
+        },
+        "dataset_id": {
+          "const": "rel-hm",
+          "title": "Dataset Id",
+          "type": "string"
+        },
+        "dataset_revision": {
+          "pattern": "^[0-9a-f]{40}$|^synthetic$",
+          "title": "Dataset Revision",
+          "type": "string"
+        },
+        "task": {
+          "discriminator": {
+            "mapping": {
+              "custom": "#/$defs/CustomTaskSqlArtifact",
+              "default": "#/$defs/DefaultTaskSqlArtifact"
+            },
+            "propertyName": "source"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/DefaultTaskSqlArtifact"
+            },
+            {
+              "$ref": "#/$defs/CustomTaskSqlArtifact"
+            }
+          ],
+          "title": "Task"
+        },
+        "test_rows": {
+          "$ref": "#/$defs/MaterializedFileReference"
+        },
+        "train_labels": {
+          "$ref": "#/$defs/MaterializedFileReference"
+        },
+        "validation_labels": {
+          "$ref": "#/$defs/MaterializedFileReference"
+        }
+      },
+      "required": [
+        "contract_version",
+        "dataset_id",
+        "dataset_revision",
+        "task",
+        "database_files",
+        "train_labels",
+        "validation_labels",
+        "test_rows"
+      ],
+      "title": "ModelTaskPackage",
+      "type": "object"
+    },
+    "RTJCheckpointReference": {
+      "additionalProperties": false,
+      "properties": {
+        "config_path": {
+          "enum": [
+            "classification/config.json",
+            "regression/config.json"
+          ],
+          "title": "Config Path",
+          "type": "string"
+        },
+        "license": {
+          "const": "CC-BY-NC-SA-4.0",
+          "title": "License",
+          "type": "string"
+        },
+        "repository_url": {
+          "const": "https://huggingface.co/stanford-star/rt-j",
+          "title": "Repository Url",
+          "type": "string"
+        },
+        "revision": {
+          "const": "a2c204c79d493ed0056661140e6fd24db3118381",
+          "title": "Revision",
+          "type": "string"
+        },
+        "variant": {
+          "enum": [
+            "classification",
+            "regression"
+          ],
+          "title": "Variant",
+          "type": "string"
+        },
+        "weights_path": {
+          "enum": [
+            "classification/model.safetensors",
+            "regression/model.safetensors"
+          ],
+          "title": "Weights Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "repository_url",
+        "revision",
+        "variant",
+        "config_path",
+        "weights_path",
+        "license"
+      ],
+      "title": "RTJCheckpointReference",
+      "type": "object"
+    },
+    "RTJInferenceConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "bfs_width": {
+          "const": 32,
+          "default": 32,
+          "title": "Bfs Width",
+          "type": "integer"
+        },
+        "context_length": {
+          "const": 256,
+          "default": 256,
+          "title": "Context Length",
+          "type": "integer"
+        },
+        "context_seed": {
+          "const": 101,
+          "default": 101,
+          "title": "Context Seed",
+          "type": "integer"
+        },
+        "gpu": {
+          "const": "L4",
+          "default": "L4",
+          "title": "Gpu",
+          "type": "string"
+        },
+        "local_context_length": {
+          "const": 128,
+          "default": 128,
+          "title": "Local Context Length",
+          "type": "integer"
+        },
+        "num_walks": {
+          "const": 10000,
+          "default": 10000,
+          "title": "Num Walks",
+          "type": "integer"
+        },
+        "shuffle_seed": {
+          "const": 0,
+          "default": 0,
+          "title": "Shuffle Seed",
+          "type": "integer"
+        },
+        "walk_length": {
+          "const": 20,
+          "default": 20,
+          "title": "Walk Length",
+          "type": "integer"
+        }
+      },
+      "title": "RTJInferenceConfig",
+      "type": "object"
+    },
+    "TaskValidationCheck": {
+      "additionalProperties": false,
+      "description": "One sanitized, machine-readable materialization check.",
+      "properties": {
+        "code": {
+          "minLength": 1,
+          "title": "Code",
+          "type": "string"
+        },
+        "detail": {
+          "minLength": 1,
+          "title": "Detail",
+          "type": "string"
+        },
+        "status": {
+          "const": "passed",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "status",
+        "detail"
+      ],
+      "title": "TaskValidationCheck",
+      "type": "object"
+    },
+    "TaskValidationReport": {
+      "additionalProperties": false,
+      "description": "Evidence attached only after every guarded check passes.",
+      "properties": {
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/TaskValidationCheck"
+          },
+          "minItems": 1,
+          "title": "Checks",
+          "type": "array"
+        },
+        "status": {
+          "const": "passed",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "checks"
+      ],
+      "title": "TaskValidationReport",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "checkpoint": {
+      "$ref": "#/$defs/RTJCheckpointReference"
+    },
+    "config": {
+      "$ref": "#/$defs/RTJInferenceConfig"
+    },
+    "contract_version": {
+      "const": "v1",
+      "title": "Contract Version",
+      "type": "string"
+    },
+    "materialization_package_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Materialization Package Sha256",
+      "type": "string"
+    },
+    "model_input": {
+      "$ref": "#/$defs/ModelTaskPackage"
+    },
+    "model_input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Model Input Sha256",
+      "type": "string"
+    },
+    "source_revision": {
+      "const": "455df27c1458e093eac00133d5bbf41a8263a2e3",
+      "title": "Source Revision",
+      "type": "string"
+    }
+  },
+  "required": [
+    "contract_version",
+    "materialization_package_sha256",
+    "model_input_sha256",
+    "model_input",
+    "source_revision",
+    "checkpoint",
+    "config"
+  ],
+  "title": "RTJInferenceRequest",
+  "type": "object"
+}
