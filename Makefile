@@ -3,10 +3,11 @@
 PRE_COMMIT := uv run pre-commit
 PRE_COMMIT_HOME ?= $(CURDIR)/.pre-commit-cache
 UV_CACHE_DIR ?= $(CURDIR)/.uv-cache
+SPIKE_ENV_ARGS := $(if $(wildcard .env),--env-file .env,)
 export PRE_COMMIT_HOME
 export UV_CACHE_DIR
 
-.PHONY: help sync lock hooks format format-check lint typecheck test build contracts-export contracts-check quality-all check check-all serve-api
+.PHONY: help sync lock hooks format format-check lint typecheck test build contracts-export contracts-check quality-all check check-all serve-api daytona-spike-sync daytona-spike-check daytona-spike-run smoke-openai-api smoke-codex-sdk smoke-providers
 
 help: ## Show available commands
 	@awk 'BEGIN {FS = ":.*## "}; /^[a-zA-Z_-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -48,6 +49,25 @@ contracts-check: ## Reject drift between models and committed schemas
 
 serve-api: ## Start the local FastAPI service
 	uv run uvicorn structagent_api.api:create_app --factory
+
+daytona-spike-sync: ## Install the separately locked provider spike dependencies
+	uv sync --all-packages --group daytona-spike --group codex-spike --frozen
+
+daytona-spike-check: ## Run deterministic checks for all provider spikes
+	uv run --frozen --group daytona-spike --group codex-spike mypy spikes/daytona_agents_sdk
+	uv run --frozen --group daytona-spike --group codex-spike python -m pytest spikes/daytona_agents_sdk/tests
+
+daytona-spike-run: ## Run the live keyless Agents SDK to Daytona CPU canary
+	uv run $(SPIKE_ENV_ARGS) --frozen --group daytona-spike python -m spikes.daytona_agents_sdk.smoke
+
+smoke-openai-api: ## Run the live OpenAI Agents SDK to Daytona smoke
+	uv run $(SPIKE_ENV_ARGS) --frozen --group daytona-spike python -m spikes.daytona_agents_sdk.live openai-api
+
+smoke-codex-sdk: ## Run the live local Codex SDK to Daytona smoke
+	uv run $(SPIKE_ENV_ARGS) --frozen --group daytona-spike --group codex-spike python -m spikes.daytona_agents_sdk.live codex-sdk
+
+smoke-providers: ## Run both live model-provider to Daytona smokes
+	uv run $(SPIKE_ENV_ARGS) --frozen --group daytona-spike --group codex-spike python -m spikes.daytona_agents_sdk.live all
 
 quality-all: format-check lint typecheck test contracts-check ## Always-run local quality gate
 
