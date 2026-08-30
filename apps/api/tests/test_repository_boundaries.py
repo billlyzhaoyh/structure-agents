@@ -1,15 +1,15 @@
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 
 
-def test_provider_and_model_runtimes_are_not_locked_dependencies() -> None:
+def test_model_and_language_provider_runtimes_are_not_locked_dependencies() -> None:
     lockfile = (ROOT / "uv.lock").read_text(encoding="utf-8")
 
     forbidden_packages = {
-        "daytona",
         "openai",
         "relbench",
         "relational-transformer",
@@ -44,3 +44,13 @@ def test_frontend_is_dependency_free_and_worker_is_documentation_only() -> None:
         Path("workspace-state.js"),
     }
     assert worker_files == [Path("README.md")]
+
+
+def test_external_asset_cache_is_ignored() -> None:
+    result = subprocess.run(
+        ["git", "check-ignore", "--quiet", ".artifacts/rel-hm/example.parquet"],
+        cwd=ROOT,
+        check=False,
+    )
+
+    assert result.returncode == 0

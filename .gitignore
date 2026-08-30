@@ -17,6 +17,7 @@ build/
 !.env.example
 
 # Data, models, and run artifacts
+.artifacts/
 data/
 datasets/
 models/

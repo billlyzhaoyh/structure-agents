@@ -109,7 +109,8 @@ The run does not satisfy the [H&M backend roadmap](backend-roadmap.md):
   entity/timestamp ordering;
 - five short-context rows do not establish full-cohort memory, latency, cost, concurrency,
   timeout, or cancellation behavior; and
-- Modal is not the Daytona execution boundary currently specified by the roadmap.
+- The roadmap now assigns SQL materialization to Daytona and GPU inference to Modal; this
+  feasibility run predates the approved split and remains non-production evidence.
 
 The repository's [RT-J worker](../workers/rtj/README.md) therefore remains a placeholder.
 This record does not authorize implementing that worker or starting Milestone 3.
@@ -118,8 +119,8 @@ This record does not authorize implementing that worker or starting Milestone 3.
 
 1. Record the source, checkpoint, dataset, storage, retention, and permitted-use decisions
    required by the external permission gate.
-2. Decide whether Daytona remains the execution provider or revise the architecture and
-   acceptance criteria to approve Modal.
+2. Implement the approved Daytona SQL-to-Modal GPU artifact boundary without exposing sealed
+   evaluator truth to inference.
 3. Complete Milestone 2 and produce mechanically validated H&M task packages with sealed
    evaluator truth.
 4. Run one bounded live cohort for each H&M default: churn classification and item-sales

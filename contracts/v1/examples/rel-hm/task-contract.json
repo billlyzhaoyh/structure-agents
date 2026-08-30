@@ -4,6 +4,7 @@
   "implementation_status": "placeholder",
   "outcome": "draft_ready",
   "contract": {
+    "source": "custom",
     "draft_id": "fixture-hm-item-sales",
     "dataset_id": "rel-hm",
     "task_type": "regression",

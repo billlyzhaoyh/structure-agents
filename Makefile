@@ -3,10 +3,11 @@
 PRE_COMMIT := uv run pre-commit
 PRE_COMMIT_HOME ?= $(CURDIR)/.pre-commit-cache
 UV_CACHE_DIR ?= $(CURDIR)/.uv-cache
+ENV_FILE_ARGS := $(if $(wildcard .env),--env-file .env,)
 export PRE_COMMIT_HOME
 export UV_CACHE_DIR
 
-.PHONY: help sync lock hooks format format-check lint typecheck test test-web build contracts-export contracts-check quality-all check check-all serve-api serve-web
+.PHONY: help sync lock hooks format format-check lint typecheck test test-web test-materializer build contracts-export contracts-check quality-all check check-all serve-api serve-web hm-data-sync hm-data-verify materialize-hm-local materialize-hm-daytona-smoke materialize-hm-daytona-live
 
 help: ## Show available commands
 	@awk 'BEGIN {FS = ":.*## "}; /^[a-zA-Z_-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -40,6 +41,9 @@ test: ## Run deterministic unit tests
 test-web: ## Run deterministic frontend interaction-model tests
 	node --test apps/web/tests/*.test.mjs
 
+test-materializer: ## Run deterministic SQL materialization tests
+	uv run pytest apps/api/tests/test_task_sql.py apps/api/tests/test_materializer.py apps/api/tests/test_hm_assets.py apps/api/tests/test_daytona_executor.py apps/api/tests/test_materialization_parity.py
+
 build: ## Build the API wheel and source distribution
 	uv build --package structagent-api --out-dir dist --no-build-isolation
 
@@ -54,6 +58,21 @@ serve-api: ## Start the local FastAPI service
 
 serve-web: ## Serve the dependency-free Decision OS demo
 	python3 -m http.server 4173 --directory apps/web
+
+hm-data-sync: ## Download and verify the pinned private-use H&M artifacts
+	uv run --frozen python scripts/hm_data.py sync
+
+hm-data-verify: ## Verify the pinned H&M cache without network access
+	uv run --frozen python scripts/hm_data.py verify
+
+materialize-hm-local: ## Materialize both defaults on deterministic synthetic data
+	uv run --frozen python scripts/materialize_hm.py local
+
+materialize-hm-daytona-smoke: ## Run both defaults on synthetic data in Daytona
+	uv run $(ENV_FILE_ARGS) --frozen python scripts/materialize_hm.py daytona-synthetic
+
+materialize-hm-daytona-live: ## Run and verify both pinned H&M defaults in Daytona
+	uv run $(ENV_FILE_ARGS) --frozen python scripts/materialize_hm.py daytona-live
 
 quality-all: format-check lint typecheck test test-web contracts-check ## Always-run local quality gate
 

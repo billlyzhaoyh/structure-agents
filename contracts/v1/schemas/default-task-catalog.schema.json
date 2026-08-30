@@ -1,0 +1,406 @@
+{
+  "$defs": {
+    "ArtifactReference": {
+      "additionalProperties": false,
+      "description": "Immutable provenance for a reviewed upstream artifact.",
+      "properties": {
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "repository_url": {
+          "minLength": 1,
+          "pattern": "^https://",
+          "title": "Repository Url",
+          "type": "string"
+        },
+        "revision": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Revision",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "repository_url",
+        "revision",
+        "path",
+        "sha256"
+      ],
+      "title": "ArtifactReference",
+      "type": "object"
+    },
+    "DefaultBinaryTaskDefinition": {
+      "additionalProperties": false,
+      "properties": {
+        "benchmark_metric": {
+          "const": "roc_auc",
+          "title": "Benchmark Metric",
+          "type": "string"
+        },
+        "dataset_id": {
+          "const": "rel-hm",
+          "title": "Dataset Id",
+          "type": "string"
+        },
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "diagnostic_metrics": {
+          "items": {
+            "enum": [
+              "accuracy",
+              "auroc",
+              "average_precision",
+              "brier_score",
+              "f1",
+              "log_loss"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Diagnostic Metrics",
+          "type": "array"
+        },
+        "display_name": {
+          "minLength": 1,
+          "title": "Display Name",
+          "type": "string"
+        },
+        "eligibility_definition": {
+          "minLength": 1,
+          "title": "Eligibility Definition",
+          "type": "string"
+        },
+        "entity": {
+          "$ref": "#/$defs/EntitySpec"
+        },
+        "horizon": {
+          "$ref": "#/$defs/HorizonSpec"
+        },
+        "label_definition": {
+          "minLength": 1,
+          "title": "Label Definition",
+          "type": "string"
+        },
+        "prediction_time": {
+          "$ref": "#/$defs/PredictionTimeSpec"
+        },
+        "source": {
+          "const": "default",
+          "title": "Source",
+          "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/TargetSpec"
+        },
+        "task_id": {
+          "const": "rel-hm/user-churn",
+          "title": "Task Id",
+          "type": "string"
+        },
+        "task_type": {
+          "const": "binary_classification",
+          "title": "Task Type",
+          "type": "string"
+        },
+        "upstream_manifest": {
+          "$ref": "#/$defs/ArtifactReference"
+        }
+      },
+      "required": [
+        "task_id",
+        "dataset_id",
+        "source",
+        "display_name",
+        "description",
+        "entity",
+        "prediction_time",
+        "horizon",
+        "target",
+        "eligibility_definition",
+        "label_definition",
+        "upstream_manifest",
+        "task_type",
+        "benchmark_metric",
+        "diagnostic_metrics"
+      ],
+      "title": "DefaultBinaryTaskDefinition",
+      "type": "object"
+    },
+    "DefaultRegressionTaskDefinition": {
+      "additionalProperties": false,
+      "properties": {
+        "benchmark_metric": {
+          "const": "nmae",
+          "title": "Benchmark Metric",
+          "type": "string"
+        },
+        "dataset_id": {
+          "const": "rel-hm",
+          "title": "Dataset Id",
+          "type": "string"
+        },
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "diagnostic_metrics": {
+          "items": {
+            "enum": [
+              "mae",
+              "r2",
+              "rmse"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Diagnostic Metrics",
+          "type": "array"
+        },
+        "display_name": {
+          "minLength": 1,
+          "title": "Display Name",
+          "type": "string"
+        },
+        "eligibility_definition": {
+          "minLength": 1,
+          "title": "Eligibility Definition",
+          "type": "string"
+        },
+        "entity": {
+          "$ref": "#/$defs/EntitySpec"
+        },
+        "horizon": {
+          "$ref": "#/$defs/HorizonSpec"
+        },
+        "label_definition": {
+          "minLength": 1,
+          "title": "Label Definition",
+          "type": "string"
+        },
+        "prediction_time": {
+          "$ref": "#/$defs/PredictionTimeSpec"
+        },
+        "source": {
+          "const": "default",
+          "title": "Source",
+          "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/TargetSpec"
+        },
+        "task_id": {
+          "const": "rel-hm/item-sales",
+          "title": "Task Id",
+          "type": "string"
+        },
+        "task_type": {
+          "const": "regression",
+          "title": "Task Type",
+          "type": "string"
+        },
+        "upstream_manifest": {
+          "$ref": "#/$defs/ArtifactReference"
+        }
+      },
+      "required": [
+        "task_id",
+        "dataset_id",
+        "source",
+        "display_name",
+        "description",
+        "entity",
+        "prediction_time",
+        "horizon",
+        "target",
+        "eligibility_definition",
+        "label_definition",
+        "upstream_manifest",
+        "task_type",
+        "benchmark_metric",
+        "diagnostic_metrics"
+      ],
+      "title": "DefaultRegressionTaskDefinition",
+      "type": "object"
+    },
+    "EntitySpec": {
+      "additionalProperties": false,
+      "properties": {
+        "key_column": {
+          "minLength": 1,
+          "title": "Key Column",
+          "type": "string"
+        },
+        "table": {
+          "minLength": 1,
+          "title": "Table",
+          "type": "string"
+        }
+      },
+      "required": [
+        "table",
+        "key_column"
+      ],
+      "title": "EntitySpec",
+      "type": "object"
+    },
+    "HorizonSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "unit": {
+          "enum": [
+            "days",
+            "weeks",
+            "months"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "value": {
+          "exclusiveMinimum": 0,
+          "title": "Value",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "value",
+        "unit"
+      ],
+      "title": "HorizonSpec",
+      "type": "object"
+    },
+    "PredictionTimeSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "column": {
+          "minLength": 1,
+          "title": "Column",
+          "type": "string"
+        },
+        "table": {
+          "minLength": 1,
+          "title": "Table",
+          "type": "string"
+        }
+      },
+      "required": [
+        "table",
+        "column"
+      ],
+      "title": "PredictionTimeSpec",
+      "type": "object"
+    },
+    "TargetSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "positive_class": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Positive Class"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        }
+      },
+      "required": [
+        "name",
+        "description"
+      ],
+      "title": "TargetSpec",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "benchmark_evaluator": {
+      "$ref": "#/$defs/ArtifactReference"
+    },
+    "contract_version": {
+      "const": "v1",
+      "title": "Contract Version",
+      "type": "string"
+    },
+    "dataset_id": {
+      "minLength": 1,
+      "title": "Dataset Id",
+      "type": "string"
+    },
+    "fixture": {
+      "const": true,
+      "title": "Fixture",
+      "type": "boolean"
+    },
+    "implementation_status": {
+      "const": "metadata_only",
+      "title": "Implementation Status",
+      "type": "string"
+    },
+    "tasks": {
+      "items": {
+        "discriminator": {
+          "mapping": {
+            "binary_classification": "#/$defs/DefaultBinaryTaskDefinition",
+            "regression": "#/$defs/DefaultRegressionTaskDefinition"
+          },
+          "propertyName": "task_type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/DefaultBinaryTaskDefinition"
+          },
+          {
+            "$ref": "#/$defs/DefaultRegressionTaskDefinition"
+          }
+        ]
+      },
+      "minItems": 1,
+      "title": "Tasks",
+      "type": "array"
+    }
+  },
+  "required": [
+    "contract_version",
+    "fixture",
+    "implementation_status",
+    "dataset_id",
+    "benchmark_evaluator",
+    "tasks"
+  ],
+  "title": "DefaultTaskCatalog",
+  "type": "object"
+}

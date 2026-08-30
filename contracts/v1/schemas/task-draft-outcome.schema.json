@@ -57,6 +57,11 @@
           "title": "Recommended Metrics",
           "type": "array"
         },
+        "source": {
+          "const": "custom",
+          "title": "Source",
+          "type": "string"
+        },
         "target": {
           "$ref": "#/$defs/TargetSpec"
         },
@@ -67,6 +72,7 @@
         }
       },
       "required": [
+        "source",
         "draft_id",
         "dataset_id",
         "entity",
@@ -385,6 +391,11 @@
           "title": "Recommended Metrics",
           "type": "array"
         },
+        "source": {
+          "const": "custom",
+          "title": "Source",
+          "type": "string"
+        },
         "target": {
           "$ref": "#/$defs/TargetSpec"
         },
@@ -395,6 +406,7 @@
         }
       },
       "required": [
+        "source",
         "draft_id",
         "dataset_id",
         "entity",

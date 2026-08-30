@@ -1,7 +1,7 @@
 # RT-J worker placeholder
 
 This directory reserves the future isolated RT-J execution boundary. It intentionally
-contains no Python package, container image, Daytona configuration, model source,
+contains no Python package, container image, Modal configuration, model source,
 checkpoint, dataset, or runnable inference code.
 
 The planned worker will eventually receive an approved, versioned task contract plus
@@ -14,8 +14,9 @@ Before worker implementation begins, the project must separately approve:
 - classification and regression adapter contracts;
 - database preprocessing and point-in-time validation;
 - context construction, resource limits, and failure behavior;
-- Daytona image, GPU, volume, secret, timeout, and cleanup policies; and
+- Modal image, GPU, volume, secret, timeout, and cleanup policies; and
 - prediction/evaluation artifact retention.
 
-The Daytona API key belongs only in the trusted API control plane. OpenAI credentials
-must not be sent to the execution sandbox. No external asset may be committed here.
+The Modal credential belongs only in the trusted API control plane. OpenAI and Daytona
+credentials must not be sent to the inference container. No external asset may be committed
+here.

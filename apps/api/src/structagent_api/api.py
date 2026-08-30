@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Annotated
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, TypeAdapter
 
 from structagent_api import __version__
+from structagent_api.catalog import ACTIVE_DATASET_ID, REL_HM_DATASET, REL_HM_DEFAULT_TASKS
 from structagent_api.contracts import (
     DatasetDescriptor,
+    DefaultTaskCatalog,
     EvaluationResult,
     RunRecord,
     TaskDraftOutcome,
@@ -57,9 +60,28 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             version=__version__,
         )
 
-    @app.get("/v1/datasets/rel-hm", response_model=DatasetDescriptor, tags=["demo-contracts"])
-    def get_retail_dataset() -> DatasetDescriptor:
-        return DatasetDescriptor.model_validate_json(_fixture_text("dataset.json"))
+    @app.get(
+        "/v1/datasets/rel-hm",
+        response_model=DatasetDescriptor,
+        tags=["catalog"],
+    )
+    def get_rel_hm_dataset() -> DatasetDescriptor:
+        return REL_HM_DATASET
+
+    @app.get(
+        "/v1/tasks/defaults",
+        response_model=DefaultTaskCatalog,
+        tags=["catalog"],
+    )
+    def get_default_tasks(
+        dataset_id: Annotated[str, Query(min_length=1)],
+    ) -> DefaultTaskCatalog:
+        if dataset_id != ACTIVE_DATASET_ID:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Dataset {dataset_id!r} is not available in the V1 default catalog.",
+            )
+        return REL_HM_DEFAULT_TASKS
 
     @app.post("/v1/task-drafts", response_model=TaskDraftOutcome, tags=["demo-contracts"])
     def create_task_draft(request: TaskDraftRequest) -> TaskDraftOutcome:

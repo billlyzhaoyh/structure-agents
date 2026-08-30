@@ -9,26 +9,34 @@ and no trademark registration or employer affiliation is claimed.
 
 ## Status
 
-This repository is a lightweight monorepo. The current version contains a health-check
-API, versioned interface fixtures, a dependency-free frontend demo, and documented
-extension points for a future task compiler and RT-J execution worker.
+This repository is a lightweight monorepo. It currently contains a typed API, a metadata-only
+H&M task catalog, guarded default-task materialization, versioned interface fixtures, a
+dependency-free frontend demo, and documented extension points for a future task compiler
+and RT-J execution worker.
 
 Implemented today:
 
-- a typed FastAPI application with health and fixture-backed V1 demo routes;
+- a typed FastAPI application with health, catalog, and fixture-backed V1 demo routes;
+- reviewed customer-churn and article-sales definitions in the H&M default-task catalog;
 - strict V1 Pydantic contracts with generated JSON Schemas;
 - validated, synthetic Amazon classification and H&M regression interface journeys;
-- an interactive Decision OS frontend demo; and
-- explicit placeholders for the task compiler and isolated RT-J worker.
+- an interactive Decision OS frontend demo;
+- reviewed, normalized DuckDB SQL for both H&M defaults behind a read-only SQL policy;
+- deterministic local materialization into model-visible train, validation, and masked-test
+  packages plus evaluator-owned test truth;
+- checksum-verified staging of the approved, revision-pinned private H&M snapshot;
+- opt-in SQL materialization in a private ephemeral Daytona CPU sandbox, with network
+  blocking, output validation, parity checks, and verified cleanup; and
+- explicit placeholders for the OpenAI task compiler and Modal RT-J worker.
 
 It does not yet:
 
 - call a language model;
-- connect to Daytona;
-- download or execute RT-J;
-- ingest a database;
-- compile or execute live prediction tasks; or
-- report real model results.
+- expose live materialization or run orchestration through HTTP;
+- download or execute RT-J on Modal;
+- ingest arbitrary databases;
+- generate custom prediction tasks; or
+- report observed model predictions or evaluation metrics.
 
 `apps/web` contains a dependency-free interactive Decision OS demo for the hackathon
 journey. Its fashion retail content is a small synthetic placeholder; its SQL database,
@@ -43,7 +51,7 @@ See [architecture](docs/architecture.md), [product flow](docs/product-flow.md), 
 
 ## Development
 
-The supported developer interface is Make. After the bootstrap milestone:
+The supported developer interface is Make:
 
 ```bash
 make sync
@@ -52,13 +60,60 @@ make check-all
 make serve-api
 make serve-web
 make contracts-check
+make test-materializer
+make materialize-hm-local
 ```
 
 The local API listens on `http://127.0.0.1:8000`. Alongside `GET /healthz`, it serves the
-reviewed H&M metadata, task-draft, run, and evaluation fixtures under `/v1` for frontend
-integration. These routes do not ingest data or execute RT-J.
+reviewed H&M metadata and default-task catalog plus task-draft, run, and evaluation fixtures
+under `/v1` for frontend integration. These routes do not ingest data or execute RT-J.
 
 The frontend demo will listen on `http://127.0.0.1:4173`.
+
+## Testing the H&M default tasks
+
+The commands below always exercise both reviewed defaults:
+
+- `rel-hm/user-churn`: seven-day customer-level binary classification;
+- `rel-hm/item-sales`: seven-day article-level regression, including zero-sales articles.
+
+Run the deterministic policy, materializer, asset, Daytona-adapter, and parity unit tests:
+
+```bash
+make test-materializer
+```
+
+Materialize both tasks locally against generated H&M-shaped data without credentials or
+network access:
+
+```bash
+make materialize-hm-local
+```
+
+The command prints one validation status and package digest per task. Model-visible train,
+validation, and masked-test files are kept separate from evaluator truth beneath
+`.artifacts/runs/<timestamp>-local-synthetic/tasks/{user-churn,item-sales}/`. The entire
+`.artifacts/` tree is ignored by Git.
+
+To exercise the same two-task workflow in an ephemeral Daytona CPU sandbox, place
+`DAYTONA_API_KEY` in the ignored local `.env` file and run:
+
+```bash
+make materialize-hm-daytona-smoke
+```
+
+The private pinned-data parity run is deliberately separate and permission-gated:
+
+```bash
+make hm-data-sync
+make hm-data-verify
+STRUCTAGENT_ALLOW_REAL_HM=1 make materialize-hm-daytona-live
+```
+
+The live command requires the explicit acknowledgement shown above, verifies both outputs
+against the pinned official label files, transfers only checksum-verified inputs, and deletes
+the sandbox after execution. It is never part of CI. None of these commands runs a model:
+Modal remains the planned GPU boundary for RT-J inference.
 
 ## Repository workflow
 

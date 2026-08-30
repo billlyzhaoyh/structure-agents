@@ -2,23 +2,37 @@
 
 ## Current implementation
 
-StructAgent currently consists of four implemented pieces:
+StructAgent currently consists of seven implemented pieces:
 
 1. a Python 3.12 `uv` workspace;
-2. a FastAPI shell exposing health and fixture-backed V1 demo routes;
-3. versioned Pydantic contracts, generated JSON Schemas, and synthetic fixtures; and
-4. a dependency-free Decision OS frontend that consumes those demo contracts.
+2. a FastAPI shell exposing health, H&M catalog, and fixture-backed V1 demo routes;
+3. a reviewed, revision-pinned H&M default-task catalog;
+4. versioned Pydantic contracts, generated JSON Schemas, and synthetic fixtures;
+5. a dependency-free Decision OS frontend that consumes those demo contracts;
+6. a guarded DuckDB materializer that separates model input from evaluator truth; and
+7. an opt-in Daytona CPU executor for private, ephemeral SQL materialization.
+
+The natural-language task compiler, arbitrary-database adapters, Modal RT-J worker, live run
+orchestration, and model-evaluation runtime do not exist yet.
 
 ```text
 apps/web/                 contract-backed demo workspace
         |
         | V1 metadata, task, run, and evaluation fixtures
         v
-apps/api/                 health route + synthetic contract routes
+apps/api/                 health + H&M catalog + synthetic contract routes
         |
-        | future approved run bundle
+        | reviewed default task definitions
         v
-workers/rtj/              documentation placeholder
+materialization/          guarded SQL + local DuckDB materializer
+        |
+        | local execution or private ephemeral upload
+        v
+Daytona                   CPU-only SQL execution [implemented by opt-in CLI]
+        |
+        | future model-visible task package
+        v
+workers/rtj/ + Modal      GPU inference placeholders
 
 contracts/v1/             generated schemas + validated frontend fixtures
 ```
@@ -47,45 +61,54 @@ The engineering foundation adapts the useful repository discipline from the loca
 pre-commit and pre-push gates, read-only CI permissions, and dependency automation. It
 does not inherit the cookiecutter's Supabase or Vite application assumptions.
 
-## Planned control and compute planes
+## H&M control and compute planes
 
-The following remains a direction for later milestones, not implemented behavior:
+The following separates the implemented catalog boundary from later control-plane and
+compute milestones:
 
 ```text
 Frontend
    |
    v
 Trusted API control plane
-   |-- reviewed H&M schema and default-task catalog
-   |-- natural-language custom-task compiler
-   |-- guarded SQL validation tools
-   |-- deterministic validation
-   |-- human approval and budget gate
+   |-- reviewed H&M schema and default-task catalog [implemented]
+   |-- natural-language custom-task compiler [planned]
+   |-- guarded SQL policy and deterministic materializer [defaults implemented]
+   |-- human approval and budget gate [planned HTTP workflow]
    |
    v
-Isolated execution plane
-   |-- read-only H&M task materialization
-   |-- RT-J classification or regression inference
-   |-- sealed prediction output
+Daytona SQL execution plane
+   |-- private, ephemeral H&M inputs [implemented by opt-in CLI]
+   |-- read-only task materialization [implemented for defaults]
+   |-- model/evaluator artifact separation [implemented]
+   |
+   v
+Modal GPU execution plane
+   |-- RT-J classification or regression inference [planned]
+   |-- sealed prediction output [planned]
    |
    v
 Trusted evaluator
-   |-- one-to-one truth alignment
-   |-- point-in-time and leakage checks
-   |-- batch metrics and provenance
+   |-- one-to-one truth alignment [planned for model predictions]
+   |-- point-in-time and leakage checks [planned]
+   |-- batch metrics and provenance [planned]
 ```
 
-OpenAI and Daytona credentials remain in the trusted API process. Browser code receives
-neither. The execution worker receives only narrowly scoped inputs required for an
-approved run. Predictions must be sealed before evaluator truth is joined.
+OpenAI, Daytona, and Modal credentials remain in the trusted control-plane environment.
+Browser code receives none of them. Daytona is limited to CPU-based SQL materialization; it
+does not receive model source, checkpoints, or GPU work. A future Modal worker will receive
+only the model-visible task package and approved model assets. Predictions must be sealed
+before evaluator truth is joined.
 
-The planned V1 supports the reviewed H&M `user-churn` and `item-sales` defaults without a
-language-model call. Custom tasks are limited to customer or article entity prediction,
-binary classification or regression, and horizons from one through seven days. The OpenAI
-agent may submit DuckDB SQL only through guarded tools; it does not receive general sandbox
-shell access or raw H&M rows.
+The reviewed H&M `user-churn` and `item-sales` definitions can be materialized without a
+language-model call through local services and scripts. No materialization HTTP endpoint or
+model execution exists. Custom tasks are limited by the planned V1 contract to customer or
+article entity prediction, binary classification or regression, and horizons from one
+through seven days. The OpenAI agent may eventually submit DuckDB SQL only through guarded
+tools; it will not receive general sandbox shell access or raw H&M rows.
 
-The fixture-backed route shapes are now exercised by the frontend, but the execution
-milestones, test plans, and definitions of done remain in the backend roadmap.
-Authentication, arbitrary databases, production persistence, streaming, and deployment
-are still deferred.
+The fixture-backed route shapes are exercised by the frontend. The route shapes, milestone
+boundaries, test plans, and definitions of done are in the
+[backend roadmap](backend-roadmap.md). The catalog and guarded materialization milestones are
+implemented. Authentication, arbitrary databases, model inference, production persistence,
+streaming, and deployment are still deferred.

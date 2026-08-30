@@ -6,9 +6,11 @@ from typing import Any
 
 import pytest
 from pydantic import TypeAdapter
+from structagent_api.catalog import REL_HM_DEFAULT_TASKS
 from structagent_api.contracts import (
     ClassificationEvaluationResult,
     DatasetDescriptor,
+    DefaultTaskCatalog,
     DraftReady,
     EvaluationResult,
     NeedsClarification,
@@ -65,6 +67,7 @@ def test_task_outcome_fixtures_are_valid_placeholders(path: Path) -> None:
     assert outcome.fixture is True
     assert outcome.implementation_status == "placeholder"
     if outcome.outcome == "draft_ready":
+        assert outcome.contract.source == "custom"
         assert outcome.contract.dataset_id == path.parent.name
         assert {artifact.status for artifact in outcome.contract.query_artifacts} == {
             "not_generated"
@@ -99,9 +102,94 @@ def test_result_fixtures_are_synthetic_and_unexecuted(path: Path) -> None:
     assert {check.status for check in result.integrity_checks} == {"not_run"}
 
 
+def test_hm_default_task_fixture_matches_the_reviewed_catalog() -> None:
+    path = EXAMPLE_ROOT / "rel-hm" / "default-tasks.json"
+    catalog = DefaultTaskCatalog.model_validate_json(path.read_text(encoding="utf-8"))
+
+    assert catalog == REL_HM_DEFAULT_TASKS
+    assert [task.task_id for task in catalog.tasks] == [
+        "rel-hm/user-churn",
+        "rel-hm/item-sales",
+    ]
+
+    churn, item_sales = catalog.tasks
+    assert churn.entity.model_dump() == {
+        "table": "customer",
+        "key_column": "customer_id",
+    }
+    assert churn.task_type == "binary_classification"
+    assert churn.target.model_dump() == {
+        "name": "churn",
+        "description": (
+            "One when an eligible customer makes no transaction in the next seven "
+            "days; otherwise zero."
+        ),
+        "positive_class": "No transaction in (timestamp, timestamp + 7 days].",
+        "unit": None,
+    }
+    assert churn.eligibility_definition == (
+        "Customer has at least one transaction in (timestamp - 7 days, timestamp]."
+    )
+    assert churn.label_definition == (
+        "One when no customer transaction occurs in "
+        "(timestamp, timestamp + 7 days]; otherwise zero."
+    )
+    assert churn.benchmark_metric == "roc_auc"
+    assert churn.diagnostic_metrics == [
+        "average_precision",
+        "accuracy",
+        "f1",
+        "log_loss",
+        "brier_score",
+    ]
+    assert churn.upstream_manifest.sha256 == (
+        "546bef09917d3453e00bd25d356493c7dd97c9a9039fc9af37c4997fef8aa9f9"
+    )
+    assert churn.upstream_manifest.revision == ("d8e976fd0a4b78877204bc8dfbcfc9a9f7f48600")
+    assert churn.upstream_manifest.path == "rel-hm/tasks/user-churn/manifest.yaml"
+
+    assert item_sales.entity.model_dump() == {
+        "table": "article",
+        "key_column": "article_id",
+    }
+    assert item_sales.task_type == "regression"
+    assert item_sales.target.model_dump() == {
+        "name": "sales",
+        "description": (
+            "Sum of transaction price values for the article over the next seven days, "
+            "or zero when no transaction occurs."
+        ),
+        "positive_class": None,
+        "unit": "sum of transaction price values",
+    }
+    assert item_sales.eligibility_definition == (
+        "Every known article at each prediction timestamp."
+    )
+    assert item_sales.label_definition == (
+        "Sum transaction price for the article in "
+        "(timestamp, timestamp + 7 days], defaulting to zero."
+    )
+    assert item_sales.benchmark_metric == "nmae"
+    assert item_sales.diagnostic_metrics == ["mae", "rmse", "r2"]
+    assert item_sales.upstream_manifest.sha256 == (
+        "fc3f971da007d7c17872d3c0d840ca79609af5942ebec166154d4aaf9e7a6675"
+    )
+    assert item_sales.upstream_manifest.revision == ("d8e976fd0a4b78877204bc8dfbcfc9a9f7f48600")
+    assert item_sales.upstream_manifest.path == "rel-hm/tasks/item-sales/manifest.yaml"
+
+    assert all(task.prediction_time.table == "timestamps" for task in catalog.tasks)
+    assert all(task.prediction_time.column == "timestamp" for task in catalog.tasks)
+    assert all(task.horizon.model_dump() == {"value": 7, "unit": "days"} for task in catalog.tasks)
+    assert catalog.benchmark_evaluator.sha256 == (
+        "bc2f1fad23405e2f8c195d6079cb8883b9e652aec4f2868a5ccd884aba08f5c5"
+    )
+    assert catalog.benchmark_evaluator.revision == ("9a223758cea1fd486a8d20f9e2f7ac4f42c88d0f")
+
+
 def test_every_example_json_has_a_known_contract_role() -> None:
     expected_names = {
         "dataset.json",
+        "default-tasks.json",
         "evaluation-result.json",
         "needs-clarification.json",
         "run-record.json",
