@@ -24,6 +24,7 @@ from structagent_api.inference import (
 )
 from structagent_api.inference.artifacts import sha256_file
 from structagent_api.inference.payload import ModelUpload
+from structagent_api.inference.smoke import create_user_churn_smoke_materialization
 from structagent_api.materialization import (
     SYNTHETIC_CUTOFFS,
     create_synthetic_hm,
@@ -227,3 +228,27 @@ def test_trusted_evaluator_rejects_incomplete_predictions(tmp_path: Path) -> Non
         evaluate_predictions(rejected, task_root, result, task_root)
 
     assert raised.value.code == "prediction_coverage"
+
+
+def test_live_smoke_cohort_keeps_truth_sealed_and_recomputes_digests(tmp_path: Path) -> None:
+    dataset = create_synthetic_hm(tmp_path / "dataset")
+    source_root = tmp_path / "source"
+    source = materialize_default_task(
+        "rel-hm/user-churn",
+        dataset,
+        source_root,
+        cutoffs=SYNTHETIC_CUTOFFS,
+    )
+
+    sampled = create_user_churn_smoke_materialization(
+        source_root,
+        tmp_path / "sampled",
+        sample_size=2,
+    )
+
+    assert sampled.model_input.test_rows.row_count == 2
+    assert sampled.evaluator_truth.test_truth.row_count == 2
+    assert sampled.model_input_sha256 != source.model_input_sha256
+    assert sampled.package_sha256 != source.package_sha256
+    assert sampled.model_input.test_rows.columns == ["timestamp", "customer_id"]
+    assert "truth" not in sampled.model_input.model_dump_json()

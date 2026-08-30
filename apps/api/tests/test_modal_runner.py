@@ -12,6 +12,10 @@ from structagent_api.contracts import (
     RTJRuntimeProvenance,
 )
 from structagent_api.contracts.models import MaterializedFileReference
+from structagent_api.inference.modal_provider import (
+    EphemeralModalProvider,
+    _volume_destination,
+)
 from structagent_api.inference.modal_runner import (
     MODEL_UPLOAD_ALLOWLIST,
     InferenceObservation,
@@ -135,6 +139,38 @@ class FakeProvider:
 def _worker(request_json: str, row_limit: int | None) -> dict[str, object]:
     del request_json, row_limit
     return {}
+
+
+def test_concrete_provider_maps_only_reviewed_volume_destinations(tmp_path: Path) -> None:
+    upload = VerifiedUpload(
+        remote_name="validation.parquet",
+        local_path=tmp_path / "validation.parquet",
+        byte_count=1,
+        sha256="a" * 64,
+    )
+
+    assert _volume_destination("user-churn", upload) == (
+        "/input/rel-hm/tasks/user-churn/val.parquet"
+    )
+
+
+def test_concrete_provider_rejects_an_unapproved_worker_before_creating_resources(
+    tmp_path: Path,
+) -> None:
+    provider = EphemeralModalProvider(
+        task_name="user-churn",
+        checkpoint_variant="classification",
+        prediction_root=tmp_path,
+    )
+
+    with pytest.raises(ModalRunnerError) as raised:
+        provider.create_ephemeral_session(
+            uploads=(),
+            policy=ModalExecutionPolicy(),
+            worker=_worker,
+        )
+
+    assert raised.value.code == "worker_identity"
 
 
 def test_runner_uploads_only_verified_model_files_and_applies_modal_policy(

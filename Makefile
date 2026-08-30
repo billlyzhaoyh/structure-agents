@@ -4,10 +4,14 @@ PRE_COMMIT := uv run pre-commit
 PRE_COMMIT_HOME ?= $(CURDIR)/.pre-commit-cache
 UV_CACHE_DIR ?= $(CURDIR)/.uv-cache
 ENV_FILE_ARGS := $(if $(wildcard .env),--env-file .env,)
+RTJ_DATASET_ROOT ?=
+RTJ_MATERIALIZATION_ROOT ?=
+RTJ_OUTPUT_ROOT ?=
+RTJ_SAMPLE_SIZE ?= 32
 export PRE_COMMIT_HOME
 export UV_CACHE_DIR
 
-.PHONY: help sync lock hooks format format-check lint typecheck test test-web test-materializer test-rtj test-compiler build contracts-export contracts-check quality-all check check-all serve-api serve-web modal-auth-check hm-data-sync hm-data-verify materialize-hm-local materialize-hm-daytona-smoke materialize-hm-daytona-live
+.PHONY: help sync lock hooks format format-check lint typecheck test test-web test-materializer test-rtj test-compiler build contracts-export contracts-check quality-all check check-all serve-api serve-web modal-auth-check rtj-modal-live hm-data-sync hm-data-verify materialize-hm-local materialize-hm-daytona-smoke materialize-hm-daytona-live
 
 help: ## Show available commands
 	@awk 'BEGIN {FS = ":.*## "}; /^[a-zA-Z_-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -67,6 +71,12 @@ serve-web: ## Serve the dependency-free Decision OS demo
 
 modal-auth-check: ## Verify the selected local Modal profile or environment token
 	uv run $(ENV_FILE_ARGS) modal token info
+
+rtj-modal-live: ## Run a bounded private real-H&M RT-J cohort on ephemeral Modal
+	@test -n "$(RTJ_DATASET_ROOT)" || (echo "RTJ_DATASET_ROOT is required" >&2; exit 1)
+	@test -n "$(RTJ_MATERIALIZATION_ROOT)" || (echo "RTJ_MATERIALIZATION_ROOT is required" >&2; exit 1)
+	@test -n "$(RTJ_OUTPUT_ROOT)" || (echo "RTJ_OUTPUT_ROOT is required" >&2; exit 1)
+	uv run $(ENV_FILE_ARGS) --frozen python scripts/run_rtj_modal.py --dataset-root "$(RTJ_DATASET_ROOT)" --materialization-root "$(RTJ_MATERIALIZATION_ROOT)" --output-root "$(RTJ_OUTPUT_ROOT)" --sample-size "$(RTJ_SAMPLE_SIZE)"
 
 hm-data-sync: ## Download and verify the pinned private-use H&M artifacts
 	uv run --frozen python scripts/hm_data.py sync

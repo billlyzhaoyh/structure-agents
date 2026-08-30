@@ -33,12 +33,13 @@ Implemented today:
   a combined 16-hour/$25 ceiling, and cleanup across success and failure paths;
 - a guarded OpenAI task compiler that can clarify, reject, or produce review-required custom
   H&M SQL after aggregate-only validation in one private Daytona sandbox; and
-- an explicit extension point for the concrete Modal SDK adapter.
+- a concrete undeployed Modal adapter using one anonymous volume, network-separated asset
+  staging and inference functions, exact model uploads, bounded admission, and verified cleanup.
 
 It does not yet:
 
 - expose live materialization or run orchestration through HTTP;
-- provide the concrete Modal SDK App/Volume adapter needed for a paid RT-J run;
+- complete the paid full-split RT-J acceptance run for both reviewed tasks;
 - ingest arbitrary databases;
 - execute custom prediction tasks without human review; or
 - report observed model predictions or evaluation metrics.
@@ -146,9 +147,9 @@ budget, and cleanup tests without credentials, model weights, or network access:
 make test-rtj
 ```
 
-The tests cover both reviewed H&M defaults at the fixed context-256 protocol. They use
-synthetic predictions and do not claim observed model results. The concrete Modal SDK
-App/Volume adapter and paid full-split run remain follow-up work.
+The tests cover both reviewed H&M defaults at the fixed context-256 protocol. Deterministic
+tests use synthetic predictions and do not claim observed model results. The live adapter is
+opt-in and never runs in CI.
 
 For local Modal authentication, prefer a profile stored outside the repository:
 
@@ -160,6 +161,24 @@ Set only `MODAL_PROFILE=structure-agents` in the ignored `.env`, then verify it 
 `make modal-auth-check`. A headless trusted controller may instead receive
 `MODAL_TOKEN_ID` and `MODAL_TOKEN_SECRET` from its secret manager. These account credentials
 must never be attached through `modal.Secret` or passed to the RT-J worker.
+
+After `materialize-hm-daytona-live` succeeds, a bounded real-data classification cohort can
+exercise the pinned RT-J source and checkpoint on an L4. Pass the pinned database directory,
+the downloaded `user-churn` materialization directory, and a new ignored output directory:
+
+```bash
+STRUCTAGENT_ALLOW_REAL_HM=1 STRUCTAGENT_ALLOW_RTJ_MODAL=1 \
+RTJ_DATASET_ROOT=.artifacts/rel-hm/<revision>/rel-hm/db \
+RTJ_MATERIALIZATION_ROOT=.artifacts/runs/<daytona-run>/tasks/user-churn \
+RTJ_OUTPUT_ROOT=.artifacts/runs/<new-rtj-run> \
+make rtj-modal-live
+```
+
+The default is a deterministic balanced cohort of 32 real test entities. Modal receives the
+three database tables, model-visible train/validation labels, and masked cohort rows; test
+truth remains local and is joined only after predictions are downloaded and sealed. Private
+predictions, metrics, and provenance are written below the ignored output directory. This is
+an integration and resource smoke test, not a full-split quality benchmark.
 
 RT-J use in this repository is limited to private, independent, non-commercial hackathon
 research. The source licence remains unresolved; do not redistribute or publicly deploy the
