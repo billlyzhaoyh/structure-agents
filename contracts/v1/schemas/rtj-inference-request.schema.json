@@ -347,44 +347,6 @@
       "title": "DefaultTaskSqlArtifact",
       "type": "object"
     },
-    "EvaluatorTruthPackage": {
-      "additionalProperties": false,
-      "description": "Evaluator-owned target file that must not enter model construction.",
-      "properties": {
-        "contract_version": {
-          "const": "v1",
-          "title": "Contract Version",
-          "type": "string"
-        },
-        "dataset_id": {
-          "const": "rel-hm",
-          "title": "Dataset Id",
-          "type": "string"
-        },
-        "query_sha256": {
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Query Sha256",
-          "type": "string"
-        },
-        "task_id": {
-          "pattern": "^rel-hm/(?:user-churn|item-sales|custom/[0-9a-f]{64})$",
-          "title": "Task Id",
-          "type": "string"
-        },
-        "test_truth": {
-          "$ref": "#/$defs/MaterializedFileReference"
-        }
-      },
-      "required": [
-        "contract_version",
-        "dataset_id",
-        "task_id",
-        "query_sha256",
-        "test_truth"
-      ],
-      "title": "EvaluatorTruthPackage",
-      "type": "object"
-    },
     "MaterializedFileReference": {
       "additionalProperties": false,
       "description": "Content-addressed reference to an untracked Parquet artifact.",
@@ -497,6 +459,115 @@
       "title": "ModelTaskPackage",
       "type": "object"
     },
+    "RTJCheckpointReference": {
+      "additionalProperties": false,
+      "properties": {
+        "config_path": {
+          "enum": [
+            "classification/config.json",
+            "regression/config.json"
+          ],
+          "title": "Config Path",
+          "type": "string"
+        },
+        "license": {
+          "const": "CC-BY-NC-SA-4.0",
+          "title": "License",
+          "type": "string"
+        },
+        "repository_url": {
+          "const": "https://huggingface.co/stanford-star/rt-j",
+          "title": "Repository Url",
+          "type": "string"
+        },
+        "revision": {
+          "const": "a2c204c79d493ed0056661140e6fd24db3118381",
+          "title": "Revision",
+          "type": "string"
+        },
+        "variant": {
+          "enum": [
+            "classification",
+            "regression"
+          ],
+          "title": "Variant",
+          "type": "string"
+        },
+        "weights_path": {
+          "enum": [
+            "classification/model.safetensors",
+            "regression/model.safetensors"
+          ],
+          "title": "Weights Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "repository_url",
+        "revision",
+        "variant",
+        "config_path",
+        "weights_path",
+        "license"
+      ],
+      "title": "RTJCheckpointReference",
+      "type": "object"
+    },
+    "RTJInferenceConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "bfs_width": {
+          "const": 32,
+          "default": 32,
+          "title": "Bfs Width",
+          "type": "integer"
+        },
+        "context_length": {
+          "const": 256,
+          "default": 256,
+          "title": "Context Length",
+          "type": "integer"
+        },
+        "context_seed": {
+          "const": 101,
+          "default": 101,
+          "title": "Context Seed",
+          "type": "integer"
+        },
+        "gpu": {
+          "const": "L4",
+          "default": "L4",
+          "title": "Gpu",
+          "type": "string"
+        },
+        "local_context_length": {
+          "const": 128,
+          "default": 128,
+          "title": "Local Context Length",
+          "type": "integer"
+        },
+        "num_walks": {
+          "const": 10000,
+          "default": 10000,
+          "title": "Num Walks",
+          "type": "integer"
+        },
+        "shuffle_seed": {
+          "const": 0,
+          "default": 0,
+          "title": "Shuffle Seed",
+          "type": "integer"
+        },
+        "walk_length": {
+          "const": 20,
+          "default": 20,
+          "title": "Walk Length",
+          "type": "integer"
+        }
+      },
+      "title": "RTJInferenceConfig",
+      "type": "object"
+    },
     "TaskValidationCheck": {
       "additionalProperties": false,
       "description": "One sanitized, machine-readable materialization check.",
@@ -552,35 +623,40 @@
     }
   },
   "additionalProperties": false,
-  "description": "Trusted-side result that preserves the model/evaluator separation.",
   "properties": {
+    "checkpoint": {
+      "$ref": "#/$defs/RTJCheckpointReference"
+    },
+    "config": {
+      "$ref": "#/$defs/RTJInferenceConfig"
+    },
     "contract_version": {
       "const": "v1",
       "title": "Contract Version",
       "type": "string"
     },
-    "evaluator_truth": {
-      "$ref": "#/$defs/EvaluatorTruthPackage"
+    "materialization_package_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Materialization Package Sha256",
+      "type": "string"
     },
     "model_input": {
       "$ref": "#/$defs/ModelTaskPackage"
     },
-    "package_sha256": {
-      "pattern": "^[0-9a-f]{64}$",
-      "title": "Package Sha256",
+    "source_revision": {
+      "const": "455df27c1458e093eac00133d5bbf41a8263a2e3",
+      "title": "Source Revision",
       "type": "string"
-    },
-    "validation_report": {
-      "$ref": "#/$defs/TaskValidationReport"
     }
   },
   "required": [
     "contract_version",
-    "package_sha256",
+    "materialization_package_sha256",
     "model_input",
-    "evaluator_truth",
-    "validation_report"
+    "source_revision",
+    "checkpoint",
+    "config"
   ],
-  "title": "MaterializationResult",
+  "title": "RTJInferenceRequest",
   "type": "object"
 }

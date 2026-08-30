@@ -285,13 +285,13 @@ class TaskValidationReport(StrictModel):
         return self
 
 
-class TaskSqlArtifact(StrictModel):
-    """Reviewed DuckDB task query and the evidence required to execute it."""
+class DefaultTaskSqlArtifact(StrictModel):
+    """Reviewed DuckDB query for one pinned default task."""
 
     contract_version: ContractVersion
     dataset_id: Literal["rel-hm"]
     task_id: Literal["rel-hm/user-churn", "rel-hm/item-sales"]
-    source: TaskSource
+    source: Literal["default"]
     dialect: Literal["duckdb"]
     sql: str = Field(min_length=1)
     normalized_sql: str = Field(min_length=1)
@@ -305,7 +305,7 @@ class TaskSqlArtifact(StrictModel):
     validation_report: TaskValidationReport
 
     @model_validator(mode="after")
-    def validate_default_shape(self) -> TaskSqlArtifact:
+    def validate_default_shape(self) -> DefaultTaskSqlArtifact:
         expected = {
             "rel-hm/user-churn": (
                 "customer",
@@ -324,6 +324,52 @@ class TaskSqlArtifact(StrictModel):
         if observed != expected:
             raise ValueError("task SQL shape does not match its reviewed default")
         return self
+
+
+class CompilerProvenance(StrictModel):
+    """Non-sensitive provenance for one agent-compiled query."""
+
+    model: str = Field(min_length=1)
+    prompt_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    schema_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    instructions_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    attempt_count: int = Field(ge=1, le=3)
+
+
+class CustomTaskSqlArtifact(StrictModel):
+    """Validated DuckDB query produced by the trusted task compiler."""
+
+    contract_version: ContractVersion
+    dataset_id: Literal["rel-hm"]
+    task_id: str = Field(pattern=r"^rel-hm/custom/[0-9a-f]{64}$")
+    source: Literal["custom"]
+    dialect: Literal["duckdb"]
+    sql: str = Field(min_length=1)
+    normalized_sql: str = Field(min_length=1)
+    query_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    entity_table: Literal["customer", "article"]
+    entity_column: Literal["customer_id", "article_id"]
+    target_column: Literal["target"]
+    task_type: TaskType
+    horizon_days: int = Field(ge=1, le=7)
+    provenance: CompilerProvenance
+    validation_report: TaskValidationReport
+
+    @model_validator(mode="after")
+    def validate_entity_shape(self) -> CustomTaskSqlArtifact:
+        expected_column = {
+            "customer": "customer_id",
+            "article": "article_id",
+        }[self.entity_table]
+        if self.entity_column != expected_column:
+            raise ValueError("custom task entity does not match its reviewed key")
+        return self
+
+
+TaskSqlArtifact = Annotated[
+    DefaultTaskSqlArtifact | CustomTaskSqlArtifact,
+    Field(discriminator="source"),
+]
 
 
 class MaterializedFileReference(StrictModel):
@@ -383,7 +429,7 @@ class EvaluatorTruthPackage(StrictModel):
 
     contract_version: ContractVersion
     dataset_id: Literal["rel-hm"]
-    task_id: Literal["rel-hm/user-churn", "rel-hm/item-sales"]
+    task_id: str = Field(pattern=r"^rel-hm/(?:user-churn|item-sales|custom/[0-9a-f]{64})$")
     query_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     test_truth: MaterializedFileReference
 

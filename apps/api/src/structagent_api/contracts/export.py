@@ -10,6 +10,12 @@ from typing import Any
 
 from pydantic import TypeAdapter
 
+from structagent_api.contracts.compiler import LiveTaskDraftOutcome, TaskClarificationRequest
+from structagent_api.contracts.inference import (
+    BatchEvaluationResult,
+    PredictionPackage,
+    RTJInferenceRequest,
+)
 from structagent_api.contracts.models import (
     DatasetDescriptor,
     DefaultTaskCatalog,
@@ -30,10 +36,15 @@ SCHEMA_FACTORIES: dict[str, SchemaFactory] = {
     "default-task-catalog.schema.json": DefaultTaskCatalog.model_json_schema,
     "evaluation-result.schema.json": TypeAdapter(EvaluationResult).json_schema,
     "materialization-result.schema.json": MaterializationResult.model_json_schema,
+    "live-task-draft-outcome.schema.json": TypeAdapter(LiveTaskDraftOutcome).json_schema,
+    "prediction-package.schema.json": TypeAdapter(PredictionPackage).json_schema,
+    "rtj-inference-request.schema.json": RTJInferenceRequest.model_json_schema,
     "run-record.schema.json": RunRecord.model_json_schema,
     "task-draft-outcome.schema.json": TypeAdapter(TaskDraftOutcome).json_schema,
     "task-draft-request.schema.json": TaskDraftRequest.model_json_schema,
-    "task-sql-artifact.schema.json": TaskSqlArtifact.model_json_schema,
+    "task-clarification-request.schema.json": TaskClarificationRequest.model_json_schema,
+    "task-sql-artifact.schema.json": TypeAdapter(TaskSqlArtifact).json_schema,
+    "batch-evaluation-result.schema.json": TypeAdapter(BatchEvaluationResult).json_schema,
 }
 
 

@@ -1,0 +1,250 @@
+{
+  "$defs": {
+    "BatchClassificationEvaluation": {
+      "additionalProperties": false,
+      "properties": {
+        "contract_version": {
+          "const": "v1",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "coverage": {
+          "maximum": 1,
+          "minimum": 1,
+          "title": "Coverage",
+          "type": "number"
+        },
+        "dataset_id": {
+          "const": "rel-hm",
+          "title": "Dataset Id",
+          "type": "string"
+        },
+        "metrics": {
+          "$ref": "#/$defs/ClassificationMetrics"
+        },
+        "prediction_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Prediction Sha256",
+          "type": "string"
+        },
+        "prevalence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Prevalence",
+          "type": "number"
+        },
+        "result_status": {
+          "enum": [
+            "observed",
+            "synthetic"
+          ],
+          "title": "Result Status",
+          "type": "string"
+        },
+        "sample_count": {
+          "exclusiveMinimum": 0,
+          "title": "Sample Count",
+          "type": "integer"
+        },
+        "task_id": {
+          "minLength": 1,
+          "title": "Task Id",
+          "type": "string"
+        },
+        "task_type": {
+          "const": "binary_classification",
+          "title": "Task Type",
+          "type": "string"
+        },
+        "truth_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Truth Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_version",
+        "result_status",
+        "dataset_id",
+        "task_id",
+        "sample_count",
+        "coverage",
+        "prediction_sha256",
+        "truth_sha256",
+        "task_type",
+        "prevalence",
+        "metrics"
+      ],
+      "title": "BatchClassificationEvaluation",
+      "type": "object"
+    },
+    "BatchRegressionEvaluation": {
+      "additionalProperties": false,
+      "properties": {
+        "contract_version": {
+          "const": "v1",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "coverage": {
+          "maximum": 1,
+          "minimum": 1,
+          "title": "Coverage",
+          "type": "number"
+        },
+        "dataset_id": {
+          "const": "rel-hm",
+          "title": "Dataset Id",
+          "type": "string"
+        },
+        "metrics": {
+          "$ref": "#/$defs/BatchRegressionMetrics"
+        },
+        "prediction_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Prediction Sha256",
+          "type": "string"
+        },
+        "result_status": {
+          "enum": [
+            "observed",
+            "synthetic"
+          ],
+          "title": "Result Status",
+          "type": "string"
+        },
+        "sample_count": {
+          "exclusiveMinimum": 0,
+          "title": "Sample Count",
+          "type": "integer"
+        },
+        "task_id": {
+          "minLength": 1,
+          "title": "Task Id",
+          "type": "string"
+        },
+        "task_type": {
+          "const": "regression",
+          "title": "Task Type",
+          "type": "string"
+        },
+        "truth_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Truth Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_version",
+        "result_status",
+        "dataset_id",
+        "task_id",
+        "sample_count",
+        "coverage",
+        "prediction_sha256",
+        "truth_sha256",
+        "task_type",
+        "metrics"
+      ],
+      "title": "BatchRegressionEvaluation",
+      "type": "object"
+    },
+    "BatchRegressionMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "mae": {
+          "minimum": 0,
+          "title": "Mae",
+          "type": "number"
+        },
+        "nmae": {
+          "minimum": 0,
+          "title": "Nmae",
+          "type": "number"
+        },
+        "r2": {
+          "title": "R2",
+          "type": "number"
+        },
+        "rmse": {
+          "minimum": 0,
+          "title": "Rmse",
+          "type": "number"
+        }
+      },
+      "required": [
+        "mae",
+        "rmse",
+        "r2",
+        "nmae"
+      ],
+      "title": "BatchRegressionMetrics",
+      "type": "object"
+    },
+    "ClassificationMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "accuracy": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Accuracy",
+          "type": "number"
+        },
+        "auroc": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Auroc",
+          "type": "number"
+        },
+        "average_precision": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Average Precision",
+          "type": "number"
+        },
+        "brier_score": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Brier Score",
+          "type": "number"
+        },
+        "f1": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "F1",
+          "type": "number"
+        },
+        "log_loss": {
+          "minimum": 0,
+          "title": "Log Loss",
+          "type": "number"
+        }
+      },
+      "required": [
+        "auroc",
+        "average_precision",
+        "log_loss",
+        "brier_score",
+        "accuracy",
+        "f1"
+      ],
+      "title": "ClassificationMetrics",
+      "type": "object"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "binary_classification": "#/$defs/BatchClassificationEvaluation",
+      "regression": "#/$defs/BatchRegressionEvaluation"
+    },
+    "propertyName": "task_type"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/BatchClassificationEvaluation"
+    },
+    {
+      "$ref": "#/$defs/BatchRegressionEvaluation"
+    }
+  ]
+}
