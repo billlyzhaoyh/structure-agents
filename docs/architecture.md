@@ -37,7 +37,7 @@ The engineering foundation adapts the useful repository discipline from the loca
 pre-commit and pre-push gates, read-only CI permissions, and dependency automation. It
 does not inherit the cookiecutter's Supabase or Vite application assumptions.
 
-## Planned control and compute planes
+## Planned H&M control and compute planes
 
 The following is a direction for later milestones, not implemented behavior:
 
@@ -46,14 +46,15 @@ Frontend
    |
    v
 Trusted API control plane
-   |-- schema inspection tools
-   |-- natural-language task compiler
+   |-- reviewed H&M schema and default-task catalog
+   |-- natural-language custom-task compiler
+   |-- guarded SQL validation tools
    |-- deterministic validation
    |-- human approval and budget gate
    |
    v
 Isolated execution plane
-   |-- database preprocessing
+   |-- read-only H&M task materialization
    |-- RT-J classification or regression inference
    |-- sealed prediction output
    |
@@ -68,5 +69,12 @@ OpenAI and Daytona credentials remain in the trusted API process. Browser code r
 neither. The execution worker receives only narrowly scoped inputs required for an
 approved run. Predictions must be sealed before evaluator truth is joined.
 
-Concrete routes, persistence, streaming, authentication, deployment, provider models,
-SQL dialect behavior, and sandbox configuration are deliberately deferred.
+The planned V1 supports the reviewed H&M `user-churn` and `item-sales` defaults without a
+language-model call. Custom tasks are limited to customer or article entity prediction,
+binary classification or regression, and horizons from one through seven days. The OpenAI
+agent may submit DuckDB SQL only through guarded tools; it does not receive general sandbox
+shell access or raw H&M rows.
+
+The planned route shapes, milestone boundaries, test plans, and definitions of done are in
+the [backend roadmap](backend-roadmap.md). They remain unimplemented. Authentication,
+arbitrary databases, production persistence, streaming, and deployment are still deferred.

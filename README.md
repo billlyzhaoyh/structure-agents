@@ -29,7 +29,8 @@ It does not yet:
 - generate prediction tasks; or
 - report real model results.
 
-See [architecture](docs/architecture.md), [product flow](docs/product-flow.md), and
+See [architecture](docs/architecture.md), [product flow](docs/product-flow.md), the
+[H&M backend roadmap](docs/backend-roadmap.md), and
 [data and licensing boundaries](docs/data-and-licensing.md).
 
 ## Development
