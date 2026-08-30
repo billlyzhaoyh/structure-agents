@@ -14,7 +14,7 @@ from structagent_api.contracts.simulation import (
 )
 
 EDSL_VERSION: Final[Literal["1.0.8"]] = "1.0.8"
-RESPONDENT_MODEL_ID: Final[Literal["gpt-4.1-mini-2025-04-14"]] = "gpt-4.1-mini-2025-04-14"
+RESPONDENT_MODEL_ID: Final[Literal["gpt-5.6-luna"]] = "gpt-5.6-luna"
 RESPONDENT_MODEL_SERVICE: Final[Literal["openai"]] = "openai"
 REPEAT_COUNT: Final[Literal[3]] = 3
 
@@ -35,7 +35,7 @@ class EdslSmokeRequest(StrictModel):
     agent_key: str = Field(min_length=1, max_length=200)
     traits: tuple[AgentTrait, ...]
     task: ChoiceTask
-    respondent_model_id: Literal["gpt-4.1-mini-2025-04-14"] = RESPONDENT_MODEL_ID
+    respondent_model_id: Literal["gpt-5.6-luna"] = RESPONDENT_MODEL_ID
     respondent_model_service: Literal["openai"] = RESPONDENT_MODEL_SERVICE
     edsl_version: Literal["1.0.8"] = EDSL_VERSION
     repeats: Literal[3] = REPEAT_COUNT
@@ -78,7 +78,7 @@ class EdslSmokeResult(StrictModel):
     evidence_kind: Literal["simulated"] = "simulated"
     agent_source: Literal["synthetic_placeholder"] = "synthetic_placeholder"
     task_id: str = Field(min_length=1)
-    respondent_model_id: Literal["gpt-4.1-mini-2025-04-14"] = RESPONDENT_MODEL_ID
+    respondent_model_id: Literal["gpt-5.6-luna"] = RESPONDENT_MODEL_ID
     respondent_model_service: Literal["openai"] = RESPONDENT_MODEL_SERVICE
     edsl_version: Literal["1.0.8"] = EDSL_VERSION
     choices: tuple[EdslChoiceRecord, EdslChoiceRecord, EdslChoiceRecord]

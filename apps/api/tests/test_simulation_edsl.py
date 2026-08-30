@@ -37,6 +37,8 @@ def test_reviewed_task_compiles_to_strict_edsl_multiple_choice() -> None:
 
     assert request.repeats == 3
     assert request.agent_source == "synthetic_placeholder"
+    assert request.respondent_model_id == "gpt-5.6-luna"
+    assert request.respondent_model_service == "openai"
     assert {trait.name for trait in request.traits} == set(TraitName)
     assert spec.question_options == ("{{ option_1 }}", "{{ option_2 }}", "No purchase")
     assert spec.scenario["task_id"] == "task-0001-01"

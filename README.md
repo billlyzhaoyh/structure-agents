@@ -159,7 +159,7 @@ make simulation-edsl-daytona-smoke
 
 The smoke creates a short-lived Daytona Secret scoped to Expected Parrot, mounts only its
 opaque placeholder into a domain-allowlisted sandbox, runs three private responses through
-EDSL 1.0.8 and the system-pinned `gpt-4.1-mini-2025-04-14`, downloads a canonical sanitized
+EDSL 1.0.8 and the system-pinned `gpt-5.6-luna`, downloads a canonical sanitized
 result, then deletes both the sandbox and temporary secret. It is a paid integration check,
 not a study result, and does not access H&M rows.
 
