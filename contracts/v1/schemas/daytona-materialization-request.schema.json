@@ -1,0 +1,42 @@
+{
+  "additionalProperties": false,
+  "description": "Explicit approval to materialize reviewed tasks on synthetic data.",
+  "properties": {
+    "approved": {
+      "const": true,
+      "title": "Approved",
+      "type": "boolean"
+    },
+    "contract_version": {
+      "const": "v1",
+      "title": "Contract Version",
+      "type": "string"
+    },
+    "dataset_id": {
+      "const": "rel-hm",
+      "title": "Dataset Id",
+      "type": "string"
+    },
+    "task_ids": {
+      "items": {
+        "enum": [
+          "rel-hm/user-churn",
+          "rel-hm/item-sales"
+        ],
+        "type": "string"
+      },
+      "maxItems": 2,
+      "minItems": 1,
+      "title": "Task Ids",
+      "type": "array"
+    }
+  },
+  "required": [
+    "contract_version",
+    "dataset_id",
+    "task_ids",
+    "approved"
+  ],
+  "title": "DaytonaMaterializationRequest",
+  "type": "object"
+}

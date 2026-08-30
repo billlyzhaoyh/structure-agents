@@ -65,7 +65,17 @@ test("new workspaces default to contract-aligned retail conventions", () => {
 
   assert.equal(state.table, "customer");
   assert.equal(state.metric, "Item sales");
+  assert.equal(state.defaultTaskCatalog, null);
   assert.deepEqual(state.guardrails, ["margin", "stockouts"]);
+});
+
+test("new objectives default to the reviewed article-sales task without claiming a run", () => {
+  const state = createWorkspaceState();
+  const objective = createObjective(state);
+
+  assert.equal(objective.selectedTaskId, "rel-hm/item-sales");
+  assert.equal(objective.materializationStatus, "idle");
+  assert.equal(objective.materialization, null);
 });
 
 test("invalid persisted state falls back safely", () => {
