@@ -1,0 +1,323 @@
+{
+  "$defs": {
+    "ClassificationEvaluationResult": {
+      "additionalProperties": false,
+      "properties": {
+        "contract_version": {
+          "const": "v1",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "coverage": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Coverage",
+          "type": "number"
+        },
+        "dataset_id": {
+          "minLength": 1,
+          "title": "Dataset Id",
+          "type": "string"
+        },
+        "fixture": {
+          "const": true,
+          "title": "Fixture",
+          "type": "boolean"
+        },
+        "implementation_status": {
+          "const": "placeholder",
+          "title": "Implementation Status",
+          "type": "string"
+        },
+        "integrity_checks": {
+          "items": {
+            "$ref": "#/$defs/IntegrityCheck"
+          },
+          "minItems": 1,
+          "title": "Integrity Checks",
+          "type": "array"
+        },
+        "metrics": {
+          "$ref": "#/$defs/ClassificationMetrics"
+        },
+        "prevalence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Prevalence",
+          "type": "number"
+        },
+        "provenance": {
+          "$ref": "#/$defs/EvaluationProvenance"
+        },
+        "run_id": {
+          "minLength": 1,
+          "title": "Run Id",
+          "type": "string"
+        },
+        "sample_count": {
+          "exclusiveMinimum": 0,
+          "title": "Sample Count",
+          "type": "integer"
+        },
+        "task_type": {
+          "const": "binary_classification",
+          "title": "Task Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_version",
+        "fixture",
+        "implementation_status",
+        "run_id",
+        "dataset_id",
+        "sample_count",
+        "coverage",
+        "provenance",
+        "integrity_checks",
+        "task_type",
+        "prevalence",
+        "metrics"
+      ],
+      "title": "ClassificationEvaluationResult",
+      "type": "object"
+    },
+    "ClassificationMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "accuracy": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Accuracy",
+          "type": "number"
+        },
+        "auroc": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Auroc",
+          "type": "number"
+        },
+        "average_precision": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Average Precision",
+          "type": "number"
+        },
+        "brier_score": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Brier Score",
+          "type": "number"
+        },
+        "f1": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "F1",
+          "type": "number"
+        },
+        "log_loss": {
+          "minimum": 0,
+          "title": "Log Loss",
+          "type": "number"
+        }
+      },
+      "required": [
+        "auroc",
+        "average_precision",
+        "log_loss",
+        "brier_score",
+        "accuracy",
+        "f1"
+      ],
+      "title": "ClassificationMetrics",
+      "type": "object"
+    },
+    "EvaluationProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "context_length": {
+          "exclusiveMinimum": 0,
+          "title": "Context Length",
+          "type": "integer"
+        },
+        "dataset_revision": {
+          "minLength": 1,
+          "title": "Dataset Revision",
+          "type": "string"
+        },
+        "duration_seconds": {
+          "minimum": 0,
+          "title": "Duration Seconds",
+          "type": "number"
+        },
+        "model_id": {
+          "minLength": 1,
+          "title": "Model Id",
+          "type": "string"
+        },
+        "model_revision": {
+          "minLength": 1,
+          "title": "Model Revision",
+          "type": "string"
+        }
+      },
+      "required": [
+        "dataset_revision",
+        "model_id",
+        "model_revision",
+        "context_length",
+        "duration_seconds"
+      ],
+      "title": "EvaluationProvenance",
+      "type": "object"
+    },
+    "IntegrityCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "detail": {
+          "minLength": 1,
+          "title": "Detail",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "passed",
+        "detail"
+      ],
+      "title": "IntegrityCheck",
+      "type": "object"
+    },
+    "RegressionEvaluationResult": {
+      "additionalProperties": false,
+      "properties": {
+        "contract_version": {
+          "const": "v1",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "coverage": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Coverage",
+          "type": "number"
+        },
+        "dataset_id": {
+          "minLength": 1,
+          "title": "Dataset Id",
+          "type": "string"
+        },
+        "fixture": {
+          "const": true,
+          "title": "Fixture",
+          "type": "boolean"
+        },
+        "implementation_status": {
+          "const": "placeholder",
+          "title": "Implementation Status",
+          "type": "string"
+        },
+        "integrity_checks": {
+          "items": {
+            "$ref": "#/$defs/IntegrityCheck"
+          },
+          "minItems": 1,
+          "title": "Integrity Checks",
+          "type": "array"
+        },
+        "metrics": {
+          "$ref": "#/$defs/RegressionMetrics"
+        },
+        "provenance": {
+          "$ref": "#/$defs/EvaluationProvenance"
+        },
+        "run_id": {
+          "minLength": 1,
+          "title": "Run Id",
+          "type": "string"
+        },
+        "sample_count": {
+          "exclusiveMinimum": 0,
+          "title": "Sample Count",
+          "type": "integer"
+        },
+        "target_unit": {
+          "minLength": 1,
+          "title": "Target Unit",
+          "type": "string"
+        },
+        "task_type": {
+          "const": "regression",
+          "title": "Task Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_version",
+        "fixture",
+        "implementation_status",
+        "run_id",
+        "dataset_id",
+        "sample_count",
+        "coverage",
+        "provenance",
+        "integrity_checks",
+        "task_type",
+        "target_unit",
+        "metrics"
+      ],
+      "title": "RegressionEvaluationResult",
+      "type": "object"
+    },
+    "RegressionMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "mae": {
+          "minimum": 0,
+          "title": "Mae",
+          "type": "number"
+        },
+        "r2": {
+          "title": "R2",
+          "type": "number"
+        },
+        "rmse": {
+          "minimum": 0,
+          "title": "Rmse",
+          "type": "number"
+        }
+      },
+      "required": [
+        "mae",
+        "rmse",
+        "r2"
+      ],
+      "title": "RegressionMetrics",
+      "type": "object"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "binary_classification": "#/$defs/ClassificationEvaluationResult",
+      "regression": "#/$defs/RegressionEvaluationResult"
+    },
+    "propertyName": "task_type"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/ClassificationEvaluationResult"
+    },
+    {
+      "$ref": "#/$defs/RegressionEvaluationResult"
+    }
+  ]
+}

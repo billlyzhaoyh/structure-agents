@@ -1,0 +1,27 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "contract_version": {
+      "const": "v1",
+      "title": "Contract Version",
+      "type": "string"
+    },
+    "dataset_id": {
+      "minLength": 1,
+      "title": "Dataset Id",
+      "type": "string"
+    },
+    "prompt": {
+      "minLength": 1,
+      "title": "Prompt",
+      "type": "string"
+    }
+  },
+  "required": [
+    "contract_version",
+    "dataset_id",
+    "prompt"
+  ],
+  "title": "TaskDraftRequest",
+  "type": "object"
+}

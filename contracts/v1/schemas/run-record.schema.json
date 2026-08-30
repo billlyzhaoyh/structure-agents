@@ -1,0 +1,66 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "contract_version": {
+      "const": "v1",
+      "title": "Contract Version",
+      "type": "string"
+    },
+    "draft_id": {
+      "minLength": 1,
+      "title": "Draft Id",
+      "type": "string"
+    },
+    "fixture": {
+      "const": true,
+      "title": "Fixture",
+      "type": "boolean"
+    },
+    "implementation_status": {
+      "const": "placeholder",
+      "title": "Implementation Status",
+      "type": "string"
+    },
+    "message": {
+      "minLength": 1,
+      "title": "Message",
+      "type": "string"
+    },
+    "progress_percent": {
+      "maximum": 100,
+      "minimum": 0,
+      "title": "Progress Percent",
+      "type": "integer"
+    },
+    "run_id": {
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "awaiting_approval",
+        "queued",
+        "preparing",
+        "predicting",
+        "evaluating",
+        "succeeded",
+        "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "contract_version",
+    "fixture",
+    "implementation_status",
+    "run_id",
+    "draft_id",
+    "status",
+    "progress_percent",
+    "message"
+  ],
+  "title": "RunRecord",
+  "type": "object"
+}
