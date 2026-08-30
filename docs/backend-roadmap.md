@@ -112,6 +112,7 @@ Ordered commits:
 7. `test: verify default task materialization parity`
 8. `fix: verify Daytona SQL runtime before upload`
 9. `docs: document local H&M materialization workflow`
+10. `feat: expose approved synthetic Daytona materialization`
 
 Implementation:
 
@@ -130,6 +131,9 @@ Implementation:
   finite targets, binary `0/1` labels, class balance, null rates, and bounded row counts.
 - Materialize full labels, then separate model-visible support labels, masked test task rows,
   and evaluator-owned sealed test truth.
+- Expose a synchronous synthetic-only route for explicitly approved reviewed task IDs. Return
+  aggregate counts and digests only after verified cleanup; keep private pinned H&M runs on
+  the permission-gated CLI path.
 
 Test plan:
 
@@ -145,6 +149,8 @@ Definition of done:
 - Both defaults produce valid RT-compatible task packages without OpenAI.
 - Test truth cannot enter model-input construction.
 - Sandbox cleanup is verified for success, rejection, timeout, and cancellation.
+- The frontend can select and launch either reviewed default without receiving credentials,
+  row data, evaluator truth, local artifact paths, or general sandbox access.
 - Raw or generated data remains untracked and `make check-all` passes.
 
 ## Milestone 3 - Default RT-J vertical slice
@@ -238,6 +244,9 @@ Ordered commits:
 3. `test: verify default and custom product journeys`
 
 Implementation:
+
+The implemented synthetic materialization route is intentionally not this durable run
+lifecycle: it has no model execution, persistence, polling, private-data mode, or evaluation.
 
 - Add planned routes:
   - `POST /v1/runs` creates an `awaiting_approval` run;

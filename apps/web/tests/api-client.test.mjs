@@ -32,6 +32,58 @@ test("the client sends a versioned H&M task-draft request", async () => {
   });
 });
 
+test("the client launches an explicitly approved reviewed task in Daytona", async () => {
+  const calls = [];
+  const client = createApiClient({
+    baseUrl: "http://api.test",
+    fetchImpl: async (...args) => {
+      calls.push(args);
+      return response({ contract_version: "v1", status: "succeeded", tasks: [] });
+    },
+  });
+
+  await client.launchDaytona(["rel-hm/user-churn"]);
+
+  assert.equal(calls[0][0], "http://api.test/v1/materializations/daytona");
+  assert.equal(calls[0][1].method, "POST");
+  assert.deepEqual(JSON.parse(calls[0][1].body), {
+    contract_version: "v1",
+    dataset_id: "rel-hm",
+    task_ids: ["rel-hm/user-churn"],
+    approved: true,
+  });
+});
+
+test("the client loads the reviewed rel-hm default-task catalog", async () => {
+  const calls = [];
+  const client = createApiClient({
+    baseUrl: "http://api.test",
+    fetchImpl: async (...args) => {
+      calls.push(args);
+      return response({ contract_version: "v1", tasks: [] });
+    },
+  });
+
+  await client.getDefaultTasks();
+
+  assert.equal(calls[0][0], "http://api.test/v1/tasks/defaults?dataset_id=rel-hm");
+});
+
+test("the client surfaces sanitized API failure details", async () => {
+  const client = createApiClient({
+    fetchImpl: async () => response(
+      { detail: { code: "missing_credential", message: "Server credential is unavailable" } },
+      { ok: false, status: 503 },
+    ),
+  });
+
+  await assert.rejects(client.launchDaytona(["rel-hm/item-sales"]), {
+    name: "ContractApiError",
+    message: "Server credential is unavailable",
+    status: 503,
+  });
+});
+
 test("the client rejects unavailable and incompatible APIs", async () => {
   const unavailable = createApiClient({ fetchImpl: async () => { throw new Error("offline"); } });
   const incompatible = createApiClient({ fetchImpl: async () => response({ contract_version: "v2" }) });
