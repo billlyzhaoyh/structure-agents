@@ -21,6 +21,7 @@ REMOTE_INPUT: Final = f"{REMOTE_ROOT}/input"
 REMOTE_OUTPUT: Final = f"{REMOTE_ROOT}/output"
 SANDBOX_TTL_MINUTES: Final = 15
 PROCESS_TIMEOUT_SECONDS: Final = 600
+SQL_CANARY_MARKER: Final = "structagent-sql-canary"
 
 _OUTPUT_FILES: Final = (
     "manifest.json",
@@ -107,6 +108,7 @@ class DaytonaExecutionReport(BaseModel):
     network_block_all: bool
     resources: dict[str, int]
     results: dict[str, MaterializationResult]
+    sql_canary_confirmed: bool
 
 
 def _runtime_image() -> Image:
@@ -147,6 +149,27 @@ def _create_remote_directories(sandbox: Sandbox) -> None:
         REMOTE_OUTPUT,
     ):
         sandbox.fs.create_folder(directory, "755")
+
+
+def _run_sql_canary(sandbox: Sandbox) -> None:
+    response = sandbox.process.exec(
+        'python -c "import duckdb,json; '
+        f"print(json.dumps({{'marker':'{SQL_CANARY_MARKER}',"
+        "'value':duckdb.sql('SELECT 1').fetchone()[0]}))\"",
+        cwd=REMOTE_ROOT,
+        timeout=30,
+    )
+    if response.exit_code != 0:
+        raise DaytonaExecutionError("sandbox_canary", "Daytona SQL canary exited unsuccessfully")
+    lines = [line for line in response.result.splitlines() if line.strip()]
+    try:
+        evidence = json.loads(lines[-1])
+    except (IndexError, json.JSONDecodeError) as error:
+        raise DaytonaExecutionError(
+            "sandbox_canary", "Daytona SQL canary evidence is invalid"
+        ) from error
+    if evidence != {"marker": SQL_CANARY_MARKER, "value": 1}:
+        raise DaytonaExecutionError("sandbox_canary", "Daytona SQL canary evidence is invalid")
 
 
 def _upload_sources(sandbox: Sandbox) -> None:
@@ -260,6 +283,7 @@ def execute_daytona_materialization(
                 "Daytona did not confirm a private sandbox with outbound networking blocked",
             )
         _create_remote_directories(sandbox)
+        _run_sql_canary(sandbox)
         _upload_sources(sandbox)
         _upload_dataset(sandbox, dataset)
         request = json.dumps(
@@ -303,6 +327,7 @@ def execute_daytona_materialization(
             network_block_all=True,
             resources={"cpu": 4, "disk": 10, "memory": 8},
             results=results,
+            sql_canary_confirmed=True,
         )
     except DaytonaExecutionError:
         raise

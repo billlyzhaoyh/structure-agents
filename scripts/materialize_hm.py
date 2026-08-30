@@ -82,6 +82,7 @@ def _run_daytona_synthetic(runs_root: Path) -> dict[str, Any]:
         "network_block_all": report.network_block_all,
         "resources": report.resources,
         "run_root": str(root),
+        "sql_canary_confirmed": report.sql_canary_confirmed,
         "tasks": _task_summary(report.results),
     }
 
@@ -120,6 +121,7 @@ def _run_daytona_live(runs_root: Path, cache_root: Path) -> dict[str, Any]:
         "parity": {task_id: result.status for task_id, result in parity.items()},
         "resources": report.resources,
         "run_root": str(root),
+        "sql_canary_confirmed": report.sql_canary_confirmed,
         "tasks": _task_summary(report.results),
     }
 

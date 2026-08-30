@@ -15,6 +15,7 @@ from structagent_api.materialization import (
 from structagent_api.materialization.daytona_executor import (
     REMOTE_INPUT,
     REMOTE_OUTPUT,
+    SQL_CANARY_MARKER,
     DaytonaExecutionError,
     execute_daytona_materialization,
 )
@@ -67,6 +68,10 @@ class FakeProcess:
         self.calls.append((command, cwd, env, timeout))
         if self.error is not None:
             raise self.error
+        if SQL_CANARY_MARKER in command:
+            if self.response.exit_code != 0:
+                return self.response
+            return FakeResponse(result=json.dumps({"marker": SQL_CANARY_MARKER, "value": 1}))
         return self.response
 
 
@@ -155,6 +160,7 @@ def test_daytona_executor_uses_private_cpu_boundary_and_cleans_up(tmp_path: Path
     assert report.cleanup_confirmed is True
     assert report.network_block_all is True
     assert report.resources == {"cpu": 4, "disk": 10, "memory": 8}
+    assert report.sql_canary_confirmed is True
     assert client.deleted is True
     assert sandbox.refreshed is True
     assert client.created_params is not None
@@ -181,7 +187,7 @@ def test_daytona_executor_uses_private_cpu_boundary_and_cleans_up(tmp_path: Path
         (FakeSandbox(network_block_all=None), "sandbox_policy"),
         (
             FakeSandbox(process=FakeProcess(FakeResponse(exit_code=17, result="private detail"))),
-            "sandbox_execution",
+            "sandbox_canary",
         ),
         (
             FakeSandbox(process=FakeProcess(error=TimeoutError("provider secret detail"))),
