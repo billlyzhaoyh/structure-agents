@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 ContractVersion = Literal["v1"]
 TaskType = Literal["binary_classification", "regression"]
+TaskSource = Literal["default", "custom"]
 DataType = Literal[
     "boolean",
     "categorical",
@@ -23,6 +24,15 @@ class StrictModel(BaseModel):
     """Reject undeclared fields at every public contract boundary."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+class ArtifactReference(StrictModel):
+    """Immutable provenance for a reviewed upstream artifact."""
+
+    repository_url: str = Field(min_length=1, pattern=r"^https://")
+    revision: str = Field(pattern=r"^[0-9a-f]{40}$")
+    path: str = Field(min_length=1)
+    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
 
 
 class FixtureEnvelope(StrictModel):
@@ -189,6 +199,62 @@ ClassificationMetric = Literal[
     "log_loss",
 ]
 RegressionMetric = Literal["mae", "r2", "rmse"]
+
+
+class DefaultTaskDefinitionBase(StrictModel):
+    task_id: str = Field(min_length=1)
+    dataset_id: str = Field(min_length=1)
+    source: Literal["default"]
+    display_name: str = Field(min_length=1)
+    description: str = Field(min_length=1)
+    entity: EntitySpec
+    prediction_time: PredictionTimeSpec
+    horizon: HorizonSpec
+    target: TargetSpec
+    eligibility_definition: str = Field(min_length=1)
+    label_definition: str = Field(min_length=1)
+    upstream_manifest: ArtifactReference
+
+
+class DefaultBinaryTaskDefinition(DefaultTaskDefinitionBase):
+    task_type: Literal["binary_classification"]
+    benchmark_metric: Literal["roc_auc"]
+    diagnostic_metrics: list[ClassificationMetric] = Field(min_length=1)
+
+
+class DefaultRegressionTaskDefinition(DefaultTaskDefinitionBase):
+    task_type: Literal["regression"]
+    benchmark_metric: Literal["nmae"]
+    diagnostic_metrics: list[RegressionMetric] = Field(min_length=1)
+
+
+DefaultTaskDefinition = Annotated[
+    DefaultBinaryTaskDefinition | DefaultRegressionTaskDefinition,
+    Field(discriminator="task_type"),
+]
+
+
+class DefaultTaskCatalog(StrictModel):
+    contract_version: ContractVersion
+    fixture: Literal[True]
+    implementation_status: Literal["metadata_only"]
+    dataset_id: str = Field(min_length=1)
+    benchmark_evaluator: ArtifactReference
+    tasks: list[DefaultTaskDefinition] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_task_inventory(self) -> DefaultTaskCatalog:
+        task_ids = [task.task_id for task in self.tasks]
+        if len(task_ids) != len(set(task_ids)):
+            raise ValueError("default task catalog contains duplicate task IDs")
+
+        expected_prefix = f"{self.dataset_id}/"
+        for task in self.tasks:
+            if task.dataset_id != self.dataset_id:
+                raise ValueError("default task dataset does not match its catalog")
+            if not task.task_id.startswith(expected_prefix):
+                raise ValueError("default task ID does not match its catalog dataset")
+        return self
 
 
 class BinaryTaskContract(TaskContractBase):

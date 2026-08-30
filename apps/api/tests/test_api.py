@@ -21,7 +21,7 @@ def test_health_endpoint_uses_typed_settings() -> None:
     }
 
 
-def test_openapi_exposes_the_fixture_backed_demo_routes() -> None:
+def test_openapi_exposes_catalog_and_fixture_backed_demo_routes() -> None:
     schema = create_app(Settings(environment="test")).openapi()
 
     assert set(schema["paths"]) == {
@@ -30,6 +30,7 @@ def test_openapi_exposes_the_fixture_backed_demo_routes() -> None:
         "/v1/runs/{run_id}",
         "/v1/runs/{run_id}/evaluation",
         "/v1/task-drafts",
+        "/v1/tasks/defaults",
     }
     assert schema["info"]["title"] == "StructAgent API"
     assert schema["info"]["version"] == "0.1.0"
@@ -94,6 +95,39 @@ def test_local_frontend_origin_is_allowed_by_cors() -> None:
 
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:4174"
+
+
+def test_hm_catalog_routes_return_reviewed_metadata_without_credentials() -> None:
+    client = TestClient(create_app(Settings(environment="test")))
+
+    dataset_response = client.get("/v1/datasets/rel-hm")
+    tasks_response = client.get("/v1/tasks/defaults", params={"dataset_id": "rel-hm"})
+
+    assert dataset_response.status_code == 200
+    assert dataset_response.json()["dataset_id"] == "rel-hm"
+    assert dataset_response.json()["implementation_status"] == "metadata_only"
+    assert tasks_response.status_code == 200
+    assert [task["task_id"] for task in tasks_response.json()["tasks"]] == [
+        "rel-hm/user-churn",
+        "rel-hm/item-sales",
+    ]
+    assert {task["source"] for task in tasks_response.json()["tasks"]} == {"default"}
+
+
+def test_default_task_catalog_rejects_unsupported_or_missing_dataset() -> None:
+    client = TestClient(create_app(Settings(environment="test")))
+
+    unsupported = client.get(
+        "/v1/tasks/defaults",
+        params={"dataset_id": "rel-amazon"},
+    )
+    missing = client.get("/v1/tasks/defaults")
+
+    assert unsupported.status_code == 404
+    assert unsupported.json() == {
+        "detail": "Dataset 'rel-amazon' is not available in the V1 default catalog."
+    }
+    assert missing.status_code == 422
 
 
 def test_invalid_log_level_is_rejected() -> None:

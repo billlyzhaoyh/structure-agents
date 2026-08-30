@@ -4,7 +4,8 @@ from typing import Any
 
 import pytest
 from pydantic import TypeAdapter, ValidationError
-from structagent_api.contracts import DatasetDescriptor, TaskDraftOutcome
+from structagent_api.catalog import REL_HM_DEFAULT_TASKS
+from structagent_api.contracts import DatasetDescriptor, DefaultTaskCatalog, TaskDraftOutcome
 from structagent_api.contracts.models import IntegrityCheck
 
 
@@ -158,3 +159,25 @@ def test_integrity_check_distinguishes_not_run_from_passed() -> None:
                 "detail": "Legacy ambiguous representation.",
             }
         )
+
+
+def test_default_task_catalog_rejects_duplicate_task_ids() -> None:
+    payload = REL_HM_DEFAULT_TASKS.model_dump(mode="json")
+    payload["tasks"].append(payload["tasks"][0])
+
+    with pytest.raises(ValidationError, match="duplicate task IDs"):
+        DefaultTaskCatalog.model_validate(payload)
+
+
+def test_default_task_catalog_rejects_mismatched_dataset_or_source() -> None:
+    mismatched_dataset = REL_HM_DEFAULT_TASKS.model_dump(mode="json")
+    mismatched_dataset["tasks"][0]["dataset_id"] = "rel-amazon"
+
+    with pytest.raises(ValidationError, match="does not match its catalog"):
+        DefaultTaskCatalog.model_validate(mismatched_dataset)
+
+    custom_source = REL_HM_DEFAULT_TASKS.model_dump(mode="json")
+    custom_source["tasks"][0]["source"] = "custom"
+
+    with pytest.raises(ValidationError):
+        DefaultTaskCatalog.model_validate(custom_source)

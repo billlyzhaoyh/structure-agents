@@ -12,6 +12,7 @@ from pydantic import TypeAdapter
 
 from structagent_api.contracts.models import (
     DatasetDescriptor,
+    DefaultTaskCatalog,
     EvaluationResult,
     RunRecord,
     TaskDraftOutcome,
@@ -24,6 +25,7 @@ SchemaFactory = Callable[[], dict[str, Any]]
 
 SCHEMA_FACTORIES: dict[str, SchemaFactory] = {
     "dataset-descriptor.schema.json": DatasetDescriptor.model_json_schema,
+    "default-task-catalog.schema.json": DefaultTaskCatalog.model_json_schema,
     "evaluation-result.schema.json": TypeAdapter(EvaluationResult).json_schema,
     "run-record.schema.json": RunRecord.model_json_schema,
     "task-draft-outcome.schema.json": TypeAdapter(TaskDraftOutcome).json_schema,
