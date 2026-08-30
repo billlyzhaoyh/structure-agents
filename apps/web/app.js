@@ -10,6 +10,7 @@ import {
   selectStrategy,
   strategies,
 } from "./demo-data.js";
+import { createApiClient, tableViewModels, taskContractFrom } from "./api-client.js";
 import {
   createObjective,
   createWorkspaceState,
@@ -21,6 +22,7 @@ import {
 } from "./workspace-state.js";
 
 const app = document.querySelector("#app");
+const api = createApiClient();
 const params = new URLSearchParams(window.location.search);
 const legacyModules = {
   import: "data",
@@ -129,47 +131,49 @@ function shell() {
 
 function integrationChooser() {
   const selected = getIntegration(state.source);
+  const connectionLabel = state.apiStatus === "loading" ? "Loading contract…" : `Connect ${selected.name} ${icon("arrow")}`;
   return `<section class="integration-layout">
     <div class="section-intro"><span class="eyebrow">Connect a source</span><h2>Where does your business data live?</h2><p>Choose an integration to load the fashion retail demo dataset. No credentials are requested.</p></div>
     <div class="source-grid" aria-label="Database integrations">${integrations.map((source) => `<button data-source="${source.id}" class="source-card ${state.source === source.id ? "selected" : ""}"><span>${source.mark}</span><p><b>${source.name}</b><small>${source.detail}</small></p><i>${state.source === source.id ? icon("check") : "Choose"}</i></button>`).join("")}</div>
     <div class="connection-panel"><header><span>${selected.mark}</span><p><small>Selected integration</small><b>${selected.name}</b></p><i>Demo connection</i></header>
       <div class="mock-fields"><p><small>Host</small><b>fashion-demo.sql.local</b></p><p><small>Database</small><b>retail_warehouse</b></p><p><small>Schema</small><b>public</b></p><p><small>Access</small><b>Read-only</b></p></div>
-      <footer><p><b>No credentials are used.</b><small>Continuing loads the fashion retail demo dataset.</small></p><button data-connect>Connect ${selected.name} ${icon("arrow")}</button></footer>
+      <footer><p><b>No credentials are used.</b><small>Continuing loads reviewed schema metadata from the local API.</small></p><button data-connect ${state.apiStatus === "loading" ? "disabled" : ""}>${connectionLabel}</button></footer>
     </div>
+    ${state.apiError ? `<div class="api-error">${icon("warning")}<p><b>Local API unavailable</b><small>${escapeHtml(state.apiError)} Start the API, then try again.</small></p></div>` : ""}
     <div class="security-note">${icon("lock")}<p><b>Read-only access</b><small>The demo displays schema access without collecting or storing warehouse credentials.</small></p></div>
   </section>`;
 }
 
 function tableExplorer() {
-  const data = demoData;
-  return `<div class="table-explorer"><div class="table-list">${data.tables.map((table) => `<button data-table="${table.name}" class="${state.table === table.name ? "active" : ""}"><span>${icon("database")}</span><p><b>${table.name}</b><small>${table.rows} rows · ${table.note}</small></p></button>`).join("")}</div>
-    <div class="relation-canvas"><svg viewBox="0 0 640 300" preserveAspectRatio="none" aria-hidden="true"><path d="M130 80 C260 80 220 150 320 150 S420 65 525 65"/><path d="M130 80 C250 80 220 245 350 245 S440 205 525 205"/><path d="M320 150 C390 150 420 205 525 205"/></svg>
-      <button class="node node-a ${state.table === "customers" ? "active" : ""}" data-table="customers"><small>identity</small><b>customers</b><span>customer_id</span></button>
-      <button class="node node-b ${state.table === "transactions" ? "active" : ""}" data-table="transactions"><small>event</small><b>transactions</b><span>transaction_id</span></button>
-      <button class="node node-c ${state.table === "articles" ? "active" : ""}" data-table="articles"><small>entity</small><b>articles</b><span>article_id</span></button>
-      <button class="node node-d ${state.table === "departments" ? "active" : ""}" data-table="departments"><small>taxonomy</small><b>departments</b><span>department_id</span></button>
-      <div class="canvas-status"><span></span><p><b>Structure understood</b><small>3 relationships · no orphan keys</small></p></div>
+  const tables = state.dataset ? tableViewModels(state.dataset, demoData.rowLabels) : demoData.tables.map((table) => ({ ...table, detail: table.note }));
+  const relationshipCount = state.dataset?.tables.flatMap((table) => table.columns).filter((column) => column.foreign_key).length ?? 2;
+  return `<div class="table-explorer"><div class="table-list">${tables.map((table) => `<button data-table="${table.name}" class="${state.table === table.name ? "active" : ""}"><span>${icon("database")}</span><p><b>${table.name}</b><small>${table.rows} rows · ${table.detail}</small></p></button>`).join("")}</div>
+    <div class="relation-canvas"><svg viewBox="0 0 640 300" preserveAspectRatio="none" aria-hidden="true"><path d="M130 80 C260 80 220 150 320 150"/><path d="M320 150 C410 150 430 65 525 65"/></svg>
+      <button class="node node-a ${state.table === "customer" ? "active" : ""}" data-table="customer"><small>identity</small><b>customer</b><span>customer_id</span></button>
+      <button class="node node-b ${state.table === "transactions" ? "active" : ""}" data-table="transactions"><small>event</small><b>transactions</b><span>t_dat</span></button>
+      <button class="node node-c ${state.table === "article" ? "active" : ""}" data-table="article"><small>entity</small><b>article</b><span>article_id</span></button>
+      <div class="canvas-status"><span></span><p><b>Contract verified</b><small>${relationshipCount} relationships · V1 metadata</small></p></div>
     </div></div>`;
 }
 
 function dataModule() {
   if (!state.connected) return integrationChooser();
-  return `<section class="data-module"><div class="section-intro with-action"><div><span class="eyebrow">Connected data</span><h2>Your fashion retail data has a shape.</h2><p>We found ${demoData.count} shoppers across four related tables. Verify the relationships before StructAgent uses them.</p></div><button class="secondary" data-disconnect>Change integration</button></div>
+  return `<section class="data-module"><div class="section-intro with-action"><div><span class="eyebrow">Connected data</span><h2>Your fashion retail data has a shape.</h2><p>The API returned three related tables that support customer classification and article-sales regression tasks.</p></div><button class="secondary" data-disconnect>Change integration</button></div>
     <div class="connection-ready"><span></span><p><small>${getIntegration(state.source).name} · read-only</small><b>${demoData.short}</b></p><i>${icon("check")} Connected</i></div>
     ${tableExplorer()}
-    <div class="data-receipt"><p><small>Coverage</small><b>${demoData.health}</b></p><p><small>Relationships</small><b>3 healthy</b></p><p><small>Fresh through</small><b>29 Aug</b></p><button data-open-knowledge>Open business knowledge ${icon("arrow")}</button></div>
+    <div class="data-receipt"><p><small>Contract</small><b>V1</b></p><p><small>Relationships</small><b>2 verified</b></p><p><small>Available task</small><b>7-day sales</b></p><button data-open-knowledge>Open business knowledge ${icon("arrow")}</button></div>
   </section>`;
 }
 
 function knowledgeModule() {
-  const metricOptions = ["Repeat purchase rate", "Item sales", "Conversion rate", "Gross margin"];
+  const metricOptions = ["Item sales", "Gross margin", "Stock availability", "Sell-through rate"];
   const guardrails = [
     ["margin", "Gross margin", "Do not reduce"],
-    ["optouts", "Customer opt-outs", "Keep below 1.5%"],
+    ["stockouts", "Stock-out exposure", "Keep below 5%"],
     ["discount", "Discount exposure", "No blanket markdowns"],
   ];
   return `<section class="knowledge-layout"><div class="section-intro"><span class="eyebrow">Knowledge centre</span><h2>The system needs your definition of a good decision.</h2><p>Connected data describes what happened. Business knowledge tells StructAgent which outcomes matter and which trade-offs are unacceptable.</p></div>
-    <div class="knowledge-card business-context"><label for="business-context">How the business works</label><textarea id="business-context">We are a growing fashion retailer. Most sales come from returning shoppers, and we want sustainable growth without relying on blanket discounts.</textarea><small>Plain language is useful. This stays editable.</small></div>
+    <div class="knowledge-card business-context"><label for="business-context">How the business works</label><textarea id="business-context">We are a growing fashion retailer. We need a seven-day view of article demand so merchandising actions improve sales without creating stock-outs or margin pressure.</textarea><small>Plain language is useful. This stays editable.</small></div>
     <div class="knowledge-card"><div class="panel-heading"><span>Primary success metric</span><small>Choose one</small></div><div class="metric-grid">${metricOptions.map((metric) => `<button data-metric="${metric}" class="choice ${state.metric === metric ? "selected" : ""}"><span></span><p><b>${metric}</b><small>${state.metric === metric ? "Current focus" : "Select"}</small></p></button>`).join("")}</div></div>
     <div class="knowledge-card"><div class="panel-heading"><span>Decision guardrails</span><small>Select all that apply</small></div><div class="guardrail-list">${guardrails.map(([id, label, detail]) => `<button data-guardrail="${id}" class="guardrail ${state.guardrails.includes(id) ? "selected" : ""}"><span>${state.guardrails.includes(id) ? icon("check") : ""}</span><p><b>${label}</b><small>${detail}</small></p></button>`).join("")}</div></div>
     <div class="knowledge-summary"><span>Business knowledge</span><p>Improve <b>${state.metric}</b> while respecting <b>${state.guardrails.length} guardrails</b>.</p><button data-save-knowledge ${businessKnowledgeReady(state.metric, state.guardrails) ? "" : "disabled"}>${state.guardrails.length ? (state.knowledgeComplete ? "Update and open objectives" : "Save and open objectives") : "Select at least one guardrail"} ${icon("arrow")}</button></div>
@@ -183,7 +187,7 @@ function objectiveReference(objective) {
 function objectiveNavigation(objective) {
   const views = [
     ["brief", "Objective brief", objective.confirmed ? "Defined" : "Draft"],
-    ["insights", "Customer insights", objective.confirmed ? `RT-J r${objective.rtjRun}` : "Run RT-J first"],
+    ["insights", "Item insights", objective.confirmed ? `RT-J r${objective.rtjRun}` : "Run RT-J first"],
     ["decisions", "Decision Studio", objective.confirmed ? `Uses RT-J r${objective.rtjRun}` : "Waiting for evidence"],
   ];
   return `<nav class="objective-nav" aria-label="Selected objective sections">${views.map(([id, label, status]) => {
@@ -209,8 +213,8 @@ function objectiveBrief(objective) {
     <div class="chat-thread objective-thread"><div class="chat agent"><p>What business outcome should we improve first?</p><small>I’ll check the available data, sharpen the objective, and prepare the RT-J task with you.</small></div>
       ${objective.fit ? `<div class="chat human"><p>${escapeHtml(objective.title)}</p></div>${objectiveAgentGuidance(objective)}` : ""}
     </div>
-    <div class="objective-prompts"><span>Suggested starts</span><button data-objective-fit="supported"><b>Reduce shopper churn</b><small>Supported by current data</small></button><button data-objective-fit="unsupported"><b>Increase store footfall</b><small>Needs additional data</small></button></div>
-    <form class="objective-compose"><label for="objective-input">Describe the objective in your own words</label><div><input id="objective-input" value="${escapeHtml(objective.title === "Define a business outcome" ? "Reduce shopper churn without blanket discounts" : objective.title)}"><button>${icon("arrow")}</button></div></form>
+    <div class="objective-prompts"><span>Suggested starts</span><button data-objective-fit="supported"><b>Forecast seven-day item sales</b><small>Supported by current data</small></button><button data-objective-fit="unsupported"><b>Increase store footfall</b><small>Needs additional data</small></button></div>
+    <form class="objective-compose"><label for="objective-input">Describe the objective in your own words</label><div><input id="objective-input" value="${escapeHtml(objective.title === "Define a business outcome" ? "Forecast sales revenue for each article over the next seven days" : objective.title)}"><button>${icon("arrow")}</button></div></form>
   </div>`;
 }
 
@@ -218,32 +222,44 @@ function objectiveAgentGuidance(objective) {
   if (objective.fit === "unsupported") {
     return `<div class="chat agent agent-task data-gap"><div class="agent-task-status"><span>${icon("warning")}</span><p><small>Data check</small><b>We need one more source before creating this task.</b></p></div><p>Purchases cannot show who entered a store without buying. I’ve paused this objective so the resulting model does not create false confidence.</p><div class="missing-data"><b>Data to collect</b><span>store_id</span><span>visit_timestamp</span><span>customer_id or cohort</span></div>${objective.collectionPlan ? `<div class="plan-ready">${icon("check")}<p><b>Collection plan created</b><small>Add store-visit events, validate identity coverage, then return to this conversation.</small></p></div>` : `<button class="agent-action" data-collection-plan>Create data collection plan ${icon("arrow")}</button>`}</div>`;
   }
-  if (objective.confirmed) {
-    return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("check")}</span><p><small>Objective ready</small><b>The RT-J task is defined and linked to this objective.</b></p></div><div class="task-preview"><p><small>Population</small><b>Returning shoppers</b></p><p><small>Outcome window</small><b>30 days</b></p><p><small>Task</small><b>Disengagement prediction</b></p></div><button class="agent-action" data-objective-view="insights">Open customer insights ${icon("arrow")}</button></div>`;
+  if (objective.apiStatus === "loading") {
+    return `<div class="chat agent agent-task"><div class="agent-task-status"><span class="status-spinner"></span><p><small>Contract request in progress</small><b>Creating the seven-day RT-J task and loading its evaluation.</b></p></div><p>The browser is exchanging versioned V1 payloads with the local API.</p></div>`;
   }
-  return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("check")}</span><p><small>Supported by current data</small><b>I can turn this into a credible RT-J task.</b></p></div><p>Purchase timing, article affinity and discount reliance provide useful signals. I’ve translated the conversation into the task below.</p><div class="task-contract"><small>Proposed task</small><p>For each returning shopper, estimate 30-day disengagement using only information known today.</p></div><div class="task-preview"><p><small>Population</small><b>Returning shoppers</b></p><p><small>Outcome window</small><b>30 days</b></p><p><small>Guardrail</small><b>Protect margin</b></p></div><button class="agent-action" data-run-rtj>Create objective and RT-J task ${icon("arrow")}</button></div>`;
+  if (objective.apiError) {
+    return `<div class="chat agent agent-task data-gap"><div class="agent-task-status"><span>${icon("warning")}</span><p><small>API connection</small><b>I couldn’t create the contract-backed task.</b></p></div><p>${escapeHtml(objective.apiError)}</p><button class="agent-action" data-run-rtj>Try the contract request again ${icon("arrow")}</button></div>`;
+  }
+  if (objective.confirmed) {
+    const contract = taskContractFrom(objective.taskDraft);
+    return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("check")}</span><p><small>Objective ready</small><b>The V1 task contract is defined and linked to this objective.</b></p></div><div class="task-preview"><p><small>Entity</small><b>${escapeHtml(contract.entity.table)}</b></p><p><small>Outcome window</small><b>${contract.horizon.value} ${contract.horizon.unit}</b></p><p><small>Task</small><b>Sales regression</b></p></div><button class="agent-action" data-objective-view="insights">Open item insights ${icon("arrow")}</button></div>`;
+  }
+  return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("check")}</span><p><small>Supported by current data</small><b>This maps to the reviewed article-sales task.</b></p></div><p>Article identity, transaction time and price provide the required structure. I’ll submit the prompt through the V1 task-draft contract.</p><div class="task-contract"><small>Proposed task</small><p>For each eligible article, predict summed transaction value over the next seven days using only information known today.</p></div><div class="task-preview"><p><small>Entity</small><b>Article</b></p><p><small>Outcome window</small><b>7 days</b></p><p><small>Guardrail</small><b>Protect margin</b></p></div><button class="agent-action" data-run-rtj>Create objective and RT-J task ${icon("arrow")}</button></div>`;
 }
 
 function insightsModule(objective) {
-  return `<section class="insights-workspace"><div class="run-context"><div><span>Selected objective</span><b>OBJ-${String(objective.number).padStart(2, "0")} · ${escapeHtml(objective.title)}</b></div>${icon("arrow")}<div><span>Evidence run</span><b>RT-J r${objective.rtjRun} · Latest</b></div><i>Ready for simulation</i></div><div class="insights-layout"><div class="insight-summary"><span class="eyebrow">RT-J demo run</span><h2>A useful belief—with its limits visible.</h2><div class="confidence-ring"><span><b>81%</b><small>decision confidence</small></span></div><p>Strong enough to understand churn risk and compare targeted strategies. Not suitable for automatic customer decisions.</p><button data-open-decisions>Use this evidence in Decision Studio ${icon("arrow")}</button></div>
-    <div class="feature-panel"><div class="panel-heading"><span>What shapes the belief</span><small>Relative influence</small></div>${demoData.features.map(([name, value]) => `<div class="feature-row"><span>${name}</span><b><i style="--width:${value}%"></i></b><small>${value}</small></div>`).join("")}<div class="caveat"><b>Watch-out</b><span>Predictions are least certain for first-time shoppers.</span></div></div>
-    <div class="cohort-panel"><div class="panel-heading"><span>Customer insights</span><small>30-day churn risk</small></div>${demoData.cohorts.map((item) => `<button><span><b>${item[0]}</b><small>${item[3]}</small></span><strong>${item[2]}</strong>${icon("arrow")}</button>`).join("")}</div>
+  const evaluation = objective.evaluation;
+  const metrics = evaluation?.metrics ?? { mae: "—", rmse: "—", r2: 0 };
+  const coverage = evaluation ? `${Math.round(evaluation.coverage * 100)}%` : "—";
+  const fit = evaluation ? `${Math.round(metrics.r2 * 100)}%` : "—";
+  const checks = evaluation?.integrity_checks ?? [];
+  return `<section class="insights-workspace"><div class="run-context"><div><span>Selected objective</span><b>OBJ-${String(objective.number).padStart(2, "0")} · ${escapeHtml(objective.title)}</b></div>${icon("arrow")}<div><span>Contract run</span><b>${escapeHtml(objective.run?.run_id ?? "Awaiting run")}</b></div><i>${escapeHtml(objective.run?.status ?? "Pending")}</i></div><div class="insights-layout"><div class="insight-summary"><span class="eyebrow">Seven-day regression</span><h2>Useful evidence—with its limits visible.</h2><div class="confidence-ring"><span><b>${fit}</b><small>variance explained</small></span></div><p>The evaluation covers ${coverage} of ${evaluation?.sample_count ?? "—"} eligible articles. Treat this as planning evidence, not an automatic inventory decision.</p><button data-open-decisions>Use this evidence in Decision Studio ${icon("arrow")}</button></div>
+    <div class="feature-panel"><div class="panel-heading"><span>Model evaluation</span><small>Contract metrics</small></div><div class="feature-row"><span>Mean absolute error</span><b></b><small>${metrics.mae}</small></div><div class="feature-row"><span>Root mean squared error</span><b></b><small>${metrics.rmse}</small></div><div class="feature-row"><span>R²</span><b><i style="--width:${Math.max(0, Number(metrics.r2) * 100)}%"></i></b><small>${metrics.r2}</small></div><div class="feature-row"><span>Coverage</span><b><i style="--width:${evaluation ? evaluation.coverage * 100 : 0}%"></i></b><small>${coverage}</small></div><div class="caveat"><b>Provenance</b><span>${escapeHtml(evaluation?.provenance?.model_id ?? "Not available")} · ${escapeHtml(evaluation?.provenance?.dataset_revision ?? "unknown revision")}</span></div></div>
+    <div class="cohort-panel"><div class="panel-heading"><span>Integrity checks</span><small>Evaluation contract</small></div>${checks.map((check) => `<button><span><b>${escapeHtml(check.name.replaceAll("_", " "))}</b><small>${escapeHtml(check.detail)}</small></span><strong>${escapeHtml(check.status)}</strong>${icon("arrow")}</button>`).join("")}</div>
   </div></section>`;
 }
 
 function decisionsModule(objective) {
   const chosen = selectStrategy(objective.strategy);
-  return `<section class="decisions-layout"><div class="inheritance-banner"><span>${icon("spark")}</span><p><small>Simulation evidence source</small><b>OBJ-${String(objective.number).padStart(2, "0")} → RT-J r${objective.rtjRun}</b></p><i>Inherited · 81% confidence</i></div><div class="evidence-strip"><p><small>Objective</small><b>${escapeHtml(objective.title)}</b></p><p><small>Priority cohort</small><b>Seasonal loyalists</b></p><p><small>Guardrail</small><b>Protect gross margin</b></p><i>7,106 profiles available</i></div>
-    <div class="meeting-panel"><header><span>S</span><p><b>Strategy partner</b><small>RT-J evidence + customer model</small></p><i>Working session</i></header><div class="chat-thread"><div class="chat agent"><p>Seasonal loyalists return for a narrow edit, but visits are slowing. A blanket markdown may trade away margin. What could make returning feel worthwhile?</p><small>Based on 1,580 demo shopper profiles</small></div><div class="chat human"><p>Offer a personal preview of the new-season edit without discounting it.</p></div>${objective.chatCount > 2 ? `<div class="chat agent"><p>That preserves price integrity. I’d compare the preview against a curated outfit edit and cap frequency so the invitation stays meaningful.</p><small>2 assumptions added to the simulation</small></div>` : ""}</div><form class="strategy-compose"><label for="strategy-input">Ask about an action, offer or message</label><div><input id="strategy-input" value="How can we protect margin?"><button>${icon("arrow")}</button></div></form></div>
-    <div class="intervention-panel"><div class="panel-heading"><span>Candidate interventions</span><small>Evaluated across 7,106 demo profiles</small></div>${strategies.map((item) => `<button data-strategy="${item.id}" class="intervention ${objective.strategy === item.id ? "selected" : ""}"><span></span><p><b>${item.name}</b><small>${item.detail}</small></p><strong>+${item.lift}%<small>retained</small></strong></button>`).join("")}<div class="strategy-score"><p><small>Expected lift</small><b>+${chosen.lift}%</b></p><p><small>Margin effect</small><b>+${chosen.margin}%</b></p><p><small>Confidence</small><b>${chosen.confidence}%</b></p></div><button class="primary" data-stage-experiment>Stage this experiment ${icon("arrow")}</button></div>
+  return `<section class="decisions-layout"><div class="inheritance-banner"><span>${icon("spark")}</span><p><small>Simulation evidence source</small><b>OBJ-${String(objective.number).padStart(2, "0")} → ${escapeHtml(objective.run?.run_id ?? "contract run")}</b></p><i>Inherited · R² ${objective.evaluation?.metrics?.r2 ?? "—"}</i></div><div class="evidence-strip"><p><small>Objective</small><b>${escapeHtml(objective.title)}</b></p><p><small>Planning segment</small><b>High-velocity articles</b></p><p><small>Guardrail</small><b>Protect gross margin</b></p><i>${objective.evaluation?.sample_count ?? "—"} evaluated articles</i></div>
+    <div class="meeting-panel"><header><span>S</span><p><b>Strategy partner</b><small>RT-J evidence + scenario model</small></p><i>Working session</i></header><div class="chat-thread"><div class="chat agent"><p>The seven-day model indicates demand concentration in a small set of articles. A blanket markdown could trade away margin. Which merchandising lever should we test first?</p><small>Grounded in the selected objective’s evaluation contract</small></div><div class="chat human"><p>Give predicted high-demand articles more prominent placement without discounting them.</p></div>${objective.chatCount > 2 ? `<div class="chat agent"><p>That preserves price integrity. I’d compare featured placement with replenishment priority and monitor stock-out exposure as the guardrail.</p><small>2 assumptions added to the scenario</small></div>` : ""}</div><form class="strategy-compose"><label for="strategy-input">Ask about an action, offer or merchandising change</label><div><input id="strategy-input" value="How can we protect margin?"><button>${icon("arrow")}</button></div></form></div>
+    <div class="intervention-panel"><div class="panel-heading"><span>Candidate interventions</span><small>Scenario layer · ${objective.evaluation?.sample_count ?? "—"} evaluated articles</small></div>${strategies.map((item) => `<button data-strategy="${item.id}" class="intervention ${objective.strategy === item.id ? "selected" : ""}"><span></span><p><b>${item.name}</b><small>${item.detail}</small></p><strong>+${item.lift}%<small>sales</small></strong></button>`).join("")}<div class="strategy-score"><p><small>Expected lift</small><b>+${chosen.lift}%</b></p><p><small>Margin effect</small><b>+${chosen.margin}%</b></p><p><small>Scenario confidence</small><b>${chosen.confidence}%</b></p></div><button class="primary" data-stage-experiment>Stage this experiment ${icon("arrow")}</button></div>
   </section>`;
 }
 
 function experimentsModule() {
   return `<section class="experiments-layout"><div class="experiments-heading"><div><span class="eyebrow">Experiment portfolio</span><h2>Measure what happened. Keep what the business learned.</h2><p>Monitor active tests against the success metric and guardrails defined in Business Knowledge.</p></div><button class="secondary" data-new-experiment>${icon("plus")} New experiment</button></div>
-    ${state.showExperimentForm ? `<div class="experiment-draft"><div><small>New experiment plan</small><h3>Test another intervention</h3></div><p><span>Population</span><b>Seasonal loyalists</b></p><p><span>Primary metric</span><b>${state.metric}</b></p><button data-launch-experiment>Start demo test ${icon("arrow")}</button></div>` : ""}
-    <div class="active-experiment"><header><div><span></span><p><small>Active · day 18 of 30</small><b>New-season preview</b></p></div><strong>+12.1%<small>repeat visits</small></strong></header><div class="chart-legend"><span><i></i>New-season preview</span><span><i></i>Business as usual</span></div><svg viewBox="0 0 720 280" preserveAspectRatio="none" aria-label="Experiment performance chart"><g><path d="M0 55H720M0 120H720M0 185H720M0 250H720"/></g><path class="area" d="M0 235 C80 220 90 214 140 205 S230 170 285 178 S370 130 430 140 S520 100 575 90 S665 45 720 50 V280H0Z"/><path class="result" d="M0 235 C80 220 90 214 140 205 S230 170 285 178 S370 130 430 140 S520 100 575 90 S665 45 720 50"/><path class="control" d="M0 240 C90 230 105 223 160 218 S270 205 330 195 S430 184 500 170 S620 160 720 145"/></svg><footer><span>Launch</span><span>Day 6</span><span>Day 12</span><span>Today</span></footer></div>
-    <aside class="learning-card"><span>${state.banked ? icon("check") : icon("spark")}</span><small>${state.banked ? "Learning banked" : "Ready to bank"}</small><h3>${state.banked ? "Seasonal loyalists value access over markdowns." : "A new-season preview is driving return visits."}</h3><p>The demo cohort shows stable margin and no material segment disparity.</p><dl><div><dt>Customer twin</dt><dd>${state.banked ? "v1.1" : "v1.0"}</dd></div><div><dt>Model belief</dt><dd>${state.banked ? "+8%" : "Pending"}</dd></div></dl><button data-bank ${state.banked ? "disabled" : ""}>${state.banked ? "Banked to decision memory" : "Bank this learning"} ${icon(state.banked ? "check" : "arrow")}</button></aside>
+    ${state.showExperimentForm ? `<div class="experiment-draft"><div><small>New experiment plan</small><h3>Test another intervention</h3></div><p><span>Population</span><b>High-velocity articles</b></p><p><span>Primary metric</span><b>${state.metric}</b></p><button data-launch-experiment>Start demo test ${icon("arrow")}</button></div>` : ""}
+    <div class="active-experiment"><header><div><span></span><p><small>Active · day 6 of 7</small><b>Featured placement</b></p></div><strong>+12.1%<small>item sales</small></strong></header><div class="chart-legend"><span><i></i>Featured placement</span><span><i></i>Business as usual</span></div><svg viewBox="0 0 720 280" preserveAspectRatio="none" aria-label="Experiment performance chart"><g><path d="M0 55H720M0 120H720M0 185H720M0 250H720"/></g><path class="area" d="M0 235 C80 220 90 214 140 205 S230 170 285 178 S370 130 430 140 S520 100 575 90 S665 45 720 50 V280H0Z"/><path class="result" d="M0 235 C80 220 90 214 140 205 S230 170 285 178 S370 130 430 140 S520 100 575 90 S665 45 720 50"/><path class="control" d="M0 240 C90 230 105 223 160 218 S270 205 330 195 S430 184 500 170 S620 160 720 145"/></svg><footer><span>Launch</span><span>Day 2</span><span>Day 4</span><span>Today</span></footer></div>
+    <aside class="learning-card"><span>${state.banked ? icon("check") : icon("spark")}</span><small>${state.banked ? "Learning banked" : "Ready to bank"}</small><h3>${state.banked ? "Featured placement improved sales without margin erosion." : "Featured placement is increasing seven-day item sales."}</h3><p>The experiment remains inside the gross-margin and stock-out guardrails.</p><dl><div><dt>Scenario model</dt><dd>${state.banked ? "v1.1" : "v1.0"}</dd></div><div><dt>Model belief</dt><dd>${state.banked ? "+8%" : "Pending"}</dd></div></dl><button data-bank ${state.banked ? "disabled" : ""}>${state.banked ? "Banked to decision memory" : "Bank this learning"} ${icon(state.banked ? "check" : "arrow")}</button></aside>
   </section>`;
 }
 
@@ -278,7 +294,7 @@ function bind() {
   document.querySelectorAll("[data-objective-fit]").forEach((button) => button.addEventListener("click", () => {
     const objective = getActiveObjective(state);
     objective.fit = button.dataset.objectiveFit;
-    objective.title = objective.fit === "supported" ? "Reduce 30-day shopper churn" : "Increase in-store visits";
+    objective.title = objective.fit === "supported" ? "Forecast seven-day item sales" : "Increase in-store visits";
     objective.confirmed = false;
     objective.rtjRun = null;
     state.objectiveView = "brief";
@@ -288,9 +304,27 @@ function bind() {
   }));
   document.querySelectorAll("[data-strategy]").forEach((button) => button.addEventListener("click", () => { getActiveObjective(state).strategy = button.dataset.strategy; render(); }));
 
-  document.querySelector("[data-connect]")?.addEventListener("click", () => { state.connected = true; render(); });
+  document.querySelector("[data-connect]")?.addEventListener("click", async () => {
+    state.apiStatus = "loading";
+    state.apiError = null;
+    render();
+    try {
+      state.dataset = await api.getDataset();
+      state.connected = true;
+      state.apiStatus = "ready";
+      state.table = state.dataset.tables[0].name;
+    } catch (error) {
+      state.connected = false;
+      state.apiStatus = "error";
+      state.apiError = error.message;
+    }
+    render();
+  });
   document.querySelector("[data-disconnect]")?.addEventListener("click", () => {
     state.connected = false;
+    state.dataset = null;
+    state.apiStatus = "idle";
+    state.apiError = null;
     state.knowledgeComplete = false;
     state.objectives = [];
     state.activeObjectiveId = null;
@@ -320,14 +354,30 @@ function bind() {
     render();
   }));
   document.querySelector("[data-collection-plan]")?.addEventListener("click", () => { getActiveObjective(state).collectionPlan = true; render(); });
-  document.querySelector("[data-run-rtj]")?.addEventListener("click", () => {
+  document.querySelector("[data-run-rtj]")?.addEventListener("click", async () => {
     const objective = getActiveObjective(state);
-    const latestRun = state.objectives.reduce((highest, item) => Math.max(highest, item.rtjRun ?? 0), 0);
-    objective.confirmed = true;
-    objective.rtjRun = objective.rtjRun ?? latestRun + 1;
-    objective.view = "insights";
-    state.module = "objectives";
-    state.objectiveView = "insights";
+    objective.apiStatus = "loading";
+    objective.apiError = null;
+    render();
+    try {
+      const taskDraft = await api.createTaskDraft(objective.title);
+      taskContractFrom(taskDraft);
+      const run = await api.getRun("fixture-hm-run");
+      const evaluation = await api.getEvaluation(run.run_id);
+      const latestRun = state.objectives.reduce((highest, item) => Math.max(highest, item.rtjRun ?? 0), 0);
+      objective.taskDraft = taskDraft;
+      objective.run = run;
+      objective.evaluation = evaluation;
+      objective.confirmed = true;
+      objective.rtjRun = objective.rtjRun ?? latestRun + 1;
+      objective.apiStatus = "ready";
+      objective.view = "insights";
+      state.module = "objectives";
+      state.objectiveView = "insights";
+    } catch (error) {
+      objective.apiStatus = "error";
+      objective.apiError = error.message;
+    }
     render();
   });
   document.querySelector("[data-open-decisions]")?.addEventListener("click", () => { state.objectiveView = "decisions"; getActiveObjective(state).view = "decisions"; render(); });

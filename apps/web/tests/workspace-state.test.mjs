@@ -22,20 +22,20 @@ function memoryStorage() {
 
 test("objectives are independent records that can be selected", () => {
   const state = createWorkspaceState({ connected: true, knowledgeComplete: true });
-  const first = createObjective(state, "Reduce churn");
+  const first = createObjective(state, "Forecast seven-day item sales");
   first.confirmed = true;
   first.rtjRun = 1;
   const second = createObjective(state, "Increase repeat purchase");
 
   assert.equal(getActiveObjective(state).id, second.id);
   assert.equal(getActiveObjective(state).confirmed, false);
-  assert.equal(selectObjective(state, first.id).title, "Reduce churn");
+  assert.equal(selectObjective(state, first.id).title, "Forecast seven-day item sales");
   assert.equal(getActiveObjective(state).rtjRun, 1);
 });
 
 test("workspace progress is derived from objective records", () => {
   const state = createWorkspaceState({ connected: true, knowledgeComplete: true });
-  const first = createObjective(state, "Reduce churn");
+  const first = createObjective(state, "Forecast seven-day item sales");
   first.confirmed = true;
   first.rtjRun = 1;
   createObjective(state, "Draft objective");
@@ -53,11 +53,19 @@ test("workspace progress is derived from objective records", () => {
 test("workspace state survives a browser refresh", () => {
   const storage = memoryStorage();
   const state = createWorkspaceState({ connected: true, knowledgeComplete: true, module: "objectives" });
-  createObjective(state, "Reduce churn");
+  createObjective(state, "Forecast seven-day item sales");
 
   assert.equal(saveWorkspaceState(storage, state), true);
-  assert.match(storage.getItem(WORKSPACE_STORAGE_KEY), /Reduce churn/);
+  assert.match(storage.getItem(WORKSPACE_STORAGE_KEY), /seven-day item sales/);
   assert.deepEqual(loadWorkspaceState(storage), state);
+});
+
+test("new workspaces default to contract-aligned retail conventions", () => {
+  const state = createWorkspaceState();
+
+  assert.equal(state.table, "customer");
+  assert.equal(state.metric, "Item sales");
+  assert.deepEqual(state.guardrails, ["margin", "stockouts"]);
 });
 
 test("invalid persisted state falls back safely", () => {

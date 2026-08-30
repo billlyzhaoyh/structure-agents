@@ -1,6 +1,6 @@
 # StructAgent V1 contracts
 
-These files are frontend integration artifacts, not live API responses.
+These files are versioned frontend integration artifacts backed by synthetic demo routes.
 
 - Pydantic models in `apps/api/src/structagent_api/contracts` are the source of truth.
 - `schemas/` contains deterministic JSON Schema snapshots.
@@ -8,5 +8,7 @@ These files are frontend integration artifacts, not live API responses.
 - `make contracts-export` regenerates schemas.
 - `make contracts-check` rejects schema drift.
 
-The API currently exposes only `GET /healthz`. No task-drafting or run endpoint serves
-these messages yet.
+The API serves the reviewed H&M examples through `GET /v1/datasets/rel-hm`,
+`POST /v1/task-drafts`, `GET /v1/runs/{run_id}`, and
+`GET /v1/runs/{run_id}/evaluation`. These are deterministic demo responses, not database
+ingestion, task compilation, RT-J execution, or observed model results.

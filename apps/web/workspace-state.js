@@ -1,4 +1,4 @@
-export const WORKSPACE_STORAGE_KEY = "structagent.fashion-retail.workspace.v1";
+export const WORKSPACE_STORAGE_KEY = "structagent.fashion-retail.workspace.v2";
 
 export function createWorkspaceState(overrides = {}) {
   return {
@@ -9,10 +9,13 @@ export function createWorkspaceState(overrides = {}) {
     experimentCount: 0,
     experimentReady: false,
     banked: false,
+    apiStatus: "idle",
+    apiError: null,
+    dataset: null,
     source: "sqldb",
-    table: "customers",
-    metric: "Repeat purchase rate",
-    guardrails: ["margin", "optouts"],
+    table: "customer",
+    metric: "Item sales",
+    guardrails: ["margin", "stockouts"],
     objectives: [],
     activeObjectiveId: null,
     showExperimentForm: false,
@@ -29,6 +32,11 @@ export function createObjective(state, title = "Define a business outcome") {
     fit: null,
     confirmed: false,
     rtjRun: null,
+    taskDraft: null,
+    run: null,
+    evaluation: null,
+    apiStatus: "idle",
+    apiError: null,
     collectionPlan: false,
     strategy: "early",
     chatCount: 2,
@@ -66,7 +74,7 @@ export function workspaceProgress(state) {
 
 export function saveWorkspaceState(storage, state) {
   try {
-    storage?.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify({ version: 1, state }));
+    storage?.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify({ version: 2, state }));
     return true;
   } catch {
     return false;
@@ -76,7 +84,7 @@ export function saveWorkspaceState(storage, state) {
 export function loadWorkspaceState(storage) {
   try {
     const stored = JSON.parse(storage?.getItem(WORKSPACE_STORAGE_KEY));
-    if (stored?.version !== 1 || !stored.state || !Array.isArray(stored.state.objectives)) return null;
+    if (stored?.version !== 2 || !stored.state || !Array.isArray(stored.state.objectives)) return null;
     return createWorkspaceState(stored.state);
   } catch {
     return null;

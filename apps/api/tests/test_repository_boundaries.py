@@ -33,10 +33,12 @@ def test_frontend_is_dependency_free_and_worker_is_documentation_only() -> None:
 
     assert web_files == {
         Path("README.md"),
+        Path("api-client.js"),
         Path("app.js"),
         Path("demo-data.js"),
         Path("index.html"),
         Path("styles.css"),
+        Path("tests/api-client.test.mjs"),
         Path("tests/demo-data.test.mjs"),
         Path("tests/workspace-state.test.mjs"),
         Path("workspace-state.js"),

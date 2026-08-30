@@ -2,21 +2,19 @@
 
 ## Current implementation
 
-StructAgent currently consists of three implemented pieces:
+StructAgent currently consists of four implemented pieces:
 
 1. a Python 3.12 `uv` workspace;
-2. a FastAPI shell exposing only `GET /healthz`; and
-3. versioned Pydantic contracts, generated JSON Schemas, and synthetic fixtures.
-
-The web application, task compiler, database adapters, execution worker, and evaluation
-runtime do not exist yet.
+2. a FastAPI shell exposing health and fixture-backed V1 demo routes;
+3. versioned Pydantic contracts, generated JSON Schemas, and synthetic fixtures; and
+4. a dependency-free Decision OS frontend that consumes those demo contracts.
 
 ```text
-apps/web/                 documentation placeholder
+apps/web/                 contract-backed demo workspace
         |
-        | future HTTP integration
+        | V1 metadata, task, run, and evaluation fixtures
         v
-apps/api/                 health route + contract source models
+apps/api/                 health route + synthetic contract routes
         |
         | future approved run bundle
         v
@@ -24,6 +22,18 @@ workers/rtj/              documentation placeholder
 
 contracts/v1/             generated schemas + validated frontend fixtures
 ```
+
+The SQL, Snowflake, Redshift, and BigQuery choices remain mock UI. The API does not ingest a
+database, compile a live task, call RT-J, or report observed results. Browser code receives no
+provider credentials.
+
+## Contract-backed demo boundary
+
+The frontend reads the reviewed H&M relational descriptor, submits a V1 task-draft request,
+and renders the matching synthetic run and evaluation records. The supported journey follows
+the seven-day article-sales regression fixture. Business knowledge, scenario interventions,
+and experiments remain browser-side demo state because public contracts for those modules do
+not exist yet.
 
 ## Why a lightweight monorepo
 
@@ -37,9 +47,9 @@ The engineering foundation adapts the useful repository discipline from the loca
 pre-commit and pre-push gates, read-only CI permissions, and dependency automation. It
 does not inherit the cookiecutter's Supabase or Vite application assumptions.
 
-## Planned H&M control and compute planes
+## Planned control and compute planes
 
-The following is a direction for later milestones, not implemented behavior:
+The following remains a direction for later milestones, not implemented behavior:
 
 ```text
 Frontend
@@ -75,6 +85,7 @@ binary classification or regression, and horizons from one through seven days. T
 agent may submit DuckDB SQL only through guarded tools; it does not receive general sandbox
 shell access or raw H&M rows.
 
-The planned route shapes, milestone boundaries, test plans, and definitions of done are in
-the [backend roadmap](backend-roadmap.md). They remain unimplemented. Authentication,
-arbitrary databases, production persistence, streaming, and deployment are still deferred.
+The fixture-backed route shapes are now exercised by the frontend, but the execution
+milestones, test plans, and definitions of done remain in the backend roadmap.
+Authentication, arbitrary databases, production persistence, streaming, and deployment
+are still deferred.

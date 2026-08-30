@@ -15,7 +15,7 @@ extension points for a future task compiler and RT-J execution worker.
 
 Implemented today:
 
-- `GET /healthz` in a typed FastAPI application shell;
+- a typed FastAPI application with health and fixture-backed V1 demo routes;
 - strict V1 Pydantic contracts with generated JSON Schemas;
 - validated, synthetic Amazon classification and H&M regression interface journeys;
 - an interactive Decision OS frontend demo; and
@@ -27,13 +27,14 @@ It does not yet:
 - connect to Daytona;
 - download or execute RT-J;
 - ingest a database;
-- generate prediction tasks; or
+- compile or execute live prediction tasks; or
 - report real model results.
 
 `apps/web` contains a dependency-free interactive Decision OS demo for the hackathon
 journey. Its fashion retail content is a small synthetic placeholder; its SQL database,
-Snowflake, Redshift, and BigQuery connection choices are mock UI only. The demo does
-not add frontend-to-API, database, model, or live-provider integrations.
+Snowflake, Redshift, and BigQuery connection choices are mock UI only. The demo connects
+only to reviewed synthetic contract fixtures served by the local API; it does not add
+database, model, or live-provider integrations.
 
 See [architecture](docs/architecture.md), [product flow](docs/product-flow.md), the
 [H&M backend roadmap](docs/backend-roadmap.md), the isolated
@@ -53,8 +54,9 @@ make serve-web
 make contracts-check
 ```
 
-The local API will listen on `http://127.0.0.1:8000`; its implemented endpoint will be
-`GET /healthz`.
+The local API listens on `http://127.0.0.1:8000`. Alongside `GET /healthz`, it serves the
+reviewed H&M metadata, task-draft, run, and evaluation fixtures under `/v1` for frontend
+integration. These routes do not ingest data or execute RT-J.
 
 The frontend demo will listen on `http://127.0.0.1:4173`.
 

@@ -5,6 +5,7 @@ import {
   businessKnowledgeReady,
   canAccessModule,
   canAccessObjectiveView,
+  demoData,
   getIntegration,
   moduleNavStatus,
   modules,
@@ -78,12 +79,17 @@ test("business knowledge requires both a success metric and a guardrail", () => 
 test("a strategy selection exposes concrete demo outcomes", () => {
   assert.deepEqual(selectStrategy("bundle"), {
     id: "bundle",
-    name: "Curated outfit edit",
-    detail: "Pair a familiar article with one useful outfit addition.",
+    name: "Coordinated outfit placement",
+    detail: "Place complementary articles beside predicted high-demand products.",
     lift: 9.6,
     margin: 9.1,
     confidence: 86,
   });
+});
+
+test("the frontend schema fallback follows the V1 retail table conventions", () => {
+  assert.deepEqual(demoData.tables.map(({ name }) => name), ["customer", "article", "transactions"]);
+  assert.equal(demoData.tables.find(({ name }) => name === "transactions").key, "t_dat");
 });
 
 test("the mock integration catalogue resolves supported and unknown sources", () => {
