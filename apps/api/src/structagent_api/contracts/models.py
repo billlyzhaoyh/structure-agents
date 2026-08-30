@@ -172,6 +172,7 @@ class QueryArtifact(StrictModel):
 
 
 class TaskContractBase(StrictModel):
+    source: Literal["custom"]
     draft_id: str = Field(min_length=1)
     dataset_id: str = Field(min_length=1)
     entity: EntitySpec
@@ -217,12 +218,16 @@ class DefaultTaskDefinitionBase(StrictModel):
 
 
 class DefaultBinaryTaskDefinition(DefaultTaskDefinitionBase):
+    task_id: Literal["rel-hm/user-churn"]
+    dataset_id: Literal["rel-hm"]
     task_type: Literal["binary_classification"]
     benchmark_metric: Literal["roc_auc"]
     diagnostic_metrics: list[ClassificationMetric] = Field(min_length=1)
 
 
 class DefaultRegressionTaskDefinition(DefaultTaskDefinitionBase):
+    task_id: Literal["rel-hm/item-sales"]
+    dataset_id: Literal["rel-hm"]
     task_type: Literal["regression"]
     benchmark_metric: Literal["nmae"]
     diagnostic_metrics: list[RegressionMetric] = Field(min_length=1)

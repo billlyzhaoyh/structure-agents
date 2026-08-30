@@ -169,11 +169,11 @@ def test_default_task_catalog_rejects_duplicate_task_ids() -> None:
         DefaultTaskCatalog.model_validate(payload)
 
 
-def test_default_task_catalog_rejects_mismatched_dataset_or_source() -> None:
+def test_default_task_catalog_rejects_non_hm_dataset_or_custom_source() -> None:
     mismatched_dataset = REL_HM_DEFAULT_TASKS.model_dump(mode="json")
     mismatched_dataset["tasks"][0]["dataset_id"] = "rel-amazon"
 
-    with pytest.raises(ValidationError, match="does not match its catalog"):
+    with pytest.raises(ValidationError):
         DefaultTaskCatalog.model_validate(mismatched_dataset)
 
     custom_source = REL_HM_DEFAULT_TASKS.model_dump(mode="json")
@@ -181,3 +181,17 @@ def test_default_task_catalog_rejects_mismatched_dataset_or_source() -> None:
 
     with pytest.raises(ValidationError):
         DefaultTaskCatalog.model_validate(custom_source)
+
+
+def test_default_task_catalog_rejects_unknown_or_recommendation_tasks() -> None:
+    unknown_task = REL_HM_DEFAULT_TASKS.model_dump(mode="json")
+    unknown_task["tasks"][0]["task_id"] = "rel-hm/unknown"
+
+    with pytest.raises(ValidationError):
+        DefaultTaskCatalog.model_validate(unknown_task)
+
+    recommendation = REL_HM_DEFAULT_TASKS.model_dump(mode="json")
+    recommendation["tasks"][0]["task_type"] = "recommendation"
+
+    with pytest.raises(ValidationError):
+        DefaultTaskCatalog.model_validate(recommendation)

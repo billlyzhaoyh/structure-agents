@@ -44,7 +44,7 @@
           "type": "string"
         },
         "dataset_id": {
-          "minLength": 1,
+          "const": "rel-hm",
           "title": "Dataset Id",
           "type": "string"
         },
@@ -102,7 +102,7 @@
           "$ref": "#/$defs/TargetSpec"
         },
         "task_id": {
-          "minLength": 1,
+          "const": "rel-hm/user-churn",
           "title": "Task Id",
           "type": "string"
         },
@@ -144,7 +144,7 @@
           "type": "string"
         },
         "dataset_id": {
-          "minLength": 1,
+          "const": "rel-hm",
           "title": "Dataset Id",
           "type": "string"
         },
@@ -199,7 +199,7 @@
           "$ref": "#/$defs/TargetSpec"
         },
         "task_id": {
-          "minLength": 1,
+          "const": "rel-hm/item-sales",
           "title": "Task Id",
           "type": "string"
         },

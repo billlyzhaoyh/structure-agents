@@ -4,6 +4,7 @@
   "implementation_status": "placeholder",
   "outcome": "draft_ready",
   "contract": {
+    "source": "custom",
     "draft_id": "fixture-amazon-churn",
     "dataset_id": "rel-amazon",
     "task_type": "binary_classification",

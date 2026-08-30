@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from structagent_api.contracts.models import (
     ArtifactReference,
     ColumnDescriptor,
@@ -17,7 +19,7 @@ from structagent_api.contracts.models import (
     TargetSpec,
 )
 
-ACTIVE_DATASET_ID = "rel-hm"
+ACTIVE_DATASET_ID: Literal["rel-hm"] = "rel-hm"
 
 RELBENCH_V1_REPOSITORY = "https://huggingface.co/datasets/stanford-star/relbench-v1"
 RELBENCH_V1_REVISION = "d8e976fd0a4b78877204bc8dfbcfc9a9f7f48600"
