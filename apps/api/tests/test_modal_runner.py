@@ -13,8 +13,11 @@ from structagent_api.contracts import (
 )
 from structagent_api.contracts.models import MaterializedFileReference
 from structagent_api.inference.modal_provider import (
+    LOCAL_WORK_ROOT,
+    MOUNT_ROOT,
     EphemeralModalProvider,
     _volume_destination,
+    _volume_prediction_path,
 )
 from structagent_api.inference.modal_runner import (
     MODEL_UPLOAD_ALLOWLIST,
@@ -88,7 +91,7 @@ def _prediction(request: RTJInferenceRequest) -> CompletedPredictionPackage:
         config=request.config,
         runtime=RTJRuntimeProvenance(
             provider="modal",
-            gpu="L4",
+            gpu=request.config.gpu,
             duration_seconds=1,
             source_revision=request.source_revision,
             checkpoint_revision=request.checkpoint.revision,
@@ -151,6 +154,14 @@ def test_concrete_provider_maps_only_reviewed_volume_destinations(tmp_path: Path
 
     assert _volume_destination("user-churn", upload) == (
         "/input/rel-hm/tasks/user-churn/val.parquet"
+    )
+
+
+def test_concrete_provider_keeps_work_local_and_persists_only_predictions() -> None:
+    assert LOCAL_WORK_ROOT == "/tmp/structagent"
+    assert LOCAL_WORK_ROOT != MOUNT_ROOT
+    assert _volume_prediction_path("user-churn", "inference-1") == (
+        "/inference-1/outputs/user-churn/predictions.parquet"
     )
 
 
@@ -219,6 +230,52 @@ def test_runner_uploads_only_verified_model_files_and_applies_modal_policy(
         for secret in credential_values
     )
     assert session.staged and session.cleaned and result.cleanup_confirmed
+
+
+def test_runner_applies_explicit_reviewed_l40s_policy(tmp_path: Path) -> None:
+    request, roots = _request(tmp_path)
+    request = request.model_copy(update={"config": RTJInferenceConfig(gpu="L40S")})
+    session = FakeSession(
+        [
+            InferenceObservation(
+                request.model_input.test_rows.row_count,
+                Decimal("2"),
+                Decimal("0.20"),
+                _prediction(request),
+            )
+        ]
+    )
+    provider = FakeProvider(session)
+
+    result = run_modal_inference(
+        request,
+        roots,
+        provider,
+        _worker,
+        ProjectionLedger(),
+        policy=ModalExecutionPolicy(gpu="L40S"),
+    )
+
+    assert provider.policy == ModalExecutionPolicy(gpu="L40S")
+    assert result.cleanup_confirmed
+
+
+def test_runner_rejects_gpu_mismatch_before_creating_session(tmp_path: Path) -> None:
+    request, roots = _request(tmp_path)
+    provider = FakeProvider(FakeSession([]))
+
+    with pytest.raises(ModalRunnerError) as raised:
+        run_modal_inference(
+            request,
+            roots,
+            provider,
+            _worker,
+            ProjectionLedger(),
+            policy=ModalExecutionPolicy(gpu="L40S"),
+        )
+
+    assert raised.value.code == "gpu_alignment"
+    assert provider.policy is None
 
 
 def test_upload_manifest_rejects_changed_file(tmp_path: Path) -> None:

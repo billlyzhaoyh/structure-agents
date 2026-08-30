@@ -16,8 +16,8 @@ inference core, and guarded OpenAI, Daytona, and Modal provider boundaries.
 
 Implemented today:
 
-- a typed FastAPI application with health, catalog, synthetic Daytona materialization, and
-  fixture-backed V1 demo routes;
+- a typed FastAPI application with health, catalog, synthetic Daytona materialization,
+  simulated inference, and disabled-by-default observed Modal routes;
 - reviewed customer-churn and article-sales definitions in the H&M default-task catalog;
 - strict V1 Pydantic contracts with generated JSON Schemas;
 - validated, synthetic Amazon classification and H&M regression interface journeys;
@@ -38,22 +38,26 @@ Implemented today:
 - a guarded OpenAI task compiler that can clarify, reject, or produce review-required custom
   H&M SQL after aggregate-only validation in one private Daytona sandbox; and
 - a concrete undeployed Modal adapter using one anonymous volume, network-separated asset
-  staging and inference functions, exact model uploads, bounded admission, and verified cleanup.
+  staging and inference functions, exact model uploads, bounded admission, and verified cleanup;
+  and
+- a local-only UI bridge for an explicitly approved 32-customer `user-churn` cohort, returning
+  sealed batch metrics and provenance but no rows, predictions, paths, or credentials.
 
 It does not yet:
 
-- expose private H&M materialization or RT-J run orchestration through HTTP;
 - complete the paid full-split RT-J acceptance run for both reviewed tasks;
 - ingest arbitrary databases;
 - execute custom prediction tasks without human review; or
-- report observed model predictions or evaluation metrics.
+- expose observed `item-sales` or custom-task inference through HTTP.
 
 `apps/web` contains a dependency-free interactive Decision OS demo for the hackathon
 journey. Its fashion retail content is a small synthetic placeholder; its SQL database,
 Snowflake, Redshift, and BigQuery connection choices are mock UI only. The demo connects
 to the local API, can explicitly request bounded synthetic Daytona materialization, uses
 the live task compiler when configured, and can continue into a clearly labelled simulated
-result. Simulated metrics are seeded interface fixtures, not model results.
+result. When the local API is explicitly enabled with private artifact roots, the reviewed
+`user-churn` path can instead display an observed 32-customer Modal evaluation. Simulated
+metrics remain seeded interface fixtures, not model results.
 
 See [architecture](docs/architecture.md), [product flow](docs/product-flow.md), the
 [H&M backend roadmap](docs/backend-roadmap.md), the isolated
@@ -80,13 +84,37 @@ make materialize-hm-local
 The local API listens on `http://127.0.0.1:8000`. Alongside `GET /healthz`, it serves the
 reviewed H&M metadata and default-task catalog plus run and evaluation fixtures under `/v1`.
 `POST /v1/inferences/simulated` returns provider-free pseudo-random demo metrics and identifies
-them as simulated in both the response and UI.
+them as simulated in both the response and UI. `POST /v1/inferences/modal` is disabled by
+default and accepts only an explicitly approved `rel-hm/user-churn` request.
 Task-draft routes compile custom H&M tasks only when both provider credentials are configured;
 otherwise they return a sanitized `503`. `POST /v1/materializations/daytona` launches one or
 two explicitly approved reviewed tasks against generated H&M-shaped data. It requires
-`DAYTONA_API_KEY` only in the ignored server environment. No HTTP route executes RT-J.
+`DAYTONA_API_KEY` only in the ignored server environment.
 
 The frontend demo will listen on `http://127.0.0.1:4173`.
+
+### Running the observed UI cohort
+
+The local observed route reuses a previously verified real H&M Daytona materialization; the
+synthetic Daytona receipt shown earlier in the UI is a workflow check and is not passed to
+Modal. Add the following only to the ignored local `.env`:
+
+```dotenv
+STRUCTAGENT_ALLOW_REAL_HM=1
+STRUCTAGENT_ALLOW_RTJ_MODAL=1
+STRUCTAGENT_ENABLE_MODAL_UI=1
+STRUCTAGENT_RTJ_DATASET_ROOT=/absolute/path/to/rel-hm/db
+STRUCTAGENT_RTJ_MATERIALIZATION_ROOT=/absolute/path/to/tasks/user-churn
+STRUCTAGENT_RTJ_OUTPUT_ROOT=.artifacts/ui-rtj
+STRUCTAGENT_RTJ_MODAL_GPU=L40S
+```
+
+Start `make serve-api` and `make serve-web`, select **Customer churn**, complete the Daytona
+workflow check, then choose **Run observed model cohort**. The synchronous local request may
+take several minutes. The browser receives the sanitized evaluation only; private task rows,
+truth, predictions, output paths, and provider credentials remain in the trusted API process.
+Keep `STRUCTAGENT_ENABLE_MODAL_UI=0` in shared or deployed environments: this hack-demo route
+has no authentication or durable job orchestration.
 
 ## Testing the task compiler
 
@@ -173,13 +201,16 @@ must never be attached through `modal.Secret` or passed to the RT-J worker.
 
 After `materialize-hm-daytona-live` succeeds, a bounded real-data classification cohort can
 exercise the pinned RT-J source and checkpoint on an L4. Pass the pinned database directory,
-the downloaded `user-churn` materialization directory, and a new ignored output directory:
+the downloaded `user-churn` materialization directory, and a new ignored output directory.
+The reviewed default remains an L4; set `RTJ_MODAL_GPU=L40S` for a larger 48 GB inference
+worker when validating resource sensitivity:
 
 ```bash
 STRUCTAGENT_ALLOW_REAL_HM=1 STRUCTAGENT_ALLOW_RTJ_MODAL=1 \
 RTJ_DATASET_ROOT=.artifacts/rel-hm/<revision>/rel-hm/db \
 RTJ_MATERIALIZATION_ROOT=.artifacts/runs/<daytona-run>/tasks/user-churn \
 RTJ_OUTPUT_ROOT=.artifacts/runs/<new-rtj-run> \
+RTJ_MODAL_GPU=L40S \
 make rtj-modal-live
 ```
 

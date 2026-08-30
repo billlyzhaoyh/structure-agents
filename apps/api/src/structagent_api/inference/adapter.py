@@ -54,7 +54,9 @@ def checkpoint_for_task(task_type: str) -> RTJCheckpointReference:
     )
 
 
-def build_inference_request(result: MaterializationResult) -> RTJInferenceRequest:
+def build_inference_request(
+    result: MaterializationResult, *, gpu: Literal["L4", "L40S"] = "L4"
+) -> RTJInferenceRequest:
     """Build a fixed-protocol request from the model-visible package only."""
     if result.model_input.task.task_id not in REVIEWED_TASK_IDS:
         raise ValueError("live RT-J inference is limited to the two reviewed default tasks")
@@ -71,5 +73,5 @@ def build_inference_request(result: MaterializationResult) -> RTJInferenceReques
         model_input=result.model_input,
         source_revision=RT_SOURCE_REVISION,
         checkpoint=checkpoint_for_task(result.model_input.task.task_type),
-        config=RTJInferenceConfig(),
+        config=RTJInferenceConfig(gpu=gpu),
     )

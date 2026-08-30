@@ -34,7 +34,9 @@ from structagent_api.materialization.task_sql import TaskId
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
-prepare_worker_dataset = importlib.import_module("workers.rtj.runtime").prepare_worker_dataset
+runtime_module = importlib.import_module("workers.rtj.runtime")
+prepare_worker_dataset = runtime_module.prepare_worker_dataset
+write_predictions = runtime_module._write_predictions
 
 
 def _materialize(tmp_path: Path, task_id: TaskId) -> tuple[Path, Path, MaterializationResult]:
@@ -171,6 +173,43 @@ def test_worker_adds_placeholder_only_to_private_masked_test_copy(
     assert observed == [(expected_dummy,)]
     assert not list(input_root.rglob("*truth*"))
     assert not list(dataset.rglob("*truth*"))
+
+
+def test_worker_writes_predictions_without_reversing_duckdb_paths(tmp_path: Path) -> None:
+    test_path = tmp_path / "test.parquet"
+    prediction_path = tmp_path / "predictions.parquet"
+    connection = duckdb.connect(":memory:")
+    try:
+        connection.execute(
+            "COPY (SELECT * FROM (VALUES "
+            "(TIMESTAMP '2020-01-02', 'customer-b'), "
+            "(TIMESTAMP '2020-01-01', 'customer-a')) "
+            "AS rows(timestamp, customer_id)) TO ? (FORMAT PARQUET)",
+            [str(test_path)],
+        )
+    finally:
+        connection.close()
+
+    write_predictions(
+        test_path,
+        prediction_path,
+        "customer_id",
+        [(0, 0.25), (1, 0.75)],
+    )
+
+    connection = duckdb.connect(":memory:")
+    try:
+        observed = connection.execute(
+            "SELECT CAST(timestamp AS VARCHAR), customer_id, prediction "
+            "FROM read_parquet(?) ORDER BY 1, 2",
+            [str(prediction_path)],
+        ).fetchall()
+    finally:
+        connection.close()
+    assert observed == [
+        ("2020-01-01 00:00:00", "customer-a", 0.75),
+        ("2020-01-02 00:00:00", "customer-b", 0.25),
+    ]
 
 
 @pytest.mark.parametrize("task_id", ["rel-hm/user-churn", "rel-hm/item-sales"])

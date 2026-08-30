@@ -48,6 +48,16 @@ test("inference startup enforces its minimum ten-second hold", async () => {
   assert.equal(scheduledDelay, 10_000);
 });
 
+test("observed inference startup labels the private Modal boundary", () => {
+  const markup = inferenceWaitingMarkup({ observed: true });
+
+  assert.match(markup, /Modal inference/);
+  assert.match(markup, /Private 32-customer cohort/);
+  assert.match(markup, /7-DAY CHURN/);
+  assert.match(markup, /browser receives metrics only/);
+  assert.doesNotMatch(markup, /Synthetic placeholder flow/);
+});
+
 test("the frontend does not expose the implementation codename in user-facing copy", async () => {
   const appSource = await readFile(new URL("../app.js", import.meta.url), "utf8");
   assert.doesNotMatch(appSource, /RT-J/);
@@ -60,6 +70,16 @@ test("the objective composer exposes the natural-language compiler route", async
   assert.match(appSource, /api\.createTaskDraft\(objective\.originalPrompt\)/);
   assert.match(appSource, /api\.clarifyTaskDraft/);
   assert.match(appSource, /Custom task draft ready for human review/);
+});
+
+test("only the reviewed churn flow exposes observed inference in the UI", async () => {
+  const appSource = await readFile(new URL("../app.js", import.meta.url), "utf8");
+
+  assert.match(appSource, /selectedTaskId === "rel-hm\/user-churn"/);
+  assert.match(appSource, /data-run-inference="observed"/);
+  assert.match(appSource, /api\.runModalInference\(\)/);
+  assert.match(appSource, /Decision layer coming next/);
+  assert.match(appSource, /data-run-inference="simulated"/);
 });
 
 test("store wait loop covers the requested customer behaviours", async () => {

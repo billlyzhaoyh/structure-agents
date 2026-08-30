@@ -8,6 +8,7 @@ RTJ_DATASET_ROOT ?=
 RTJ_MATERIALIZATION_ROOT ?=
 RTJ_OUTPUT_ROOT ?=
 RTJ_SAMPLE_SIZE ?= 32
+RTJ_MODAL_GPU ?= L4
 export PRE_COMMIT_HOME
 export UV_CACHE_DIR
 
@@ -76,7 +77,7 @@ rtj-modal-live: ## Run a bounded private real-H&M RT-J cohort on ephemeral Modal
 	@test -n "$(RTJ_DATASET_ROOT)" || (echo "RTJ_DATASET_ROOT is required" >&2; exit 1)
 	@test -n "$(RTJ_MATERIALIZATION_ROOT)" || (echo "RTJ_MATERIALIZATION_ROOT is required" >&2; exit 1)
 	@test -n "$(RTJ_OUTPUT_ROOT)" || (echo "RTJ_OUTPUT_ROOT is required" >&2; exit 1)
-	uv run $(ENV_FILE_ARGS) --frozen python scripts/run_rtj_modal.py --dataset-root "$(RTJ_DATASET_ROOT)" --materialization-root "$(RTJ_MATERIALIZATION_ROOT)" --output-root "$(RTJ_OUTPUT_ROOT)" --sample-size "$(RTJ_SAMPLE_SIZE)"
+	uv run $(ENV_FILE_ARGS) --frozen python scripts/run_rtj_modal.py --dataset-root "$(RTJ_DATASET_ROOT)" --materialization-root "$(RTJ_MATERIALIZATION_ROOT)" --output-root "$(RTJ_OUTPUT_ROOT)" --sample-size "$(RTJ_SAMPLE_SIZE)" --gpu "$(RTJ_MODAL_GPU)"
 
 hm-data-sync: ## Download and verify the pinned private-use H&M artifacts
 	uv run --frozen python scripts/hm_data.py sync

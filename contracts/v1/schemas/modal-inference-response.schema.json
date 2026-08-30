@@ -1,6 +1,6 @@
 {
   "$defs": {
-    "CompletedPredictionPackage": {
+    "BatchClassificationEvaluation": {
       "additionalProperties": false,
       "properties": {
         "checkpoint": {
@@ -14,6 +14,12 @@
           "title": "Contract Version",
           "type": "string"
         },
+        "coverage": {
+          "maximum": 1,
+          "minimum": 1,
+          "title": "Coverage",
+          "type": "number"
+        },
         "dataset_id": {
           "const": "rel-hm",
           "title": "Dataset Id",
@@ -24,42 +30,58 @@
           "title": "Dataset Revision",
           "type": "string"
         },
-        "entity_column": {
-          "enum": [
-            "customer_id",
-            "article_id"
-          ],
-          "title": "Entity Column",
-          "type": "string"
+        "integrity_checks": {
+          "items": {
+            "$ref": "#/$defs/IntegrityCheck"
+          },
+          "minItems": 1,
+          "title": "Integrity Checks",
+          "type": "array"
         },
         "materialization_package_sha256": {
           "pattern": "^[0-9a-f]{64}$",
           "title": "Materialization Package Sha256",
           "type": "string"
         },
+        "metrics": {
+          "$ref": "#/$defs/ClassificationMetrics"
+        },
         "model_input_sha256": {
           "pattern": "^[0-9a-f]{64}$",
           "title": "Model Input Sha256",
           "type": "string"
         },
-        "prediction_file": {
-          "$ref": "#/$defs/MaterializedFileReference"
+        "prediction_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Prediction Sha256",
+          "type": "string"
+        },
+        "prevalence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Prevalence",
+          "type": "number"
         },
         "query_sha256": {
           "pattern": "^[0-9a-f]{64}$",
           "title": "Query Sha256",
           "type": "string"
         },
-        "runtime": {
-          "$ref": "#/$defs/RTJRuntimeProvenance"
-        },
-        "status": {
+        "result_status": {
           "enum": [
             "observed",
             "synthetic"
           ],
-          "title": "Status",
+          "title": "Result Status",
           "type": "string"
+        },
+        "runtime": {
+          "$ref": "#/$defs/RTJRuntimeProvenance"
+        },
+        "sample_count": {
+          "exclusiveMinimum": 0,
+          "title": "Sample Count",
+          "type": "integer"
         },
         "task_id": {
           "minLength": 1,
@@ -67,59 +89,94 @@
           "type": "string"
         },
         "task_type": {
-          "enum": [
-            "binary_classification",
-            "regression"
-          ],
+          "const": "binary_classification",
           "title": "Task Type",
+          "type": "string"
+        },
+        "truth_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Truth Sha256",
           "type": "string"
         }
       },
       "required": [
         "contract_version",
-        "status",
+        "result_status",
         "dataset_id",
         "task_id",
         "task_type",
-        "entity_column",
         "dataset_revision",
+        "query_sha256",
         "materialization_package_sha256",
         "model_input_sha256",
-        "query_sha256",
-        "prediction_file",
         "checkpoint",
         "config",
-        "runtime"
+        "runtime",
+        "sample_count",
+        "coverage",
+        "prediction_sha256",
+        "truth_sha256",
+        "integrity_checks",
+        "prevalence",
+        "metrics"
       ],
-      "title": "CompletedPredictionPackage",
+      "title": "BatchClassificationEvaluation",
       "type": "object"
     },
-    "FailedPredictionPackage": {
+    "BatchRegressionEvaluation": {
       "additionalProperties": false,
       "properties": {
+        "checkpoint": {
+          "$ref": "#/$defs/RTJCheckpointReference"
+        },
+        "config": {
+          "$ref": "#/$defs/RTJInferenceConfig"
+        },
         "contract_version": {
           "const": "v1",
           "title": "Contract Version",
           "type": "string"
+        },
+        "coverage": {
+          "maximum": 1,
+          "minimum": 1,
+          "title": "Coverage",
+          "type": "number"
         },
         "dataset_id": {
           "const": "rel-hm",
           "title": "Dataset Id",
           "type": "string"
         },
-        "error_code": {
-          "minLength": 1,
-          "title": "Error Code",
+        "dataset_revision": {
+          "pattern": "^[0-9a-f]{40}$|^synthetic$",
+          "title": "Dataset Revision",
           "type": "string"
+        },
+        "integrity_checks": {
+          "items": {
+            "$ref": "#/$defs/IntegrityCheck"
+          },
+          "minItems": 1,
+          "title": "Integrity Checks",
+          "type": "array"
         },
         "materialization_package_sha256": {
           "pattern": "^[0-9a-f]{64}$",
           "title": "Materialization Package Sha256",
           "type": "string"
         },
+        "metrics": {
+          "$ref": "#/$defs/BatchRegressionMetrics"
+        },
         "model_input_sha256": {
           "pattern": "^[0-9a-f]{64}$",
           "title": "Model Input Sha256",
+          "type": "string"
+        },
+        "prediction_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Prediction Sha256",
           "type": "string"
         },
         "query_sha256": {
@@ -127,13 +184,21 @@
           "title": "Query Sha256",
           "type": "string"
         },
+        "result_status": {
+          "enum": [
+            "observed",
+            "synthetic"
+          ],
+          "title": "Result Status",
+          "type": "string"
+        },
         "runtime": {
           "$ref": "#/$defs/RTJRuntimeProvenance"
         },
-        "status": {
-          "const": "failed",
-          "title": "Status",
-          "type": "string"
+        "sample_count": {
+          "exclusiveMinimum": 0,
+          "title": "Sample Count",
+          "type": "integer"
         },
         "task_id": {
           "minLength": 1,
@@ -141,70 +206,150 @@
           "type": "string"
         },
         "task_type": {
-          "enum": [
-            "binary_classification",
-            "regression"
-          ],
+          "const": "regression",
           "title": "Task Type",
+          "type": "string"
+        },
+        "truth_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Truth Sha256",
           "type": "string"
         }
       },
       "required": [
         "contract_version",
-        "status",
+        "result_status",
         "dataset_id",
         "task_id",
         "task_type",
+        "dataset_revision",
+        "query_sha256",
         "materialization_package_sha256",
         "model_input_sha256",
-        "query_sha256",
-        "error_code",
-        "runtime"
+        "checkpoint",
+        "config",
+        "runtime",
+        "sample_count",
+        "coverage",
+        "prediction_sha256",
+        "truth_sha256",
+        "integrity_checks",
+        "metrics"
       ],
-      "title": "FailedPredictionPackage",
+      "title": "BatchRegressionEvaluation",
       "type": "object"
     },
-    "MaterializedFileReference": {
+    "BatchRegressionMetrics": {
       "additionalProperties": false,
-      "description": "Content-addressed reference to an untracked Parquet artifact.",
       "properties": {
-        "byte_count": {
-          "exclusiveMinimum": 0,
-          "title": "Byte Count",
-          "type": "integer"
+        "mae": {
+          "minimum": 0,
+          "title": "Mae",
+          "type": "number"
         },
-        "columns": {
-          "items": {
-            "type": "string"
-          },
-          "minItems": 1,
-          "title": "Columns",
-          "type": "array"
+        "nmae": {
+          "minimum": 0,
+          "title": "Nmae",
+          "type": "number"
         },
-        "path": {
+        "r2": {
+          "title": "R2",
+          "type": "number"
+        },
+        "rmse": {
+          "minimum": 0,
+          "title": "Rmse",
+          "type": "number"
+        }
+      },
+      "required": [
+        "mae",
+        "rmse",
+        "r2",
+        "nmae"
+      ],
+      "title": "BatchRegressionMetrics",
+      "type": "object"
+    },
+    "ClassificationMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "accuracy": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Accuracy",
+          "type": "number"
+        },
+        "auroc": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Auroc",
+          "type": "number"
+        },
+        "average_precision": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Average Precision",
+          "type": "number"
+        },
+        "brier_score": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Brier Score",
+          "type": "number"
+        },
+        "f1": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "F1",
+          "type": "number"
+        },
+        "log_loss": {
+          "minimum": 0,
+          "title": "Log Loss",
+          "type": "number"
+        }
+      },
+      "required": [
+        "auroc",
+        "average_precision",
+        "log_loss",
+        "brier_score",
+        "accuracy",
+        "f1"
+      ],
+      "title": "ClassificationMetrics",
+      "type": "object"
+    },
+    "IntegrityCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "detail": {
           "minLength": 1,
-          "title": "Path",
+          "title": "Detail",
           "type": "string"
         },
-        "row_count": {
-          "minimum": 0,
-          "title": "Row Count",
-          "type": "integer"
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
         },
-        "sha256": {
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Sha256",
+        "status": {
+          "enum": [
+            "failed",
+            "not_run",
+            "passed"
+          ],
+          "title": "Status",
           "type": "string"
         }
       },
       "required": [
-        "path",
-        "sha256",
-        "row_count",
-        "byte_count",
-        "columns"
+        "name",
+        "status",
+        "detail"
       ],
-      "title": "MaterializedFileReference",
+      "title": "IntegrityCheck",
       "type": "object"
     },
     "RTJCheckpointReference": {
@@ -366,20 +511,61 @@
       "type": "object"
     }
   },
-  "discriminator": {
-    "mapping": {
-      "failed": "#/$defs/FailedPredictionPackage",
-      "observed": "#/$defs/CompletedPredictionPackage",
-      "synthetic": "#/$defs/CompletedPredictionPackage"
+  "additionalProperties": false,
+  "description": "Sanitized observed output returned after Modal cleanup and sealed evaluation.",
+  "properties": {
+    "cleanup_confirmed": {
+      "const": true,
+      "title": "Cleanup Confirmed",
+      "type": "boolean"
     },
-    "propertyName": "status"
-  },
-  "oneOf": [
-    {
-      "$ref": "#/$defs/CompletedPredictionPackage"
+    "contract_version": {
+      "const": "v1",
+      "title": "Contract Version",
+      "type": "string"
     },
-    {
-      "$ref": "#/$defs/FailedPredictionPackage"
+    "evaluation": {
+      "discriminator": {
+        "mapping": {
+          "binary_classification": "#/$defs/BatchClassificationEvaluation",
+          "regression": "#/$defs/BatchRegressionEvaluation"
+        },
+        "propertyName": "task_type"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/BatchClassificationEvaluation"
+        },
+        {
+          "$ref": "#/$defs/BatchRegressionEvaluation"
+        }
+      ],
+      "title": "Evaluation"
+    },
+    "fixture": {
+      "const": false,
+      "title": "Fixture",
+      "type": "boolean"
+    },
+    "implementation_status": {
+      "const": "observed",
+      "title": "Implementation Status",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^rtj-[0-9a-f]{16}$",
+      "title": "Run Id",
+      "type": "string"
     }
-  ]
+  },
+  "required": [
+    "contract_version",
+    "fixture",
+    "implementation_status",
+    "run_id",
+    "cleanup_confirmed",
+    "evaluation"
+  ],
+  "title": "ModalInferenceResponse",
+  "type": "object"
 }

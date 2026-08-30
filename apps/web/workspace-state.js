@@ -45,6 +45,8 @@ export function createObjective(state, title = "Define a business outcome") {
     materialization: null,
     apiStatus: "idle",
     apiError: null,
+    requestedInferenceMode: null,
+    inferenceMode: null,
     collectionPlan: false,
     strategy: "early",
     chatCount: 2,

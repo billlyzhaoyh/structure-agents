@@ -76,6 +76,28 @@ test("the client requests an explicitly simulated inference result", async () =>
   });
 });
 
+test("the client explicitly approves the bounded observed Modal run", async () => {
+  const calls = [];
+  const client = createApiClient({
+    baseUrl: "http://api.test",
+    fetchImpl: async (...args) => {
+      calls.push(args);
+      return response({ contract_version: "v1", implementation_status: "observed" });
+    },
+  });
+
+  await client.runModalInference();
+
+  assert.equal(calls[0][0], "http://api.test/v1/inferences/modal");
+  assert.equal(calls[0][1].method, "POST");
+  assert.deepEqual(JSON.parse(calls[0][1].body), {
+    contract_version: "v1",
+    dataset_id: "rel-hm",
+    task_id: "rel-hm/user-churn",
+    approved: true,
+  });
+});
+
 test("the client loads the reviewed rel-hm default-task catalog", async () => {
   const calls = [];
   const client = createApiClient({

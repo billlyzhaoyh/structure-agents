@@ -47,7 +47,7 @@ class RTJInferenceConfig(StrictModel):
     walk_length: Literal[20] = 20
     shuffle_seed: Literal[0] = 0
     context_seed: Literal[101] = 101
-    gpu: Literal["L4"] = "L4"
+    gpu: Literal["L4", "L40S"] = "L4"
 
 
 class RTJInferenceRequest(StrictModel):
@@ -72,7 +72,7 @@ class RTJInferenceRequest(StrictModel):
 
 class RTJRuntimeProvenance(StrictModel):
     provider: Literal["modal", "fake"]
-    gpu: Literal["L4", "none"]
+    gpu: Literal["L4", "L40S", "none"]
     duration_seconds: float = Field(ge=0)
     source_revision: str = Field(pattern=r"^[0-9a-f]{40}$|^synthetic$")
     checkpoint_revision: str = Field(pattern=r"^[0-9a-f]{40}$|^synthetic$")
@@ -181,6 +181,26 @@ BatchEvaluationResult = Annotated[
     BatchClassificationEvaluation | BatchRegressionEvaluation,
     Field(discriminator="task_type"),
 ]
+
+
+class ModalInferenceRequest(StrictModel):
+    """Explicit approval for one bounded, observed H&M inference run."""
+
+    contract_version: ContractVersion
+    dataset_id: Literal["rel-hm"]
+    task_id: Literal["rel-hm/user-churn"]
+    approved: Literal[True]
+
+
+class ModalInferenceResponse(StrictModel):
+    """Sanitized observed output returned after Modal cleanup and sealed evaluation."""
+
+    contract_version: ContractVersion
+    fixture: Literal[False]
+    implementation_status: Literal["observed"]
+    run_id: str = Field(pattern=r"^rtj-[0-9a-f]{16}$")
+    cleanup_confirmed: Literal[True]
+    evaluation: BatchEvaluationResult
 
 
 class SimulatedInferenceRequest(StrictModel):

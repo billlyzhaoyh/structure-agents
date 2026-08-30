@@ -428,8 +428,11 @@
           "type": "integer"
         },
         "gpu": {
-          "const": "L4",
           "default": "L4",
+          "enum": [
+            "L4",
+            "L40S"
+          ],
           "title": "Gpu",
           "type": "string"
         },
@@ -477,6 +480,7 @@
         "gpu": {
           "enum": [
             "L4",
+            "L40S",
             "none"
           ],
           "title": "Gpu",

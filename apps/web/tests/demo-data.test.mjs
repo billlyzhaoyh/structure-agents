@@ -68,6 +68,10 @@ test("insights and decisions belong to a confirmed objective", () => {
   assert.equal(canAccessObjectiveView("decisions", { confirmed: false }), false);
   assert.equal(canAccessObjectiveView("insights", { confirmed: true }), true);
   assert.equal(canAccessObjectiveView("decisions", { confirmed: true }), true);
+  assert.equal(
+    canAccessObjectiveView("decisions", { confirmed: true, inferenceMode: "observed" }),
+    false,
+  );
 });
 
 test("business knowledge requires both a success metric and a guardrail", () => {

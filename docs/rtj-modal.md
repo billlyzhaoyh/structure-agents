@@ -29,7 +29,8 @@ worker therefore adds a fixed zero-valued target column to a private copy of eac
 file. This is a schema compatibility placeholder, not a label. Real test targets remain in
 the trusted controller and are joined only after predictions have been sealed and downloaded.
 
-The first live acceptance run covers the complete official H&M test split for both reviewed
-defaults. Before that run, a deterministic 512-row preflight measures elapsed time and cost;
+The current live acceptance path covers a deterministic balanced 32-customer `user-churn`
+cohort. For a larger run, a deterministic 512-row preflight measures elapsed time and cost;
 the controller projects the full run with a 1.5 safety factor and fails closed if the combined
-projection exceeds 16 hours or USD 25. Live execution is always opt-in and outside CI.
+projection exceeds 16 hours or USD 25. Full-split acceptance for both reviewed defaults remains
+future work. Live execution is always opt-in and outside CI.

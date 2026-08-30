@@ -196,8 +196,8 @@ function objectiveReference(objective) {
 function objectiveNavigation(objective) {
   const views = [
     ["brief", "Objective brief", objective.confirmed ? "Defined" : "Draft"],
-    ["insights", "Item insights", objective.confirmed ? `Evidence run ${objective.rtjRun}` : "Run inference first"],
-    ["decisions", "Decision Studio", objective.confirmed ? `Uses evidence run ${objective.rtjRun}` : "Waiting for evidence"],
+    ["insights", "Model insights", objective.confirmed ? `Evidence run ${objective.rtjRun}` : "Run inference first"],
+    ["decisions", "Decision Studio", objective.inferenceMode === "observed" ? "Not implemented for observed runs" : objective.confirmed ? `Uses evidence run ${objective.rtjRun}` : "Waiting for evidence"],
   ];
   return `<nav class="objective-nav" aria-label="Selected objective sections">${views.map(([id, label, status]) => {
     const accessible = canAccessObjectiveView(id, objective);
@@ -258,7 +258,7 @@ function clarificationForm(objective) {
 function customDraftReview(objective) {
   const draft = objective.taskDraft;
   const contract = taskContractFrom(draft);
-  return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("check")}</span><p><small>SQL validated in Daytona</small><b>Custom task draft ready for human review.</b></p></div><div class="task-preview"><p><small>Entity</small><b>${escapeHtml(contract.entity.table)}</b></p><p><small>Outcome window</small><b>${contract.horizon.value} ${escapeHtml(contract.horizon.unit)}</b></p><p><small>Task</small><b>${escapeHtml(contract.task_type.replaceAll("_", " "))}</b></p></div><div class="sql-review"><header><span>Generated DuckDB SQL</span><i>Review required</i></header><pre>${escapeHtml(draft.sql_artifact.normalized_sql)}</pre><footer>${draft.validation_evidence.row_count.toLocaleString()} validation rows · digest ${escapeHtml(draft.sql_artifact.query_sha256.slice(0, 12))}…</footer></div><div class="fixture-separation"><b>Demo shortcut.</b><span>The next screen uses seeded pseudo-random metrics. It does not materialize this custom task or run a model.</span></div><button class="agent-action" data-run-simulated>Preview simulated result ${icon("arrow")}</button></div>`;
+  return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("check")}</span><p><small>SQL validated in Daytona</small><b>Custom task draft ready for human review.</b></p></div><div class="task-preview"><p><small>Entity</small><b>${escapeHtml(contract.entity.table)}</b></p><p><small>Outcome window</small><b>${contract.horizon.value} ${escapeHtml(contract.horizon.unit)}</b></p><p><small>Task</small><b>${escapeHtml(contract.task_type.replaceAll("_", " "))}</b></p></div><div class="sql-review"><header><span>Generated DuckDB SQL</span><i>Review required</i></header><pre>${escapeHtml(draft.sql_artifact.normalized_sql)}</pre><footer>${draft.validation_evidence.row_count.toLocaleString()} validation rows · digest ${escapeHtml(draft.sql_artifact.query_sha256.slice(0, 12))}…</footer></div><div class="fixture-separation"><b>Demo shortcut.</b><span>The next screen uses seeded pseudo-random metrics. It does not materialize this custom task or run a model.</span></div><button class="agent-action" data-run-inference="simulated">Preview simulated result ${icon("arrow")}</button></div>`;
 }
 
 function materializationReceipt(objective) {
@@ -282,13 +282,17 @@ function objectiveAgentGuidance(objective) {
     return `<div class="chat agent agent-task data-gap"><div class="agent-task-status"><span>${icon("warning")}</span><p><small>Daytona execution</small><b>The synthetic task was not materialized.</b></p></div><p>${escapeHtml(objective.materializationError)}</p>${defaultTaskSelector(objective)}<button class="agent-action" data-launch-daytona>Try Daytona again ${icon("arrow")}</button></div>`;
   }
   if (objective.apiStatus === "loading") {
-    return inferenceWaitingMarkup();
+    return inferenceWaitingMarkup({ observed: objective.requestedInferenceMode === "observed" });
   }
   if (objective.apiError) {
     const custom = objective.selectedTaskId === "custom";
     const compiled = custom && objective.taskDraft?.outcome === "draft_ready";
-    const simulationError = compiled || !custom;
-    return `<div class="chat agent agent-task data-gap"><div class="agent-task-status"><span>${icon("warning")}</span><p><small>${simulationError ? "Simulation API" : "Task compiler"}</small><b>${simulationError ? "The simulated result is unavailable." : "The custom task could not be compiled."}</b></p></div><p>${escapeHtml(objective.apiError)}</p><button class="agent-action" ${simulationError ? "data-run-simulated" : "data-compile-custom"}>Try again ${icon("arrow")}</button></div>`;
+    const inferenceError = compiled || !custom;
+    const observed = objective.requestedInferenceMode === "observed";
+    const errorSource = observed ? "Modal inference" : "Simulation API";
+    const errorMessage = observed ? "The observed result is unavailable." : "The simulated result is unavailable.";
+    const retry = inferenceError ? `data-run-inference="${observed ? "observed" : "simulated"}"` : "data-compile-custom";
+    return `<div class="chat agent agent-task data-gap"><div class="agent-task-status"><span>${icon("warning")}</span><p><small>${inferenceError ? errorSource : "Task compiler"}</small><b>${inferenceError ? errorMessage : "The custom task could not be compiled."}</b></p></div><p>${escapeHtml(objective.apiError)}</p><button class="agent-action" ${retry}>Try again ${icon("arrow")}</button></div>`;
   }
   if (objective.taskDraft?.outcome === "needs_clarification") {
     return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("spark")}</span><p><small>Clarification needed</small><b>I need a little more detail before creating this task.</b></p></div>${clarificationForm(objective)}</div>`;
@@ -301,10 +305,14 @@ function objectiveAgentGuidance(objective) {
   }
   if (objective.confirmed) {
     const contract = taskContractFrom(objective.taskDraft);
-    return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("check")}</span><p><small>Objective ready</small><b>The V1 task contract is defined and linked to this objective.</b></p></div><div class="task-preview"><p><small>Entity</small><b>${escapeHtml(contract.entity.table)}</b></p><p><small>Outcome window</small><b>${contract.horizon.value} ${escapeHtml(contract.horizon.unit)}</b></p><p><small>Task</small><b>${escapeHtml(contract.task_type.replaceAll("_", " "))}</b></p></div><button class="agent-action" data-objective-view="insights">Open item insights ${icon("arrow")}</button></div>`;
+    return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("check")}</span><p><small>Objective ready</small><b>The V1 task contract is defined and linked to this objective.</b></p></div><div class="task-preview"><p><small>Entity</small><b>${escapeHtml(contract.entity.table)}</b></p><p><small>Outcome window</small><b>${contract.horizon.value} ${escapeHtml(contract.horizon.unit)}</b></p><p><small>Task</small><b>${escapeHtml(contract.task_type.replaceAll("_", " "))}</b></p></div><button class="agent-action" data-objective-view="insights">Open model insights ${icon("arrow")}</button></div>`;
   }
   if (objective.materialization) {
-    return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("check")}</span><p><small>Task package verified</small><b>${escapeHtml(task?.display_name ?? objective.selectedTaskId)} completed in Daytona.</b></p></div>${materializationReceipt(objective)}<div class="fixture-separation"><b>Demo shortcut.</b><span>The next screen uses seeded pseudo-random metrics; no model inference is launched.</span></div><button class="agent-action" data-run-simulated>Continue to simulated result ${icon("arrow")}</button></div>`;
+    const observed = objective.selectedTaskId === "rel-hm/user-churn";
+    const nextStep = observed
+      ? `<div class="fixture-separation"><b>Private live cohort.</b><span>The local API will use the separately configured real H&amp;M materialization and run 32 customers through a relational foundation model on Modal.</span></div><button class="agent-action" data-run-inference="observed">Run observed model cohort ${icon("arrow")}</button>`
+      : `<div class="fixture-separation"><b>Demo shortcut.</b><span>The next screen uses seeded pseudo-random metrics; no model inference is launched.</span></div><button class="agent-action" data-run-inference="simulated">Continue to simulated result ${icon("arrow")}</button>`;
+    return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("check")}</span><p><small>Task package verified</small><b>${escapeHtml(task?.display_name ?? objective.selectedTaskId)} completed in Daytona.</b></p></div>${materializationReceipt(objective)}${nextStep}</div>`;
   }
   const action = objective.selectedTaskId === "custom"
     ? `<button class="agent-action" data-compile-custom>Compile custom task ${icon("arrow")}</button>`
@@ -314,6 +322,7 @@ function objectiveAgentGuidance(objective) {
 
 function insightsModule(objective) {
   const evaluation = objective.evaluation;
+  const observed = objective.inferenceMode === "observed";
   const classification = evaluation?.task_type === "binary_classification";
   const metrics = evaluation?.metrics ?? (classification
     ? { auroc: 0, average_precision: 0, accuracy: 0, f1: 0 }
@@ -321,11 +330,20 @@ function insightsModule(objective) {
   const coverage = evaluation ? `${Math.round(evaluation.coverage * 100)}%` : "—";
   const fit = evaluation ? `${Math.round((classification ? metrics.auroc : metrics.r2) * 100)}%` : "—";
   const checks = evaluation?.integrity_checks ?? [];
+  const provenance = observed
+    ? `Relational FM · ${evaluation?.runtime?.gpu ?? "unknown GPU"} · ${Math.round(evaluation?.runtime?.duration_seconds ?? 0)}s · data ${(evaluation?.dataset_revision ?? "unknown").slice(0, 10)}…`
+    : `${evaluation?.provenance?.model_id ?? "Not available"} · ${evaluation?.provenance?.dataset_revision ?? "unknown revision"}`;
+  const summary = observed
+    ? `The model produced sealed predictions for ${evaluation?.sample_count ?? "—"} H&M customer rows. The trusted evaluator verified ${coverage} key coverage before joining held-out labels.`
+    : `The seeded demo covers ${coverage} of ${evaluation?.sample_count ?? "—"} synthetic ${classification ? "customers" : "articles"}. These pseudo-random metrics are for interface testing only.`;
+  const decisionAction = observed
+    ? `<button disabled>Decision layer coming next</button>`
+    : `<button data-open-decisions>Use this demo in Decision Studio ${icon("arrow")}</button>`;
   const metricRows = classification
     ? `<div class="feature-row"><span>AUROC</span><b><i style="--width:${Number(metrics.auroc) * 100}%"></i></b><small>${metrics.auroc}</small></div><div class="feature-row"><span>Average precision</span><b><i style="--width:${Number(metrics.average_precision) * 100}%"></i></b><small>${metrics.average_precision}</small></div><div class="feature-row"><span>Accuracy</span><b><i style="--width:${Number(metrics.accuracy) * 100}%"></i></b><small>${metrics.accuracy}</small></div><div class="feature-row"><span>F1</span><b><i style="--width:${Number(metrics.f1) * 100}%"></i></b><small>${metrics.f1}</small></div>`
     : `<div class="feature-row"><span>Mean absolute error</span><b></b><small>${metrics.mae}</small></div><div class="feature-row"><span>Root mean squared error</span><b></b><small>${metrics.rmse}</small></div><div class="feature-row"><span>R²</span><b><i style="--width:${Math.max(0, Number(metrics.r2) * 100)}%"></i></b><small>${metrics.r2}</small></div>`;
-  return `<section class="insights-workspace"><div class="run-context"><div><span>Selected objective</span><b>OBJ-${String(objective.number).padStart(2, "0")} · ${escapeHtml(objective.title)}</b></div>${icon("arrow")}<div><span>Demo run</span><b>${escapeHtml(objective.run?.run_id ?? "Awaiting run")}</b></div><i>Simulated · not model output</i></div><div class="insights-layout"><div class="insight-summary"><span class="eyebrow">${classification ? "Customer classification" : "Seven-day regression"} · simulated</span><h2>A product-flow preview—not model evidence.</h2><div class="confidence-ring"><span><b>${fit}</b><small>${classification ? "demo AUROC" : "demo variance explained"}</small></span></div><p>The seeded demo covers ${coverage} of ${evaluation?.sample_count ?? "—"} synthetic ${classification ? "customers" : "articles"}. These pseudo-random metrics are for interface testing only.</p><button data-open-decisions>Use this demo in Decision Studio ${icon("arrow")}</button></div>
-    <div class="feature-panel"><div class="panel-heading"><span>Simulated evaluation</span><small>Pseudo-random metrics</small></div>${metricRows}<div class="feature-row"><span>Coverage</span><b><i style="--width:${evaluation ? evaluation.coverage * 100 : 0}%"></i></b><small>${coverage}</small></div><div class="caveat"><b>Provenance</b><span>${escapeHtml(evaluation?.provenance?.model_id ?? "Not available")} · ${escapeHtml(evaluation?.provenance?.dataset_revision ?? "unknown revision")}</span></div></div>
+  return `<section class="insights-workspace"><div class="run-context"><div><span>Selected objective</span><b>OBJ-${String(objective.number).padStart(2, "0")} · ${escapeHtml(objective.title)}</b></div>${icon("arrow")}<div><span>${observed ? "Observed run" : "Demo run"}</span><b>${escapeHtml(objective.run?.run_id ?? "Awaiting run")}</b></div><i>${observed ? "Observed · model on Modal" : "Simulated · not model output"}</i></div><div class="insights-layout"><div class="insight-summary"><span class="eyebrow">${classification ? "Customer classification" : "Seven-day regression"} · ${observed ? "observed" : "simulated"}</span><h2>${observed ? "Observed model evidence on a bounded private cohort." : "A product-flow preview—not model evidence."}</h2><div class="confidence-ring"><span><b>${fit}</b><small>${classification ? (observed ? "AUROC" : "demo AUROC") : "demo variance explained"}</small></span></div><p>${summary}</p>${decisionAction}</div>
+    <div class="feature-panel"><div class="panel-heading"><span>${observed ? "Observed evaluation" : "Simulated evaluation"}</span><small>${observed ? "Sealed batch metrics" : "Pseudo-random metrics"}</small></div>${metricRows}<div class="feature-row"><span>Coverage</span><b><i style="--width:${evaluation ? evaluation.coverage * 100 : 0}%"></i></b><small>${coverage}</small></div><div class="caveat"><b>Provenance</b><span>${escapeHtml(provenance)}</span></div></div>
     <div class="cohort-panel"><div class="panel-heading"><span>Integrity checks</span><small>Evaluation contract</small></div>${checks.map((check) => `<button><span><b>${escapeHtml(check.name.replaceAll("_", " "))}</b><small>${escapeHtml(check.detail)}</small></span><strong>${escapeHtml(check.status)}</strong>${icon("arrow")}</button>`).join("")}</div>
   </div></section>`;
 }
@@ -458,6 +476,8 @@ function bind() {
     objective.materialization = null;
     objective.apiStatus = "idle";
     objective.apiError = null;
+    objective.requestedInferenceMode = null;
+    objective.inferenceMode = null;
     render();
   }));
   document.querySelectorAll("[data-strategy]").forEach((button) => button.addEventListener("click", () => { getActiveObjective(state).strategy = button.dataset.strategy; render(); }));
@@ -541,6 +561,8 @@ function bind() {
     objective.materializationStatus = "idle";
     objective.materializationError = null;
     objective.materialization = null;
+    objective.requestedInferenceMode = null;
+    objective.inferenceMode = null;
     render();
   });
   document.querySelector("[data-compile-custom]")?.addEventListener("click", () => {
@@ -566,8 +588,10 @@ function bind() {
     }
     render();
   });
-  document.querySelector("[data-run-simulated]")?.addEventListener("click", async () => {
+  document.querySelector("[data-run-inference]")?.addEventListener("click", async (event) => {
     const objective = getActiveObjective(state);
+    const requestedMode = event.currentTarget.dataset.runInference;
+    objective.requestedInferenceMode = requestedMode;
     objective.apiStatus = "loading";
     objective.apiError = null;
     const minimumWait = minimumInferenceWait();
@@ -587,11 +611,14 @@ function bind() {
       const taskId = objective.selectedTaskId === "custom"
         ? objective.taskDraft.sql_artifact.task_id
         : contract.task_id;
-      const result = await api.runSimulatedInference(taskId, contract.task_type);
+      const result = requestedMode === "observed"
+        ? await api.runModalInference()
+        : await api.runSimulatedInference(taskId, contract.task_type);
       const latestRun = state.objectives.reduce((highest, item) => Math.max(highest, item.rtjRun ?? 0), 0);
       await minimumWait;
-      objective.run = result.run;
+      objective.run = result.run ?? { run_id: result.run_id };
       objective.evaluation = result.evaluation;
+      objective.inferenceMode = result.implementation_status;
       objective.confirmed = true;
       objective.rtjRun = objective.rtjRun ?? latestRun + 1;
       objective.apiStatus = "ready";

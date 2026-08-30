@@ -104,13 +104,13 @@ export function minimumInferenceWait(schedule = setTimeout) {
   return new Promise((resolve) => schedule(resolve, INFERENCE_TIMELINE.durationMs));
 }
 
-export function inferenceWaitingMarkup() {
+export function inferenceWaitingMarkup({ observed = false } = {}) {
   return `<section class="sandbox-wait sandbox-wait--inference" aria-label="Inference sandbox starting">
-    <header><div><span class="waiting-pulse" aria-hidden="true"></span><p><small>Inference sandbox</small><b>Starting a relational inference run</b></p></div><i data-inference-phase aria-live="polite">Reading relational tables</i></header>
+    <header><div><span class="waiting-pulse" aria-hidden="true"></span><p><small>${observed ? "Modal inference" : "Inference sandbox"}</small><b>${observed ? "Running a private relational model cohort" : "Starting a relational inference run"}</b></p></div><i data-inference-phase aria-live="polite">Reading relational tables</i></header>
     <div class="graph-animation" data-inference-animation data-phase="tables">
       <svg viewBox="0 0 900 390" role="img" aria-labelledby="inference-animation-title inference-animation-description">
         <title id="inference-animation-title">Relational graph message-passing animation</title>
-        <desc id="inference-animation-description">Synthetic customer, transaction, and article records exchange typed messages before aggregation at a target node.</desc>
+        <desc id="inference-animation-description">Illustrative customer, transaction, and article records exchange typed messages before aggregation at a target node.</desc>
         <defs><filter id="waiting-glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="5" result="blur"></feGaussianBlur><feMerge><feMergeNode in="blur"></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge></filter></defs>
         <g class="graph-routes" aria-hidden="true">
           <path id="route-customer-transaction" class="relation" d="M 190 104 C 270 104, 270 195, 350 195"></path>
@@ -129,10 +129,10 @@ export function inferenceWaitingMarkup() {
         <g class="graph-table article-table" transform="translate(35 242)"><rect width="155" height="96" rx="8"></rect><text x="15" y="25">ARTICLES</text><text class="graph-row" x="15" y="54">A_501 · KNITWEAR</text><text class="graph-row" x="15" y="78">A_882 · DRESS</text></g>
         <g class="target-node" transform="translate(565 105)"><rect width="145" height="180" rx="10"></rect><text class="target-kicker" x="72" y="30" text-anchor="middle">TARGET NODE</text><text class="target-title" x="72" y="58" text-anchor="middle">GRAPH ML</text>${Array.from({ length: 8 }, (_, index) => `<rect class="embedding-bar" x="22" y="${76 + index * 11}" width="101" height="7" rx="2"></rect>`).join("")}<text class="target-caption" x="72" y="169" text-anchor="middle">AGGREGATE</text></g>
         <path id="route-target-output" class="output-route" d="M 710 195 C 735 195, 750 195, 775 195"></path><circle class="graph-signal output-signal" data-route="route-target-output" r="6"></circle>
-        <g class="prediction-node" transform="translate(775 145)"><rect width="95" height="100" rx="9"></rect><text x="47" y="28" text-anchor="middle">7-DAY SALES</text><text class="prediction-value" x="47" y="62" text-anchor="middle">…</text><text x="47" y="84" text-anchor="middle">PREPARING</text></g>
+        <g class="prediction-node" transform="translate(775 145)"><rect width="95" height="100" rx="9"></rect><text x="47" y="28" text-anchor="middle">${observed ? "7-DAY CHURN" : "7-DAY SALES"}</text><text class="prediction-value" x="47" y="62" text-anchor="middle">…</text><text x="47" y="84" text-anchor="middle">PREPARING</text></g>
       </svg>
     </div>
-    <footer><span>Synthetic placeholder flow</span><span>Shown for at least 10 seconds</span></footer>
+    <footer><span>${observed ? "Private 32-customer cohort" : "Synthetic placeholder flow"}</span><span>${observed ? "The browser receives metrics only" : "Shown for at least 10 seconds"}</span></footer>
   </section>`;
 }
 

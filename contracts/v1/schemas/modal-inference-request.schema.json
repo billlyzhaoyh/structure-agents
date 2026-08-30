@@ -1,0 +1,34 @@
+{
+  "additionalProperties": false,
+  "description": "Explicit approval for one bounded, observed H&M inference run.",
+  "properties": {
+    "approved": {
+      "const": true,
+      "title": "Approved",
+      "type": "boolean"
+    },
+    "contract_version": {
+      "const": "v1",
+      "title": "Contract Version",
+      "type": "string"
+    },
+    "dataset_id": {
+      "const": "rel-hm",
+      "title": "Dataset Id",
+      "type": "string"
+    },
+    "task_id": {
+      "const": "rel-hm/user-churn",
+      "title": "Task Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "contract_version",
+    "dataset_id",
+    "task_id",
+    "approved"
+  ],
+  "title": "ModalInferenceRequest",
+  "type": "object"
+}
