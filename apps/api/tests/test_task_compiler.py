@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import asyncio
+from pathlib import Path
 from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
 from structagent_api.api import create_app
 from structagent_api.compiler.agent import (
+    OVERALL_TIMEOUT_SECONDS,
     AgentOutput,
     ClarificationDecision,
     CompilationContext,
@@ -15,7 +18,13 @@ from structagent_api.compiler.agent import (
     UnsupportedDecision,
     _reviewed_schema_json,
 )
-from structagent_api.compiler.daytona import _SOURCE_FILES
+from structagent_api.compiler.daytona import (
+    _SOURCE_FILES,
+    SANDBOX_TTL_MINUTES,
+    DaytonaEvidenceExecutor,
+    EvidenceExecutionError,
+    _sandbox_params,
+)
 from structagent_api.compiler.service import TaskCompilerError, draft_id_for
 from structagent_api.compiler.sql import CandidateCache, CandidateSpec
 from structagent_api.contracts import (
@@ -23,6 +32,8 @@ from structagent_api.contracts import (
 )
 from structagent_api.contracts.compiler import BinaryValidationEvidence
 from structagent_api.contracts.models import ClarificationQuestion
+from structagent_api.materialization.materializer import HMDatasetFiles
+from structagent_api.materialization.synthetic import create_synthetic_hm
 from structagent_api.materialization.task_sql import build_default_task_sql
 from structagent_api.settings import Settings
 
@@ -237,8 +248,6 @@ def test_provider_timeout_and_cleanup_failure_are_sanitized() -> None:
     cleanup_compiler, _ = compiler("clarification", FakeEvidenceExecutor(close_error=True))
     request = TaskDraftRequest(contract_version="v1", dataset_id="rel-hm", prompt="Predict churn")
 
-    import asyncio
-
     with pytest.raises(TaskCompilerError) as timeout:
         asyncio.run(timeout_compiler.compile(request))
     with pytest.raises(TaskCompilerError) as cleanup:
@@ -252,7 +261,6 @@ def test_provider_timeout_and_cleanup_failure_are_sanitized() -> None:
 def test_openai_runner_uses_one_fixed_agent_four_tools_and_disabled_tracing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    import asyncio
     from types import SimpleNamespace
 
     import agents
@@ -297,3 +305,117 @@ def test_openai_runner_uses_one_fixed_agent_four_tools_and_disabled_tracing(
     ]
     assert captured["kwargs"]["run_config"].tracing_disabled is True
     assert captured["kwargs"]["run_config"].trace_include_sensitive_data is False
+
+
+class _StagingFileSystem:
+    """Fail the dataset upload the way a large parquet transfer can."""
+
+    def __init__(self, *, fail_on: str | None = None) -> None:
+        self.fail_on = fail_on
+        self.uploads: list[str] = []
+
+    def create_folder(self, path: str, mode: str) -> None:
+        return None
+
+    def upload_file(self, src: str | bytes, dst: str, timeout: int = 1800) -> None:
+        if self.fail_on is not None and self.fail_on in dst:
+            raise RuntimeError("upload interrupted")
+        self.uploads.append(dst)
+
+    def set_file_permissions(self, path: str, mode: str | None = None) -> None:
+        return None
+
+
+class _StagingSandbox:
+    def __init__(
+        self, *, fail_on: str | None = None, network_block_all: bool | None = True
+    ) -> None:
+        self.id = "sandbox-compiler-test"
+        self.public = False
+        self.network_block_all = network_block_all
+        self.fs = _StagingFileSystem(fail_on=fail_on)
+        self.process = None
+
+    def refresh_data(self, request_timeout: float | None = None) -> None:
+        return None
+
+
+class _StagingClient:
+    def __init__(self, sandbox: _StagingSandbox) -> None:
+        self.sandbox = sandbox
+        self.created_params: Any = None
+        self.deleted: list[Any] = []
+
+    def create(self, params: Any, **kwargs: Any) -> _StagingSandbox:
+        self.created_params = params
+        return self.sandbox
+
+    def delete(self, sandbox: Any, **kwargs: Any) -> None:
+        self.deleted.append(sandbox)
+
+
+def _hm_dataset(tmp_path: Path) -> HMDatasetFiles:
+    return create_synthetic_hm(tmp_path / "dataset")
+
+
+@pytest.mark.parametrize(
+    ("fail_on", "expected_code"),
+    [("input/transactions.parquet", "sandbox_create"), (None, None)],
+)
+def test_close_deletes_sandbox_even_when_staging_fails(
+    tmp_path: Path,
+    fail_on: str | None,
+    expected_code: str | None,
+) -> None:
+    sandbox = _StagingSandbox(fail_on=fail_on)
+    client = _StagingClient(sandbox)
+    executor = DaytonaEvidenceExecutor(_hm_dataset(tmp_path), client_factory=lambda: client)
+
+    if expected_code is None:
+        assert executor._ensure_sandbox() is sandbox
+    else:
+        with pytest.raises(EvidenceExecutionError) as failure:
+            executor._ensure_sandbox()
+        assert failure.value.code == expected_code
+
+    asyncio.run(executor.close())
+    assert client.deleted == [sandbox]
+
+
+def test_failed_staging_is_not_reused_by_a_later_validate(tmp_path: Path) -> None:
+    sandbox = _StagingSandbox(fail_on="input/transactions.parquet")
+    client = _StagingClient(sandbox)
+    executor = DaytonaEvidenceExecutor(_hm_dataset(tmp_path), client_factory=lambda: client)
+
+    with pytest.raises(EvidenceExecutionError):
+        executor._ensure_sandbox()
+    with pytest.raises(EvidenceExecutionError) as retry:
+        executor._ensure_sandbox()
+
+    assert retry.value.code == "sandbox_create"
+    assert client.created_params is not None
+    asyncio.run(executor.close())
+    assert client.deleted == [sandbox]
+
+
+def test_rejected_sandbox_policy_still_deletes_the_sandbox(tmp_path: Path) -> None:
+    sandbox = _StagingSandbox(network_block_all=False)
+    client = _StagingClient(sandbox)
+    executor = DaytonaEvidenceExecutor(_hm_dataset(tmp_path), client_factory=lambda: client)
+
+    with pytest.raises(EvidenceExecutionError) as failure:
+        executor._ensure_sandbox()
+
+    assert failure.value.code == "sandbox_policy"
+    asyncio.run(executor.close())
+    assert client.deleted == [sandbox]
+
+
+def test_compiler_sandbox_ttl_outlasts_the_overall_run_budget() -> None:
+    params = _sandbox_params()
+
+    assert SANDBOX_TTL_MINUTES * 60 > OVERALL_TIMEOUT_SECONDS
+    assert params.ttl_minutes == SANDBOX_TTL_MINUTES
+    assert params.auto_stop_interval == 5
+    assert params.auto_delete_interval == 0
+    assert params.ephemeral is True

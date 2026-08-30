@@ -19,6 +19,9 @@ REMOTE_SOURCE: Final = f"{REMOTE_ROOT}/src"
 REMOTE_INPUT: Final = f"{REMOTE_ROOT}/input"
 REMOTE_OUTPUT: Final = f"{REMOTE_ROOT}/output"
 QUERY_TIMEOUT_SECONDS: Final = 120
+# The hard TTL must outlast the compiler run budget so that a sandbox is never
+# destroyed mid-run; idle reaping is left to auto_stop_interval.
+SANDBOX_TTL_MINUTES: Final = 15
 
 _SOURCE_FILES: Final = (
     "structagent_api/__init__.py",
@@ -78,7 +81,7 @@ def _sandbox_params() -> CreateSandboxFromImageParams:
         ephemeral=True,
         auto_stop_interval=5,
         auto_delete_interval=0,
-        ttl_minutes=5,
+        ttl_minutes=SANDBOX_TTL_MINUTES,
         resources=Resources(cpu=4, memory=8, disk=10),
     )
 
@@ -95,6 +98,7 @@ class DaytonaEvidenceExecutor:
         self._dataset = dataset
         self._client = cast(DaytonaClient, client_factory())
         self._sandbox: Sandbox | None = None
+        self._staged = False
         self._closed = False
 
     async def validate(self, task: CustomTaskSqlArtifact) -> TaskValidationEvidence:
@@ -103,10 +107,18 @@ class DaytonaEvidenceExecutor:
         return await asyncio.to_thread(self._validate_sync, task)
 
     def _ensure_sandbox(self) -> Sandbox:
-        if self._sandbox is not None:
+        if self._staged and self._sandbox is not None:
             return self._sandbox
+        if self._sandbox is not None:
+            # Staging already failed on this sandbox; it is awaiting deletion by close().
+            raise EvidenceExecutionError(
+                "sandbox_create", "Daytona SQL validation could not start."
+            )
         try:
             sandbox = self._client.create(_sandbox_params(), timeout=120)
+            # Register the handle before staging so that a policy, folder, or upload
+            # failure still leaves close() a sandbox to delete.
+            self._sandbox = sandbox
             sandbox.refresh_data(request_timeout=30)
             if sandbox.public or sandbox.network_block_all is not True:
                 raise EvidenceExecutionError(
@@ -130,7 +142,7 @@ class DaytonaEvidenceExecutor:
                 destination = f"{REMOTE_INPUT}/{table}.parquet"
                 sandbox.fs.upload_file(str(path), destination)
                 sandbox.fs.set_file_permissions(destination, "444")
-            self._sandbox = sandbox
+            self._staged = True
             return sandbox
         except EvidenceExecutionError:
             raise
