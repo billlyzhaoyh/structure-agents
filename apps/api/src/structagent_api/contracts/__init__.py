@@ -23,6 +23,10 @@ from structagent_api.contracts.models import (
     TaskSqlArtifact,
     TaskValidationReport,
 )
+from structagent_api.contracts.simulation import (
+    SimulationRunResult,
+    SimulationStudyArtifact,
+)
 
 __all__ = [
     "ArtifactReference",
@@ -41,6 +45,8 @@ __all__ = [
     "NeedsClarification",
     "RegressionEvaluationResult",
     "RunRecord",
+    "SimulationRunResult",
+    "SimulationStudyArtifact",
     "TaskDraftOutcome",
     "TaskDraftRequest",
     "TaskSqlArtifact",

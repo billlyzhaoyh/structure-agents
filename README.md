@@ -12,13 +12,16 @@ and no trademark registration or employer affiliation is claimed.
 This repository is a lightweight monorepo. It currently contains a typed API, a metadata-only
 H&M task catalog, guarded default-task materialization, versioned interface fixtures, a
 dependency-free frontend demo, and documented extension points for a future task compiler
-and RT-J execution worker.
+and execution workers. It also contains versioned simulation contracts and a metadata-only
+reviewed H&M promotional study definition.
 
 Implemented today:
 
 - a typed FastAPI application with health, catalog, and fixture-backed V1 demo routes;
 - reviewed customer-churn and article-sales definitions in the H&M default-task catalog;
 - strict V1 Pydantic contracts with generated JSON Schemas;
+- a reviewed H&M discrete-choice simulation study contract, explicitly blocked from execution
+  until its dataset handoff and respondent-model runtime are implemented;
 - validated, synthetic Amazon classification and H&M regression interface journeys;
 - an interactive Decision OS frontend demo;
 - reviewed, normalized DuckDB SQL for both H&M defaults behind a read-only SQL policy;
@@ -37,6 +40,9 @@ It does not yet:
 - ingest arbitrary databases;
 - generate custom prediction tasks; or
 - report observed model predictions or evaluation metrics.
+
+The simulation study catalog is metadata-only. It does not run EDSL, call a respondent model,
+or report simulated findings.
 
 `apps/web` contains a dependency-free interactive Decision OS demo for the hackathon
 journey. Its fashion retail content is a small synthetic placeholder; its SQL database,
@@ -66,7 +72,9 @@ make materialize-hm-local
 
 The local API listens on `http://127.0.0.1:8000`. Alongside `GET /healthz`, it serves the
 reviewed H&M metadata and default-task catalog plus task-draft, run, and evaluation fixtures
-under `/v1` for frontend integration. These routes do not ingest data or execute RT-J.
+under `/v1` for frontend integration. It also serves the metadata-only reviewed simulation
+study at `GET /v1/simulation-studies/defaults?dataset_id=rel-hm`. These routes do not execute
+RT-J or a simulation.
 
 The frontend demo will listen on `http://127.0.0.1:4173`.
 

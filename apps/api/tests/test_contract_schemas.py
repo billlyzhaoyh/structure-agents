@@ -10,6 +10,8 @@ def test_schema_export_has_stable_expected_inventory() -> None:
         "evaluation-result.schema.json",
         "materialization-result.schema.json",
         "run-record.schema.json",
+        "simulation-run-result.schema.json",
+        "simulation-study-artifact.schema.json",
         "task-draft-outcome.schema.json",
         "task-draft-request.schema.json",
         "task-sql-artifact.schema.json",

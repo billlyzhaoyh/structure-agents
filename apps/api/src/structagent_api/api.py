@@ -16,10 +16,12 @@ from structagent_api.contracts import (
     DefaultTaskCatalog,
     EvaluationResult,
     RunRecord,
+    SimulationStudyArtifact,
     TaskDraftOutcome,
     TaskDraftRequest,
 )
 from structagent_api.settings import Settings
+from structagent_api.simulation_catalog import hm_promo_conjoint_v1
 
 FIXTURE_DIR = Path(__file__).resolve().parents[4] / "contracts" / "v1" / "examples" / "rel-hm"
 TASK_DRAFT_ADAPTER: TypeAdapter[TaskDraftOutcome] = TypeAdapter(TaskDraftOutcome)
@@ -82,6 +84,23 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 detail=f"Dataset {dataset_id!r} is not available in the V1 default catalog.",
             )
         return REL_HM_DEFAULT_TASKS
+
+    @app.get(
+        "/v1/simulation-studies/defaults",
+        response_model=list[SimulationStudyArtifact],
+        tags=["catalog"],
+    )
+    def get_default_simulation_studies(
+        dataset_id: Annotated[str, Query(min_length=1)],
+    ) -> list[SimulationStudyArtifact]:
+        """List reviewed, metadata-only simulation studies for the active dataset."""
+
+        if dataset_id != ACTIVE_DATASET_ID:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Dataset {dataset_id!r} is not available in the V1 simulation catalog.",
+            )
+        return [hm_promo_conjoint_v1()]
 
     @app.post("/v1/task-drafts", response_model=TaskDraftOutcome, tags=["demo-contracts"])
     def create_task_draft(request: TaskDraftRequest) -> TaskDraftOutcome:
