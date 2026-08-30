@@ -14,6 +14,12 @@ dev = [
   "pytest==8.4.2",
   "ruff==0.12.12",
 ]
+daytona-spike = [
+  "openai-agents[daytona]==0.22.0",
+]
+codex-spike = [
+  "openai-codex==0.147.0",
+]
 
 [tool.uv]
 package = false
