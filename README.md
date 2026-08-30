@@ -30,7 +30,8 @@ It does not yet:
 - report real model results.
 
 See [architecture](docs/architecture.md), [product flow](docs/product-flow.md), the
-[H&M backend roadmap](docs/backend-roadmap.md), and
+[H&M backend roadmap](docs/backend-roadmap.md), the isolated
+[RT-J inference feasibility tests](docs/rtj-inference-feasibility.md), and
 [data and licensing boundaries](docs/data-and-licensing.md).
 
 ## Development
