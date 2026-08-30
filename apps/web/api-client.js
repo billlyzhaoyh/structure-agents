@@ -72,6 +72,15 @@ export function createApiClient({ baseUrl = DEFAULT_API_BASE, fetchImpl = global
         task_type: taskType,
       }),
     }),
+    runModalInference: () => request("/v1/inferences/modal", {
+      method: "POST",
+      body: JSON.stringify({
+        contract_version: "v1",
+        dataset_id: "rel-hm",
+        task_id: "rel-hm/user-churn",
+        approved: true,
+      }),
+    }),
     getRun: (runId) => request(`/v1/runs/${encodeURIComponent(runId)}`),
     getEvaluation: (runId) => request(`/v1/runs/${encodeURIComponent(runId)}/evaluation`),
   };

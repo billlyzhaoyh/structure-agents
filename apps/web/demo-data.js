@@ -96,7 +96,10 @@ export function moduleNavStatus(moduleId, progress) {
 
 export function canAccessObjectiveView(view, objective) {
   if (view === "brief") return true;
-  if (view === "insights" || view === "decisions") return Boolean(objective?.confirmed);
+  if (view === "insights") return Boolean(objective?.confirmed);
+  if (view === "decisions") {
+    return Boolean(objective?.confirmed) && objective?.inferenceMode !== "observed";
+  }
   return false;
 }
 
