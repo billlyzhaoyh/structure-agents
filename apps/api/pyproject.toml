@@ -16,6 +16,7 @@ dependencies = [
   "daytona==0.207.0",
   "duckdb==1.5.5",
   "fastapi==0.116.1",
+  "openai-agents==0.22.0",
   "pydantic-settings==2.10.1",
   "sqlglot==30.17.0",
   "uvicorn==0.35.0",
