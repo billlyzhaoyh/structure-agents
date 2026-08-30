@@ -68,8 +68,13 @@ Trusted API control plane
    |-- human approval and budget gate
    |
    v
-Isolated execution plane
-   |-- read-only H&M task materialization
+Daytona SQL execution plane
+   |-- private, ephemeral H&M inputs
+   |-- read-only task materialization
+   |-- model/evaluator artifact separation
+   |
+   v
+Modal GPU execution plane
    |-- RT-J classification or regression inference
    |-- sealed prediction output
    |
@@ -80,9 +85,11 @@ Trusted evaluator
    |-- batch metrics and provenance
 ```
 
-OpenAI and Daytona credentials remain in the trusted API process. Browser code receives
-neither. The execution worker receives only narrowly scoped inputs required for an
-approved run. Predictions must be sealed before evaluator truth is joined.
+OpenAI, Daytona, and Modal credentials remain in the trusted API process. Browser code
+receives none of them. Daytona is limited to CPU-based SQL materialization; it does not
+receive model source, checkpoints, or GPU work. A future Modal worker will receive only
+the model-visible task package and approved model assets. Predictions must be sealed before
+evaluator truth is joined.
 
 The implemented catalog exposes the reviewed H&M `user-churn` and `item-sales` definitions
 without a language-model call. Execution remains planned. Custom tasks are limited to

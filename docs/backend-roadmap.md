@@ -35,21 +35,24 @@ to fit within that interval. Moving the cutoffs would create a different derived
 
 The OpenAI agent remains in the trusted API process. It can submit candidate SQL only through
 narrow validation and materialization tools. Daytona receives reviewed SQL and scoped files,
-not the OpenAI API key. RT-J receives materialized task rows, not a natural-language prompt.
+not the OpenAI API key. Modal receives approved model assets and the model-visible task
+package, not a natural-language prompt or evaluator truth.
 
 ## External permission gates
 
 Technical feasibility does not grant permission to use or redistribute external assets.
-Before materializing the real H&M dataset, record an approved decision for:
-
-- the H&M/RelBench data source, revision, and permitted use; and
-- storage of that data in a private Daytona volume.
+The H&M materialization decision recorded on 2026-08-30 approves the pinned
+`stanford-star/relbench-v1` revision
+`d8e976fd0a4b78877204bc8dfbcfc9a9f7f48600` for private research and hackathon
+demonstration only. It does not approve redistribution, production use, or public data and
+results. The current Daytona account cannot access persistent volumes, so the approved
+implementation uploads checksum-verified files to a private ephemeral sandbox for each run.
 
 Before the RT-J milestone starts, also record an approved decision for:
 
 - the exact Relational Transformer source revision and its permitted use;
 - the exact RT-J classification and regression checkpoints and their terms;
-- storage of the runtime and model assets in a private Daytona snapshot or volume.
+- storage and execution of the runtime and model assets in private Modal infrastructure.
 
 The released RT-J checkpoints are currently marked CC BY-NC-SA 4.0, and the inspected
 Relational Transformer source revision did not contain a root licence. Keep the repository's
@@ -111,8 +114,9 @@ Implementation:
 - Parse SQL before execution. Permit read-only selections, CTEs, joins, filters, aggregates,
   and reviewed functions. Reject DDL, DML, `COPY`, `ATTACH`, `INSTALL`, `LOAD`, pragmas,
   filesystem/network functions, and undeclared tables or columns.
-- Execute against a read-only H&M database in a private Daytona CPU sandbox. Keep the dataset
-  in a private persistent volume after explicit infrastructure approval.
+- Execute against a read-only H&M database in a private Daytona CPU sandbox. Upload scoped,
+  checksum-verified inputs for each run and delete the ephemeral sandbox afterward. Revisit a
+  private persistent volume only if the Daytona account gains volume access.
 - Validate uniqueness by `(timestamp, entity)`, complete outcome windows, non-empty splits,
   finite targets, binary `0/1` labels, class balance, null rates, and bounded row counts.
 - Materialize full labels, then separate model-visible support labels, masked test task rows,
@@ -146,8 +150,9 @@ Ordered commits:
 
 Implementation:
 
-- Build a private, revision-pinned Daytona GPU snapshot for the approved RT runtime.
-- Reuse the private H&M volume and preprocessing cache across runs.
+- Build a private, revision-pinned Modal GPU image for the approved RT runtime.
+- Transfer only the model-visible task package and approved dataset inputs to Modal; evaluator
+  truth remains in the trusted evaluation boundary.
 - Route `user-churn` to the approved classification checkpoint and `item-sales` to the
   approved regression checkpoint.
 - Consume the exact task packages produced by the materializer. Do not perform task-specific
