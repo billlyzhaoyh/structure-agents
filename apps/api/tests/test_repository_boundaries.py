@@ -6,11 +6,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 
 
-def test_provider_and_model_runtimes_are_not_locked_dependencies() -> None:
+def test_model_and_language_provider_runtimes_are_not_locked_dependencies() -> None:
     lockfile = (ROOT / "uv.lock").read_text(encoding="utf-8")
 
     forbidden_packages = {
-        "daytona",
         "openai",
         "relbench",
         "relational-transformer",

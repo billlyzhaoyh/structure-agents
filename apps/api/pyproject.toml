@@ -13,6 +13,7 @@ authors = [
   { name = "Billy Zhao" },
 ]
 dependencies = [
+  "daytona==0.207.0",
   "duckdb==1.5.5",
   "fastapi==0.116.1",
   "pydantic-settings==2.10.1",
