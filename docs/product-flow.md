@@ -4,7 +4,7 @@ StructAgent's intended hackathon story ends at evaluated batch predictions. Ente
 decision optimization, reinforcement learning, and contextual bandits remain future
 research directions and are not represented as working features.
 
-## Planned H&M journeys
+## H&M journeys
 
 Reviewed defaults and natural-language custom tasks share one execution path after task
 review. Default tasks do not call a language model.
@@ -14,8 +14,10 @@ review. Default tasks do not call a language model.
 1. **Select a task** — choose H&M customer churn or article sales from the reviewed catalog.
 2. **Review the task** — inspect the pinned entity, horizon, target, and evaluation contract.
 3. **Approve execution** — explicitly approve materialization and compute spend.
-4. **Run and evaluate** — materialize the pinned task, invoke the matching RT-J head, seal
-   predictions, and report batch metrics and provenance.
+4. **Materialize** — create the model-visible package and separately sealed truth through the
+   implemented local or opt-in Daytona SQL path.
+5. **Run and evaluate** — a future Modal worker invokes the matching RT-J head, seals
+   predictions, and reports batch metrics and provenance.
 
 ### Custom tasks
 
@@ -28,8 +30,8 @@ review. Default tasks do not call a language model.
    model.
 5. **Review the task** — inspect the typed contract, SQL, and validation evidence.
 6. **Approve execution** — explicitly approve materialization and compute spend.
-7. **Run inference** — a future worker materializes train, validation, masked test, and sealed
-   truth artifacts, then invokes an approved RT-J classification or regression checkpoint
+7. **Run inference** — future orchestration applies the guarded materializer to the approved
+   custom SQL, then invokes an approved RT-J classification or regression checkpoint on Modal
    without feature engineering or task-specific model training.
 8. **Evaluate** — align sealed predictions with evaluator-owned truth, run integrity checks, and
    report task-appropriate batch metrics and provenance.
@@ -38,12 +40,13 @@ review. Default tasks do not call a language model.
 
 - `rel-hm`: the metadata-only catalog exposes reviewed customer-churn and article-sales
   defaults. Article sales includes every known article and zero-fills articles without a
-  transaction in the future window.
+  transaction in the future window. Both reviewed defaults have guarded SQL, deterministic
+  synthetic coverage, private artifact verification, and opt-in Daytona materialization.
 - `rel-amazon`: customer churn remains a deferred binary-classification reference fixture.
 
-The catalog records pinned definitions and metrics but no observed execution. The remaining
-journey fixtures test interface shape only: their metrics are deliberately synthetic, their
-integrity checks are `not_run`, and their query artifacts contain no SQL.
+No model inference or model evaluation has been implemented. The remaining journey fixtures
+test interface shape only: their metrics are deliberately synthetic, their integrity checks
+are `not_run`, and their query artifacts contain no SQL.
 
 ## Deferred beyond V1
 

@@ -19,3 +19,13 @@ Both responses remain explicitly metadata-only. The API also serves selected rev
 examples through `POST /v1/task-drafts`, `GET /v1/runs/{run_id}`, and
 `GET /v1/runs/{run_id}/evaluation`. These are deterministic demo responses, not database
 ingestion, task compilation, materialization, RT-J execution, or observed model results.
+
+Implemented internal materialization boundaries:
+
+- `task-sql-artifact.schema.json` describes reviewed SQL, its normalized digest, provenance,
+  and static validation evidence;
+- `materialization-result.schema.json` describes the separated model-input and evaluator-truth
+  packages, file digests, invariant report, and package provenance.
+
+These contracts are currently consumed by local services and Make-driven scripts, not by a
+public API route.

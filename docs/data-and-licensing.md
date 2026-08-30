@@ -11,17 +11,18 @@ StructureML is an independent research initiative and is not currently incorpora
 ## Datasets
 
 - [RelBench](https://github.com/snap-stanford/relbench) source is MIT-licensed. The
-  fixture schema was checked against RelBench, but no RelBench package or data is copied
-  or downloaded by this repository.
+  fixture schema was checked against RelBench, but no RelBench package or data is bundled
+  or relicensed by this repository.
 - The `rel-hm` catalog names fields from the H&M benchmark schema. H&M competition data
   has separate [Kaggle competition terms](https://www.kaggle.com/competitions/h-and-m-personalized-fashion-recommendations/rules)
   and is never bundled or redistributed by this repository.
 - A project decision recorded on 2026-08-30 permits the
   `stanford-star/relbench-v1` revision
   `d8e976fd0a4b78877204bc8dfbcfc9a9f7f48600` for private research and hackathon
-  demonstration only. Downloaded inputs, derived labels, and parity results remain ignored
-  local artifacts or private ephemeral Daytona files. This is a project use decision, not a
-  legal conclusion about broader rights.
+  demonstration only. The opt-in staging command downloads checksum-pinned files into the
+  ignored `.artifacts/` cache. Downloaded inputs, derived labels, and parity results remain
+  ignored local artifacts or private ephemeral Daytona files. This is a project use decision,
+  not a legal conclusion about broader rights.
 - Amazon source data and any hosted preprocessed snapshots remain external and require
   their own provenance and terms review before execution.
 

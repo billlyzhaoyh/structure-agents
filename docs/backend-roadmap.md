@@ -1,8 +1,9 @@
 # H&M backend roadmap
 
 This document defines the backend delivery sequence for the first executable StructAgent
-demo. Milestone 1 is implemented as metadata-only catalog behavior; Milestones 2 through 5
-remain plans rather than descriptions of working execution.
+demo. Milestone 1 implements metadata-only catalog behavior, and Milestone 2 implements
+guarded materialization of the reviewed defaults. Milestones 3 through 5 remain plans rather
+than descriptions of working model execution.
 
 ## Product boundary
 
@@ -96,13 +97,21 @@ Definition of done:
 
 ## Milestone 2 - Guarded H&M task materialization
 
+Status: implemented.
+
 Branch: `feat/hm-task-materialization`
 
 Ordered commits:
 
-1. `feat: add guarded DuckDB task materializer`
-2. `feat: add Daytona H&M execution boundary`
-3. `test: verify default task materialization parity`
+1. `docs: separate Daytona SQL from Modal inference`
+2. `feat: define task materialization contracts`
+3. `feat: add guarded H&M task SQL policy`
+4. `feat: add guarded DuckDB task materializer`
+5. `feat: stage pinned H&M artifacts outside Git`
+6. `feat: add ephemeral Daytona SQL execution`
+7. `test: verify default task materialization parity`
+8. `fix: verify Daytona SQL runtime before upload`
+9. `docs: document local H&M materialization workflow`
 
 Implementation:
 
