@@ -12,7 +12,11 @@ authors = [
   { name = "Tony Kwok" },
   { name = "Billy Zhao" },
 ]
-dependencies = []
+dependencies = [
+  "fastapi==0.116.1",
+  "pydantic-settings==2.10.1",
+  "uvicorn==0.35.0",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/structagent_api"]
