@@ -414,6 +414,32 @@ class ModelTaskPackage(StrictModel):
         if tables != {"article", "customer", "transactions"}:
             raise ValueError("model package requires each reviewed H&M table exactly once")
 
+        expected_database_paths = {
+            reference.table: f"{reference.table}.parquet" for reference in self.database_files
+        }
+        if any(
+            reference.path != expected_database_paths[reference.table]
+            for reference in self.database_files
+        ):
+            raise ValueError("database file paths must match their reviewed H&M tables")
+
+        if (
+            self.train_labels.path != "train.parquet"
+            or self.validation_labels.path != "validation.parquet"
+            or self.test_rows.path != "test.parquet"
+        ):
+            raise ValueError("task file paths must use the model-visible allowlist")
+        all_paths = [
+            *(reference.path for reference in self.database_files),
+            self.train_labels.path,
+            self.validation_labels.path,
+            self.test_rows.path,
+        ]
+        if len(all_paths) != len(set(all_paths)):
+            raise ValueError("model-visible file paths must be unique")
+        if any("truth" in path.lower() for path in all_paths):
+            raise ValueError("model-visible file paths cannot reference evaluator truth")
+
         labelled_columns = ["timestamp", self.task.entity_column, self.task.target_column]
         if self.train_labels.columns != labelled_columns:
             raise ValueError("train label columns do not match the task")
@@ -439,6 +465,7 @@ class MaterializationResult(StrictModel):
 
     contract_version: ContractVersion
     package_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    model_input_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     model_input: ModelTaskPackage
     evaluator_truth: EvaluatorTruthPackage
     validation_report: TaskValidationReport

@@ -24,9 +24,22 @@
           "title": "Dataset Revision",
           "type": "string"
         },
+        "entity_column": {
+          "enum": [
+            "customer_id",
+            "article_id"
+          ],
+          "title": "Entity Column",
+          "type": "string"
+        },
         "materialization_package_sha256": {
           "pattern": "^[0-9a-f]{64}$",
           "title": "Materialization Package Sha256",
+          "type": "string"
+        },
+        "model_input_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Model Input Sha256",
           "type": "string"
         },
         "prediction_file": {
@@ -68,8 +81,10 @@
         "dataset_id",
         "task_id",
         "task_type",
+        "entity_column",
         "dataset_revision",
         "materialization_package_sha256",
+        "model_input_sha256",
         "query_sha256",
         "prediction_file",
         "checkpoint",
@@ -100,6 +115,11 @@
         "materialization_package_sha256": {
           "pattern": "^[0-9a-f]{64}$",
           "title": "Materialization Package Sha256",
+          "type": "string"
+        },
+        "model_input_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Model Input Sha256",
           "type": "string"
         },
         "query_sha256": {
@@ -136,6 +156,7 @@
         "task_id",
         "task_type",
         "materialization_package_sha256",
+        "model_input_sha256",
         "query_sha256",
         "error_code",
         "runtime"

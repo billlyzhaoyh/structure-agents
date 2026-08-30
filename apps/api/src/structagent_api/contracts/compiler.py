@@ -138,6 +138,16 @@ class LiveDraftReady(StrictModel):
             raise ValueError("compiled contract entity key does not match its SQL artifact")
         if self.contract.horizon.value != self.sql_artifact.horizon_days:
             raise ValueError("compiled contract horizon does not match its SQL artifact")
+        if self.contract.horizon.unit != "days" or not 1 <= self.contract.horizon.value <= 7:
+            raise ValueError("compiled contract horizon must be between one and seven days")
+        query_sql = {artifact.sql for artifact in self.contract.query_artifacts}
+        if any(artifact.status != "generated" for artifact in self.contract.query_artifacts):
+            raise ValueError("compiled contract query artifacts must be generated")
+        if len(query_sql) != 1 or query_sql.pop() not in {
+            self.sql_artifact.sql,
+            self.sql_artifact.normalized_sql,
+        }:
+            raise ValueError("compiled contract queries do not match the validated SQL artifact")
         if self.validation_evidence.query_sha256 != self.sql_artifact.query_sha256:
             raise ValueError("validation evidence does not match its SQL artifact")
         if self.validation_evidence.task_type != self.sql_artifact.task_type:

@@ -9,6 +9,7 @@ from pydantic import Field, model_validator
 from structagent_api.contracts.models import (
     ClassificationMetrics,
     ContractVersion,
+    IntegrityCheck,
     MaterializedFileReference,
     ModelTaskPackage,
     RegressionMetrics,
@@ -50,6 +51,7 @@ class RTJInferenceConfig(StrictModel):
 class RTJInferenceRequest(StrictModel):
     contract_version: ContractVersion
     materialization_package_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    model_input_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     model_input: ModelTaskPackage
     source_revision: Literal["455df27c1458e093eac00133d5bbf41a8263a2e3"]
     checkpoint: RTJCheckpointReference
@@ -80,13 +82,43 @@ class CompletedPredictionPackage(StrictModel):
     dataset_id: Literal["rel-hm"]
     task_id: str = Field(min_length=1)
     task_type: TaskType
+    entity_column: Literal["customer_id", "article_id"]
     dataset_revision: str = Field(pattern=r"^[0-9a-f]{40}$|^synthetic$")
     materialization_package_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    model_input_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     query_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     prediction_file: MaterializedFileReference
     checkpoint: RTJCheckpointReference
     config: RTJInferenceConfig
     runtime: RTJRuntimeProvenance
+
+    @model_validator(mode="after")
+    def validate_prediction_boundary(self) -> CompletedPredictionPackage:
+        expected_variant = {
+            "binary_classification": "classification",
+            "regression": "regression",
+        }[self.task_type]
+        if self.checkpoint.variant != expected_variant:
+            raise ValueError("prediction checkpoint does not match the task type")
+        if self.prediction_file.path != "predictions.parquet":
+            raise ValueError("prediction file must use the sealed output filename")
+        if self.prediction_file.columns != [
+            "timestamp",
+            self.entity_column,
+            "prediction",
+        ]:
+            raise ValueError("prediction columns do not match the sealed output schema")
+        if self.status == "observed" and (
+            self.runtime.provider != "modal"
+            or self.runtime.gpu != self.config.gpu
+            or self.runtime.checkpoint_revision != self.checkpoint.revision
+        ):
+            raise ValueError("observed prediction runtime provenance is inconsistent")
+        if self.status == "synthetic" and (
+            self.runtime.provider != "fake" or self.runtime.gpu != "none"
+        ):
+            raise ValueError("synthetic prediction runtime provenance is inconsistent")
+        return self
 
 
 class FailedPredictionPackage(StrictModel):
@@ -96,6 +128,7 @@ class FailedPredictionPackage(StrictModel):
     task_id: str = Field(min_length=1)
     task_type: TaskType
     materialization_package_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    model_input_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     query_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     error_code: str = Field(min_length=1)
     runtime: RTJRuntimeProvenance
@@ -112,10 +145,19 @@ class BatchEvaluationBase(StrictModel):
     result_status: Literal["observed", "synthetic"]
     dataset_id: Literal["rel-hm"]
     task_id: str = Field(min_length=1)
+    task_type: TaskType
+    dataset_revision: str = Field(pattern=r"^[0-9a-f]{40}$|^synthetic$")
+    query_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    materialization_package_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    model_input_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    checkpoint: RTJCheckpointReference
+    config: RTJInferenceConfig
+    runtime: RTJRuntimeProvenance
     sample_count: int = Field(gt=0)
     coverage: float = Field(ge=1, le=1)
     prediction_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     truth_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    integrity_checks: list[IntegrityCheck] = Field(min_length=1)
 
 
 class BatchClassificationEvaluation(BatchEvaluationBase):

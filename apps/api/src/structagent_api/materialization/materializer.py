@@ -447,9 +447,13 @@ def materialize_task(
             query_sha256=task.query_sha256,
             test_truth=test_truth,
         )
+        model_input_payload = model_input.model_dump(mode="json")
+        model_input_sha256 = hashlib.sha256(
+            json.dumps(model_input_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
         package_payload = {
             "evaluator_truth": evaluator_truth.model_dump(mode="json"),
-            "model_input": model_input.model_dump(mode="json"),
+            "model_input": model_input_payload,
             "validation_report": report.model_dump(mode="json"),
         }
         package_sha256 = hashlib.sha256(
@@ -458,6 +462,7 @@ def materialize_task(
         result = MaterializationResult(
             contract_version="v1",
             package_sha256=package_sha256,
+            model_input_sha256=model_input_sha256,
             model_input=model_input,
             evaluator_truth=evaluator_truth,
             validation_report=report,

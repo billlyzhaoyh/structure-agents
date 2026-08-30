@@ -565,6 +565,11 @@
     "model_input": {
       "$ref": "#/$defs/ModelTaskPackage"
     },
+    "model_input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Model Input Sha256",
+      "type": "string"
+    },
     "package_sha256": {
       "pattern": "^[0-9a-f]{64}$",
       "title": "Package Sha256",
@@ -577,6 +582,7 @@
   "required": [
     "contract_version",
     "package_sha256",
+    "model_input_sha256",
     "model_input",
     "evaluator_truth",
     "validation_report"
