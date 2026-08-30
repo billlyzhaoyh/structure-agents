@@ -12,6 +12,8 @@ import {
 } from "./demo-data.js";
 import { createApiClient, tableViewModels, taskContractFrom } from "./api-client.js";
 import {
+  beginSimulation,
+  completeSimulation,
   createObjective,
   createWorkspaceState,
   getActiveObjective,
@@ -20,6 +22,12 @@ import {
   selectObjective,
   workspaceProgress,
 } from "./workspace-state.js";
+import {
+  inferenceWaitingMarkup,
+  minimumInferenceWait,
+  simulationWaitingMarkup,
+  startWaitingAnimations,
+} from "./waiting-animations.js";
 
 const app = document.querySelector("#app");
 const api = createApiClient();
@@ -37,6 +45,7 @@ const requestedPage = params.get("module") || legacyModules[params.get("stage")]
 const embeddedObjectiveView = { insights: "insights", decisions: "decisions" }[requestedPage];
 const requestedModule = embeddedObjectiveView ? "objectives" : requestedPage;
 const state = loadWorkspaceState(window.localStorage) ?? createWorkspaceState();
+let stopWaitingAnimations = () => {};
 if (requestedModule && modules.some((item) => item.id === requestedModule)) state.module = requestedModule;
 if (embeddedObjectiveView || params.get("view")) state.objectiveView = embeddedObjectiveView || params.get("view");
 
@@ -75,7 +84,7 @@ const moduleIcons = {
 const moduleTitles = {
   data: ["Data connections", "Give StructAgent a trustworthy view of your business."],
   knowledge: ["Business knowledge", "Define what success means before asking the system to optimise it."],
-  objectives: ["Objectives", "Each objective carries its own business brief, RT-J evidence and decision work."],
+  objectives: ["Objectives", "Each objective carries its own business brief, model evidence and decision work."],
   experiments: ["Experiments", "Monitor a portfolio of controlled tests and bank what the business learns."],
 };
 
@@ -187,8 +196,8 @@ function objectiveReference(objective) {
 function objectiveNavigation(objective) {
   const views = [
     ["brief", "Objective brief", objective.confirmed ? "Defined" : "Draft"],
-    ["insights", "Item insights", objective.confirmed ? `RT-J r${objective.rtjRun}` : "Run RT-J first"],
-    ["decisions", "Decision Studio", objective.confirmed ? `Uses RT-J r${objective.rtjRun}` : "Waiting for evidence"],
+    ["insights", "Item insights", objective.confirmed ? `Evidence run ${objective.rtjRun}` : "Run inference first"],
+    ["decisions", "Decision Studio", objective.confirmed ? `Uses evidence run ${objective.rtjRun}` : "Waiting for evidence"],
   ];
   return `<nav class="objective-nav" aria-label="Selected objective sections">${views.map(([id, label, status]) => {
     const accessible = canAccessObjectiveView(id, objective);
@@ -210,7 +219,7 @@ function objectivesModule() {
 
 function objectiveBrief(objective) {
   return `<div class="objective-chat chat-only"><header><span>S</span><p><b>Objective partner</b><small>Uses your business knowledge and connected schema</small></p><i>${objective.confirmed ? "Objective ready" : "Defining objective"}</i></header>
-    <div class="chat-thread objective-thread"><div class="chat agent"><p>What business outcome should we improve first?</p><small>I’ll check the available data, sharpen the objective, and prepare the RT-J task with you.</small></div>
+    <div class="chat-thread objective-thread"><div class="chat agent"><p>What business outcome should we improve first?</p><small>I’ll check the available data, sharpen the objective, and prepare the inference task with you.</small></div>
       ${objective.fit ? `<div class="chat human"><p>${escapeHtml(objective.title)}</p></div>${objectiveAgentGuidance(objective)}` : ""}
     </div>
     <div class="objective-prompts"><span>Suggested starts</span><button data-objective-fit="supported"><b>Forecast seven-day item sales</b><small>Supported by current data</small></button><button data-objective-fit="unsupported"><b>Increase store footfall</b><small>Needs additional data</small></button></div>
@@ -249,7 +258,7 @@ function objectiveAgentGuidance(objective) {
     return `<div class="chat agent agent-task data-gap"><div class="agent-task-status"><span>${icon("warning")}</span><p><small>Daytona execution</small><b>The synthetic task was not materialized.</b></p></div><p>${escapeHtml(objective.materializationError)}</p>${defaultTaskSelector(objective)}<button class="agent-action" data-launch-daytona>Try Daytona again ${icon("arrow")}</button></div>`;
   }
   if (objective.apiStatus === "loading") {
-    return `<div class="chat agent agent-task"><div class="agent-task-status"><span class="status-spinner"></span><p><small>Fixture preview loading</small><b>Loading the synthetic RT-J evaluation contract.</b></p></div><p>The Daytona materialization is already complete and separate from this fixture-backed preview.</p></div>`;
+    return inferenceWaitingMarkup();
   }
   if (objective.apiError) {
     return `<div class="chat agent agent-task data-gap"><div class="agent-task-status"><span>${icon("warning")}</span><p><small>Fixture API</small><b>The synthetic evaluation preview is unavailable.</b></p></div><p>${escapeHtml(objective.apiError)}</p><button class="agent-action" data-run-fixture>Try the fixture preview again ${icon("arrow")}</button></div>`;
@@ -259,10 +268,10 @@ function objectiveAgentGuidance(objective) {
     return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("check")}</span><p><small>Objective ready</small><b>The V1 task contract is defined and linked to this objective.</b></p></div><div class="task-preview"><p><small>Entity</small><b>${escapeHtml(contract.entity.table)}</b></p><p><small>Outcome window</small><b>${contract.horizon.value} ${contract.horizon.unit}</b></p><p><small>Task</small><b>Sales regression</b></p></div><button class="agent-action" data-objective-view="insights">Open item insights ${icon("arrow")}</button></div>`;
   }
   if (objective.materialization) {
-    const fixturePreview = objective.selectedTaskId === "rel-hm/item-sales" ? `<button class="agent-action" data-run-fixture>Continue to synthetic RT-J preview ${icon("arrow")}</button>` : `<div class="fixture-separation"><b>Materialization complete.</b><span>No RT-J churn result is available in the current fixture demo.</span></div>`;
+    const fixturePreview = objective.selectedTaskId === "rel-hm/item-sales" ? `<button class="agent-action" data-run-fixture>Continue to synthetic evaluation preview ${icon("arrow")}</button>` : `<div class="fixture-separation"><b>Materialization complete.</b><span>No churn evaluation result is available in the current fixture demo.</span></div>`;
     return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("check")}</span><p><small>Task package verified</small><b>${escapeHtml(task?.display_name ?? objective.selectedTaskId)} completed in Daytona.</b></p></div>${materializationReceipt(objective)}${fixturePreview}</div>`;
   }
-  return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("check")}</span><p><small>Supported by current data</small><b>Two reviewed H&amp;M defaults are executable.</b></p></div><p>Select a task. Clicking launch explicitly approves a synthetic, bounded Daytona materialization; it does not transfer private H&amp;M data or run RT-J.</p>${defaultTaskSelector(objective)}<button class="agent-action" data-launch-daytona ${task ? "" : "disabled"}>Launch ${escapeHtml(task?.display_name ?? "task")} in Daytona ${icon("arrow")}</button></div>`;
+  return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("check")}</span><p><small>Supported by current data</small><b>Two reviewed H&amp;M defaults are executable.</b></p></div><p>Select a task. Clicking launch explicitly approves a synthetic, bounded Daytona materialization; it does not transfer private H&amp;M data or run model training.</p>${defaultTaskSelector(objective)}<button class="agent-action" data-launch-daytona ${task ? "" : "disabled"}>Launch ${escapeHtml(task?.display_name ?? "task")} in Daytona ${icon("arrow")}</button></div>`;
 }
 
 function insightsModule(objective) {
@@ -279,8 +288,11 @@ function insightsModule(objective) {
 
 function decisionsModule(objective) {
   const chosen = selectStrategy(objective.strategy);
+  if (state.simulationStatus === "loading") {
+    return `<section class="decisions-layout simulation-waiting-layout"><div class="inheritance-banner"><span>${icon("spark")}</span><p><small>Simulation evidence source</small><b>OBJ-${String(objective.number).padStart(2, "0")} → ${escapeHtml(objective.run?.run_id ?? "contract run")}</b></p><i>Inherited · R² ${objective.evaluation?.metrics?.r2 ?? "—"}</i></div>${simulationWaitingMarkup()}</section>`;
+  }
   return `<section class="decisions-layout"><div class="inheritance-banner"><span>${icon("spark")}</span><p><small>Simulation evidence source</small><b>OBJ-${String(objective.number).padStart(2, "0")} → ${escapeHtml(objective.run?.run_id ?? "contract run")}</b></p><i>Inherited · R² ${objective.evaluation?.metrics?.r2 ?? "—"}</i></div><div class="evidence-strip"><p><small>Objective</small><b>${escapeHtml(objective.title)}</b></p><p><small>Planning segment</small><b>High-velocity articles</b></p><p><small>Guardrail</small><b>Protect gross margin</b></p><i>${objective.evaluation?.sample_count ?? "—"} evaluated articles</i></div>
-    <div class="meeting-panel"><header><span>S</span><p><b>Strategy partner</b><small>RT-J evidence + scenario model</small></p><i>Working session</i></header><div class="chat-thread"><div class="chat agent"><p>The seven-day model indicates demand concentration in a small set of articles. A blanket markdown could trade away margin. Which merchandising lever should we test first?</p><small>Grounded in the selected objective’s evaluation contract</small></div><div class="chat human"><p>Give predicted high-demand articles more prominent placement without discounting them.</p></div>${objective.chatCount > 2 ? `<div class="chat agent"><p>That preserves price integrity. I’d compare featured placement with replenishment priority and monitor stock-out exposure as the guardrail.</p><small>2 assumptions added to the scenario</small></div>` : ""}</div><form class="strategy-compose"><label for="strategy-input">Ask about an action, offer or merchandising change</label><div><input id="strategy-input" value="How can we protect margin?"><button>${icon("arrow")}</button></div></form></div>
+    <div class="meeting-panel"><header><span>S</span><p><b>Strategy partner</b><small>Model evidence + scenario model</small></p><i>Working session</i></header><div class="chat-thread"><div class="chat agent"><p>The seven-day model indicates demand concentration in a small set of articles. A blanket markdown could trade away margin. Which merchandising lever should we test first?</p><small>Grounded in the selected objective’s evaluation contract</small></div><div class="chat human"><p>Give predicted high-demand articles more prominent placement without discounting them.</p></div>${objective.chatCount > 2 ? `<div class="chat agent"><p>That preserves price integrity. I’d compare featured placement with replenishment priority and monitor stock-out exposure as the guardrail.</p><small>2 assumptions added to the scenario</small></div>` : ""}</div><form class="strategy-compose"><label for="strategy-input">Ask about an action, offer or merchandising change</label><div><input id="strategy-input" value="How can we protect margin?"><button>${icon("arrow")}</button></div></form></div>
     <div class="intervention-panel"><div class="panel-heading"><span>Candidate interventions</span><small>Scenario layer · ${objective.evaluation?.sample_count ?? "—"} evaluated articles</small></div>${strategies.map((item) => `<button data-strategy="${item.id}" class="intervention ${objective.strategy === item.id ? "selected" : ""}"><span></span><p><b>${item.name}</b><small>${item.detail}</small></p><strong>+${item.lift}%<small>sales</small></strong></button>`).join("")}<div class="strategy-score"><p><small>Expected lift</small><b>+${chosen.lift}%</b></p><p><small>Margin effect</small><b>+${chosen.margin}%</b></p><p><small>Scenario confidence</small><b>${chosen.confidence}%</b></p></div><button class="primary" data-stage-experiment>Stage this experiment ${icon("arrow")}</button></div>
   </section>`;
 }
@@ -303,12 +315,20 @@ function moduleContent() {
 }
 
 function render() {
+  stopWaitingAnimations();
   if (!canAccessModule(state.module, progress())) state.module = "data";
   document.body.className = "decision-room";
   app.innerHTML = shell();
   setQuery();
   saveWorkspaceState(window.localStorage, state);
   bind();
+  stopWaitingAnimations = startWaitingAnimations({
+    onSimulationComplete: () => {
+      if (state.simulationStatus !== "loading") return;
+      completeSimulation(state);
+      render();
+    },
+  });
 }
 
 function bind() {
@@ -372,6 +392,7 @@ function bind() {
     state.experimentCount = 0;
     state.objectiveView = "brief";
     state.experimentReady = false;
+    state.simulationStatus = "idle";
     state.module = "data";
     render();
   });
@@ -423,6 +444,7 @@ function bind() {
     const objective = getActiveObjective(state);
     objective.apiStatus = "loading";
     objective.apiError = null;
+    const minimumWait = minimumInferenceWait();
     render();
     try {
       const taskDraft = await api.createTaskDraft(objective.title);
@@ -430,6 +452,7 @@ function bind() {
       const run = await api.getRun("fixture-hm-run");
       const evaluation = await api.getEvaluation(run.run_id);
       const latestRun = state.objectives.reduce((highest, item) => Math.max(highest, item.rtjRun ?? 0), 0);
+      await minimumWait;
       objective.taskDraft = taskDraft;
       objective.run = run;
       objective.evaluation = evaluation;
@@ -440,6 +463,7 @@ function bind() {
       state.module = "objectives";
       state.objectiveView = "insights";
     } catch (error) {
+      await minimumWait;
       objective.apiStatus = "error";
       objective.apiError = error.message;
     }
@@ -447,9 +471,7 @@ function bind() {
   });
   document.querySelector("[data-open-decisions]")?.addEventListener("click", () => { state.objectiveView = "decisions"; getActiveObjective(state).view = "decisions"; render(); });
   document.querySelector("[data-stage-experiment]")?.addEventListener("click", () => {
-    state.experimentReady = true;
-    state.experimentCount = Math.max(1, state.experimentCount);
-    state.module = "experiments";
+    beginSimulation(state);
     render();
   });
   document.querySelector("[data-bank]")?.addEventListener("click", () => { state.banked = true; render(); });
