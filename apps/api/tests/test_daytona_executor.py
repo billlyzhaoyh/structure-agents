@@ -179,6 +179,10 @@ def test_daytona_executor_uses_private_cpu_boundary_and_cleans_up(tmp_path: Path
     assert isinstance(request_upload, bytes)
     assert b"OPENAI_API_KEY" not in request_upload
     assert b"MODAL_TOKEN" not in request_upload
+    assert any(
+        destination.endswith("structagent_api/contracts/simulation.py")
+        for _, destination in sandbox.fs.uploads
+    )
 
 
 @pytest.mark.parametrize(

@@ -1,0 +1,351 @@
+{
+  "$defs": {
+    "CertificationGate": {
+      "description": "Evidence required when the simulation machinery is certified.",
+      "enum": [
+        "order_invariance",
+        "full_repeat_variance",
+        "trait_ablation",
+        "markdown_concordance",
+        "temporal_holdout"
+      ],
+      "title": "CertificationGate",
+      "type": "string"
+    },
+    "EffectDiagnostic": {
+      "additionalProperties": false,
+      "description": "Technical simulated-choice diagnostic, never a business uplift claim.",
+      "properties": {
+        "attribute": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Attribute",
+          "type": "string"
+        },
+        "confidence_interval_lower": {
+          "title": "Confidence Interval Lower",
+          "type": "number"
+        },
+        "confidence_interval_upper": {
+          "title": "Confidence Interval Upper",
+          "type": "number"
+        },
+        "estimate_percentage_points": {
+          "title": "Estimate Percentage Points",
+          "type": "number"
+        },
+        "level": {
+          "minLength": 1,
+          "title": "Level",
+          "type": "string"
+        },
+        "suppressed": {
+          "title": "Suppressed",
+          "type": "boolean"
+        },
+        "suppression_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Suppression Reason"
+        }
+      },
+      "required": [
+        "attribute",
+        "level",
+        "estimate_percentage_points",
+        "confidence_interval_lower",
+        "confidence_interval_upper",
+        "suppressed"
+      ],
+      "title": "EffectDiagnostic",
+      "type": "object"
+    },
+    "GateStatus": {
+      "description": "Structured outcome of a validation gate.",
+      "enum": [
+        "passed",
+        "failed",
+        "not_applicable"
+      ],
+      "title": "GateStatus",
+      "type": "string"
+    },
+    "ProfileLevel": {
+      "additionalProperties": false,
+      "description": "One named attribute level in a profile.",
+      "properties": {
+        "attribute": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Attribute",
+          "type": "string"
+        },
+        "level": {
+          "minLength": 1,
+          "title": "Level",
+          "type": "string"
+        }
+      },
+      "required": [
+        "attribute",
+        "level"
+      ],
+      "title": "ProfileLevel",
+      "type": "object"
+    },
+    "RankedAlternative": {
+      "additionalProperties": false,
+      "description": "A validated treatment profile in the user-facing shortlist.",
+      "properties": {
+        "profile": {
+          "items": {
+            "$ref": "#/$defs/ProfileLevel"
+          },
+          "minItems": 1,
+          "title": "Profile",
+          "type": "array"
+        },
+        "rank": {
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Rank",
+          "type": "integer"
+        },
+        "rank_stability": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Rank Stability",
+          "type": "number"
+        }
+      },
+      "required": [
+        "rank",
+        "profile",
+        "rank_stability"
+      ],
+      "title": "RankedAlternative",
+      "type": "object"
+    },
+    "RecommendationStatus": {
+      "description": "Whether the result may expose a treatment ranking.",
+      "enum": [
+        "recommended",
+        "withheld"
+      ],
+      "title": "RecommendationStatus",
+      "type": "string"
+    },
+    "RunProvenance": {
+      "additionalProperties": false,
+      "description": "Execution identity required to audit a simulated result.",
+      "properties": {
+        "certification_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Certification Digest",
+          "type": "string"
+        },
+        "dataset_manifest_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Dataset Manifest Digest",
+          "type": "string"
+        },
+        "dataset_revision": {
+          "minLength": 1,
+          "title": "Dataset Revision",
+          "type": "string"
+        },
+        "edsl_version": {
+          "minLength": 1,
+          "title": "Edsl Version",
+          "type": "string"
+        },
+        "prompt_template_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Prompt Template Digest",
+          "type": "string"
+        },
+        "random_seed": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "title": "Random Seed",
+          "type": "integer"
+        },
+        "respondent_model_id": {
+          "minLength": 1,
+          "title": "Respondent Model Id",
+          "type": "string"
+        },
+        "respondent_model_version": {
+          "minLength": 1,
+          "title": "Respondent Model Version",
+          "type": "string"
+        },
+        "study_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Study Digest",
+          "type": "string"
+        },
+        "trait_query_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Trait Query Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "dataset_revision",
+        "dataset_manifest_digest",
+        "study_digest",
+        "trait_query_digest",
+        "prompt_template_digest",
+        "certification_digest",
+        "respondent_model_id",
+        "respondent_model_version",
+        "edsl_version",
+        "random_seed"
+      ],
+      "title": "RunProvenance",
+      "type": "object"
+    },
+    "RunValidationGate": {
+      "description": "Evidence checked for each approved simulation run.",
+      "enum": [
+        "certification_currency",
+        "design_invariants",
+        "randomization_balance",
+        "sentinel_repeat_variance",
+        "declared_monotonicity"
+      ],
+      "title": "RunValidationGate",
+      "type": "string"
+    },
+    "ValidationGateResult": {
+      "additionalProperties": false,
+      "description": "Observed evidence for one certification or run-specific gate.",
+      "properties": {
+        "gate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CertificationGate"
+            },
+            {
+              "$ref": "#/$defs/RunValidationGate"
+            }
+          ],
+          "title": "Gate"
+        },
+        "hard_gate": {
+          "title": "Hard Gate",
+          "type": "boolean"
+        },
+        "metric": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metric"
+        },
+        "status": {
+          "$ref": "#/$defs/GateStatus"
+        },
+        "summary": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Summary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "gate",
+        "status",
+        "hard_gate",
+        "summary"
+      ],
+      "title": "ValidationGateResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Canonical terminal JSON contract for a simulation run.",
+  "properties": {
+    "diagnostics": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/EffectDiagnostic"
+      },
+      "title": "Diagnostics",
+      "type": "array"
+    },
+    "evidence_kind": {
+      "const": "simulated",
+      "default": "simulated",
+      "title": "Evidence Kind",
+      "type": "string"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Limitations",
+      "type": "array"
+    },
+    "provenance": {
+      "$ref": "#/$defs/RunProvenance"
+    },
+    "rankings": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/RankedAlternative"
+      },
+      "title": "Rankings",
+      "type": "array"
+    },
+    "recommendation_status": {
+      "$ref": "#/$defs/RecommendationStatus"
+    },
+    "run_id": {
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1",
+      "default": "1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "study_artifact_id": {
+      "minLength": 1,
+      "title": "Study Artifact Id",
+      "type": "string"
+    },
+    "validation": {
+      "items": {
+        "$ref": "#/$defs/ValidationGateResult"
+      },
+      "minItems": 1,
+      "title": "Validation",
+      "type": "array"
+    }
+  },
+  "required": [
+    "run_id",
+    "study_artifact_id",
+    "recommendation_status",
+    "validation",
+    "limitations",
+    "provenance"
+  ],
+  "title": "SimulationRunResult",
+  "type": "object"
+}

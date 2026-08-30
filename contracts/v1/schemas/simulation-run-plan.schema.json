@@ -1,0 +1,174 @@
+{
+  "$defs": {
+    "ChoiceAlternative": {
+      "additionalProperties": false,
+      "description": "One ordered profile shown in a discrete-choice task.",
+      "properties": {
+        "is_control": {
+          "title": "Is Control",
+          "type": "boolean"
+        },
+        "position": {
+          "enum": [
+            1,
+            2
+          ],
+          "title": "Position",
+          "type": "integer"
+        },
+        "profile": {
+          "items": {
+            "$ref": "#/$defs/ProfileLevel"
+          },
+          "minItems": 1,
+          "title": "Profile",
+          "type": "array"
+        }
+      },
+      "required": [
+        "position",
+        "profile",
+        "is_control"
+      ],
+      "title": "ChoiceAlternative",
+      "type": "object"
+    },
+    "ChoiceTask": {
+      "additionalProperties": false,
+      "description": "One independently ordered pair plus the mandatory no-choice option.",
+      "properties": {
+        "agent_key": {
+          "minLength": 1,
+          "title": "Agent Key",
+          "type": "string"
+        },
+        "alternatives": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "$ref": "#/$defs/ChoiceAlternative"
+            },
+            {
+              "$ref": "#/$defs/ChoiceAlternative"
+            }
+          ],
+          "title": "Alternatives",
+          "type": "array"
+        },
+        "include_no_choice": {
+          "const": true,
+          "default": true,
+          "title": "Include No Choice",
+          "type": "boolean"
+        },
+        "sequence": {
+          "minimum": 1,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "task_id": {
+          "minLength": 1,
+          "title": "Task Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "task_id",
+        "agent_key",
+        "sequence",
+        "alternatives"
+      ],
+      "title": "ChoiceTask",
+      "type": "object"
+    },
+    "ProfileLevel": {
+      "additionalProperties": false,
+      "description": "One named attribute level in a profile.",
+      "properties": {
+        "attribute": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Attribute",
+          "type": "string"
+        },
+        "level": {
+          "minLength": 1,
+          "title": "Level",
+          "type": "string"
+        }
+      },
+      "required": [
+        "attribute",
+        "level"
+      ],
+      "title": "ProfileLevel",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Canonical design-only output produced before respondent-model execution.",
+  "properties": {
+    "agent_count": {
+      "exclusiveMinimum": 0,
+      "title": "Agent Count",
+      "type": "integer"
+    },
+    "implementation_status": {
+      "const": "design_only",
+      "default": "design_only",
+      "title": "Implementation Status",
+      "type": "string"
+    },
+    "random_seed": {
+      "maximum": 4294967295,
+      "minimum": 0,
+      "title": "Random Seed",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "1",
+      "default": "1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "study_artifact_id": {
+      "minLength": 1,
+      "title": "Study Artifact Id",
+      "type": "string"
+    },
+    "study_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Study Digest",
+      "type": "string"
+    },
+    "task_count": {
+      "exclusiveMinimum": 0,
+      "title": "Task Count",
+      "type": "integer"
+    },
+    "tasks": {
+      "items": {
+        "$ref": "#/$defs/ChoiceTask"
+      },
+      "minItems": 1,
+      "title": "Tasks",
+      "type": "array"
+    },
+    "tasks_per_agent": {
+      "exclusiveMinimum": 0,
+      "title": "Tasks Per Agent",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "study_artifact_id",
+    "study_digest",
+    "random_seed",
+    "agent_count",
+    "tasks_per_agent",
+    "task_count",
+    "tasks"
+  ],
+  "title": "SimulationRunPlan",
+  "type": "object"
+}
