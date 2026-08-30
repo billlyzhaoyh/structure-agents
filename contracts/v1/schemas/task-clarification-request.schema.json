@@ -1,0 +1,153 @@
+{
+  "$defs": {
+    "ClarificationQuestion": {
+      "additionalProperties": false,
+      "properties": {
+        "answer_kind": {
+          "enum": [
+            "free_text",
+            "single_choice"
+          ],
+          "title": "Answer Kind",
+          "type": "string"
+        },
+        "choices": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Choices",
+          "type": "array"
+        },
+        "prompt": {
+          "minLength": 1,
+          "title": "Prompt",
+          "type": "string"
+        },
+        "question_id": {
+          "minLength": 1,
+          "title": "Question Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "question_id",
+        "prompt",
+        "answer_kind"
+      ],
+      "title": "ClarificationQuestion",
+      "type": "object"
+    },
+    "FreeTextClarificationAnswer": {
+      "additionalProperties": false,
+      "properties": {
+        "answer_kind": {
+          "const": "free_text",
+          "title": "Answer Kind",
+          "type": "string"
+        },
+        "question_id": {
+          "minLength": 1,
+          "title": "Question Id",
+          "type": "string"
+        },
+        "value": {
+          "minLength": 1,
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "question_id",
+        "answer_kind",
+        "value"
+      ],
+      "title": "FreeTextClarificationAnswer",
+      "type": "object"
+    },
+    "SingleChoiceClarificationAnswer": {
+      "additionalProperties": false,
+      "properties": {
+        "answer_kind": {
+          "const": "single_choice",
+          "title": "Answer Kind",
+          "type": "string"
+        },
+        "question_id": {
+          "minLength": 1,
+          "title": "Question Id",
+          "type": "string"
+        },
+        "value": {
+          "minLength": 1,
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "question_id",
+        "answer_kind",
+        "value"
+      ],
+      "title": "SingleChoiceClarificationAnswer",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Stateless continuation of one task-compilation conversation.",
+  "properties": {
+    "answers": {
+      "items": {
+        "discriminator": {
+          "mapping": {
+            "free_text": "#/$defs/FreeTextClarificationAnswer",
+            "single_choice": "#/$defs/SingleChoiceClarificationAnswer"
+          },
+          "propertyName": "answer_kind"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/FreeTextClarificationAnswer"
+          },
+          {
+            "$ref": "#/$defs/SingleChoiceClarificationAnswer"
+          }
+        ]
+      },
+      "minItems": 1,
+      "title": "Answers",
+      "type": "array"
+    },
+    "contract_version": {
+      "const": "v1",
+      "title": "Contract Version",
+      "type": "string"
+    },
+    "dataset_id": {
+      "const": "rel-hm",
+      "title": "Dataset Id",
+      "type": "string"
+    },
+    "original_prompt": {
+      "minLength": 1,
+      "title": "Original Prompt",
+      "type": "string"
+    },
+    "prior_questions": {
+      "items": {
+        "$ref": "#/$defs/ClarificationQuestion"
+      },
+      "minItems": 1,
+      "title": "Prior Questions",
+      "type": "array"
+    }
+  },
+  "required": [
+    "contract_version",
+    "dataset_id",
+    "original_prompt",
+    "prior_questions",
+    "answers"
+  ],
+  "title": "TaskClarificationRequest",
+  "type": "object"
+}

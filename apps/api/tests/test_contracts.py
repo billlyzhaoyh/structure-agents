@@ -9,9 +9,9 @@ from structagent_api.contracts import (
     DatasetDescriptor,
     DaytonaMaterializationRequest,
     DefaultTaskCatalog,
+    DefaultTaskSqlArtifact,
     MaterializedFileReference,
     TaskDraftOutcome,
-    TaskSqlArtifact,
 )
 from structagent_api.contracts.models import IntegrityCheck
 
@@ -263,4 +263,4 @@ def test_task_sql_artifact_rejects_shape_that_disagrees_with_task_id() -> None:
     }
 
     with pytest.raises(ValidationError, match="does not match its reviewed default"):
-        TaskSqlArtifact.model_validate(payload)
+        DefaultTaskSqlArtifact.model_validate(payload)

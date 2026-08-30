@@ -12,7 +12,7 @@ from sqlglot.errors import SqlglotError
 from sqlglot.optimizer.qualify import qualify
 
 from structagent_api.catalog import REL_HM_DEFAULT_TASKS
-from structagent_api.contracts import TaskSqlArtifact
+from structagent_api.contracts import DefaultTaskSqlArtifact, TaskSqlArtifact
 from structagent_api.contracts.models import TaskValidationCheck, TaskValidationReport
 
 TaskId = Literal["rel-hm/user-churn", "rel-hm/item-sales"]
@@ -197,7 +197,7 @@ def build_default_task_sql(task_id: TaskId) -> TaskSqlArtifact:
         target_column=task.target.name,
         horizon_days=task.horizon.value,
     )
-    return TaskSqlArtifact(
+    return DefaultTaskSqlArtifact(
         contract_version="v1",
         dataset_id="rel-hm",
         task_id=task_id,

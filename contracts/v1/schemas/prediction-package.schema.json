@@ -1,0 +1,381 @@
+{
+  "$defs": {
+    "CompletedPredictionPackage": {
+      "additionalProperties": false,
+      "properties": {
+        "checkpoint": {
+          "$ref": "#/$defs/RTJCheckpointReference"
+        },
+        "config": {
+          "$ref": "#/$defs/RTJInferenceConfig"
+        },
+        "contract_version": {
+          "const": "v1",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "dataset_id": {
+          "const": "rel-hm",
+          "title": "Dataset Id",
+          "type": "string"
+        },
+        "dataset_revision": {
+          "pattern": "^[0-9a-f]{40}$|^synthetic$",
+          "title": "Dataset Revision",
+          "type": "string"
+        },
+        "entity_column": {
+          "enum": [
+            "customer_id",
+            "article_id"
+          ],
+          "title": "Entity Column",
+          "type": "string"
+        },
+        "materialization_package_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Materialization Package Sha256",
+          "type": "string"
+        },
+        "model_input_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Model Input Sha256",
+          "type": "string"
+        },
+        "prediction_file": {
+          "$ref": "#/$defs/MaterializedFileReference"
+        },
+        "query_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Query Sha256",
+          "type": "string"
+        },
+        "runtime": {
+          "$ref": "#/$defs/RTJRuntimeProvenance"
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "synthetic"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "task_id": {
+          "minLength": 1,
+          "title": "Task Id",
+          "type": "string"
+        },
+        "task_type": {
+          "enum": [
+            "binary_classification",
+            "regression"
+          ],
+          "title": "Task Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_version",
+        "status",
+        "dataset_id",
+        "task_id",
+        "task_type",
+        "entity_column",
+        "dataset_revision",
+        "materialization_package_sha256",
+        "model_input_sha256",
+        "query_sha256",
+        "prediction_file",
+        "checkpoint",
+        "config",
+        "runtime"
+      ],
+      "title": "CompletedPredictionPackage",
+      "type": "object"
+    },
+    "FailedPredictionPackage": {
+      "additionalProperties": false,
+      "properties": {
+        "contract_version": {
+          "const": "v1",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "dataset_id": {
+          "const": "rel-hm",
+          "title": "Dataset Id",
+          "type": "string"
+        },
+        "error_code": {
+          "minLength": 1,
+          "title": "Error Code",
+          "type": "string"
+        },
+        "materialization_package_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Materialization Package Sha256",
+          "type": "string"
+        },
+        "model_input_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Model Input Sha256",
+          "type": "string"
+        },
+        "query_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Query Sha256",
+          "type": "string"
+        },
+        "runtime": {
+          "$ref": "#/$defs/RTJRuntimeProvenance"
+        },
+        "status": {
+          "const": "failed",
+          "title": "Status",
+          "type": "string"
+        },
+        "task_id": {
+          "minLength": 1,
+          "title": "Task Id",
+          "type": "string"
+        },
+        "task_type": {
+          "enum": [
+            "binary_classification",
+            "regression"
+          ],
+          "title": "Task Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_version",
+        "status",
+        "dataset_id",
+        "task_id",
+        "task_type",
+        "materialization_package_sha256",
+        "model_input_sha256",
+        "query_sha256",
+        "error_code",
+        "runtime"
+      ],
+      "title": "FailedPredictionPackage",
+      "type": "object"
+    },
+    "MaterializedFileReference": {
+      "additionalProperties": false,
+      "description": "Content-addressed reference to an untracked Parquet artifact.",
+      "properties": {
+        "byte_count": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Count",
+          "type": "integer"
+        },
+        "columns": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Columns",
+          "type": "array"
+        },
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "row_count": {
+          "minimum": 0,
+          "title": "Row Count",
+          "type": "integer"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256",
+        "row_count",
+        "byte_count",
+        "columns"
+      ],
+      "title": "MaterializedFileReference",
+      "type": "object"
+    },
+    "RTJCheckpointReference": {
+      "additionalProperties": false,
+      "properties": {
+        "config_path": {
+          "enum": [
+            "classification/config.json",
+            "regression/config.json"
+          ],
+          "title": "Config Path",
+          "type": "string"
+        },
+        "license": {
+          "const": "CC-BY-NC-SA-4.0",
+          "title": "License",
+          "type": "string"
+        },
+        "repository_url": {
+          "const": "https://huggingface.co/stanford-star/rt-j",
+          "title": "Repository Url",
+          "type": "string"
+        },
+        "revision": {
+          "const": "a2c204c79d493ed0056661140e6fd24db3118381",
+          "title": "Revision",
+          "type": "string"
+        },
+        "variant": {
+          "enum": [
+            "classification",
+            "regression"
+          ],
+          "title": "Variant",
+          "type": "string"
+        },
+        "weights_path": {
+          "enum": [
+            "classification/model.safetensors",
+            "regression/model.safetensors"
+          ],
+          "title": "Weights Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "repository_url",
+        "revision",
+        "variant",
+        "config_path",
+        "weights_path",
+        "license"
+      ],
+      "title": "RTJCheckpointReference",
+      "type": "object"
+    },
+    "RTJInferenceConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "bfs_width": {
+          "const": 32,
+          "default": 32,
+          "title": "Bfs Width",
+          "type": "integer"
+        },
+        "context_length": {
+          "const": 256,
+          "default": 256,
+          "title": "Context Length",
+          "type": "integer"
+        },
+        "context_seed": {
+          "const": 101,
+          "default": 101,
+          "title": "Context Seed",
+          "type": "integer"
+        },
+        "gpu": {
+          "const": "L4",
+          "default": "L4",
+          "title": "Gpu",
+          "type": "string"
+        },
+        "local_context_length": {
+          "const": 128,
+          "default": 128,
+          "title": "Local Context Length",
+          "type": "integer"
+        },
+        "num_walks": {
+          "const": 10000,
+          "default": 10000,
+          "title": "Num Walks",
+          "type": "integer"
+        },
+        "shuffle_seed": {
+          "const": 0,
+          "default": 0,
+          "title": "Shuffle Seed",
+          "type": "integer"
+        },
+        "walk_length": {
+          "const": 20,
+          "default": 20,
+          "title": "Walk Length",
+          "type": "integer"
+        }
+      },
+      "title": "RTJInferenceConfig",
+      "type": "object"
+    },
+    "RTJRuntimeProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "checkpoint_revision": {
+          "pattern": "^[0-9a-f]{40}$|^synthetic$",
+          "title": "Checkpoint Revision",
+          "type": "string"
+        },
+        "duration_seconds": {
+          "minimum": 0,
+          "title": "Duration Seconds",
+          "type": "number"
+        },
+        "gpu": {
+          "enum": [
+            "L4",
+            "none"
+          ],
+          "title": "Gpu",
+          "type": "string"
+        },
+        "provider": {
+          "enum": [
+            "modal",
+            "fake"
+          ],
+          "title": "Provider",
+          "type": "string"
+        },
+        "source_revision": {
+          "pattern": "^[0-9a-f]{40}$|^synthetic$",
+          "title": "Source Revision",
+          "type": "string"
+        }
+      },
+      "required": [
+        "provider",
+        "gpu",
+        "duration_seconds",
+        "source_revision",
+        "checkpoint_revision"
+      ],
+      "title": "RTJRuntimeProvenance",
+      "type": "object"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "failed": "#/$defs/FailedPredictionPackage",
+      "observed": "#/$defs/CompletedPredictionPackage",
+      "synthetic": "#/$defs/CompletedPredictionPackage"
+    },
+    "propertyName": "status"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/CompletedPredictionPackage"
+    },
+    {
+      "$ref": "#/$defs/FailedPredictionPackage"
+    }
+  ]
+}

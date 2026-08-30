@@ -4,16 +4,20 @@ PRE_COMMIT := uv run pre-commit
 PRE_COMMIT_HOME ?= $(CURDIR)/.pre-commit-cache
 UV_CACHE_DIR ?= $(CURDIR)/.uv-cache
 ENV_FILE_ARGS := $(if $(wildcard .env),--env-file .env,)
+RTJ_DATASET_ROOT ?=
+RTJ_MATERIALIZATION_ROOT ?=
+RTJ_OUTPUT_ROOT ?=
+RTJ_SAMPLE_SIZE ?= 32
 export PRE_COMMIT_HOME
 export UV_CACHE_DIR
 
-.PHONY: help sync lock hooks format format-check lint typecheck test test-web test-materializer build contracts-export contracts-check quality-all check check-all serve-api serve-web hm-data-sync hm-data-verify materialize-hm-local materialize-hm-daytona-smoke materialize-hm-daytona-live
+.PHONY: help sync lock hooks format format-check lint typecheck test test-web test-materializer test-rtj test-compiler build contracts-export contracts-check quality-all check check-all serve-api serve-web modal-auth-check rtj-modal-live hm-data-sync hm-data-verify materialize-hm-local materialize-hm-daytona-smoke materialize-hm-daytona-live
 
 help: ## Show available commands
 	@awk 'BEGIN {FS = ":.*## "}; /^[a-zA-Z_-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 sync: ## Install exact dependencies from uv.lock
-	uv sync --all-packages --frozen
+	uv sync --all-packages --all-groups --frozen
 
 lock: ## Refresh uv.lock after an intentional dependency change
 	uv lock
@@ -44,6 +48,12 @@ test-web: ## Run deterministic frontend interaction-model tests
 test-materializer: ## Run deterministic SQL materialization tests
 	uv run pytest apps/api/tests/test_task_sql.py apps/api/tests/test_materializer.py apps/api/tests/test_hm_assets.py apps/api/tests/test_daytona_executor.py apps/api/tests/test_materialization_parity.py
 
+test-rtj: ## Run deterministic RT-J core and Modal-controller tests
+	uv run pytest apps/api/tests/test_rtj_core.py apps/api/tests/test_modal_runner.py
+
+test-compiler: ## Run deterministic task compiler and API boundary tests
+	uv run pytest apps/api/tests/test_task_compiler.py apps/api/tests/test_custom_task_sql.py apps/api/tests/test_api.py
+
 build: ## Build the API wheel and source distribution
 	uv build --package structagent-api --out-dir dist --no-build-isolation
 
@@ -58,6 +68,15 @@ serve-api: ## Start the local FastAPI service
 
 serve-web: ## Serve the dependency-free Decision OS demo
 	python3 -m http.server 4173 --directory apps/web
+
+modal-auth-check: ## Verify the selected local Modal profile or environment token
+	uv run $(ENV_FILE_ARGS) modal token info
+
+rtj-modal-live: ## Run a bounded private real-H&M RT-J cohort on ephemeral Modal
+	@test -n "$(RTJ_DATASET_ROOT)" || (echo "RTJ_DATASET_ROOT is required" >&2; exit 1)
+	@test -n "$(RTJ_MATERIALIZATION_ROOT)" || (echo "RTJ_MATERIALIZATION_ROOT is required" >&2; exit 1)
+	@test -n "$(RTJ_OUTPUT_ROOT)" || (echo "RTJ_OUTPUT_ROOT is required" >&2; exit 1)
+	uv run $(ENV_FILE_ARGS) --frozen python scripts/run_rtj_modal.py --dataset-root "$(RTJ_DATASET_ROOT)" --materialization-root "$(RTJ_MATERIALIZATION_ROOT)" --output-root "$(RTJ_OUTPUT_ROOT)" --sample-size "$(RTJ_SAMPLE_SIZE)"
 
 hm-data-sync: ## Download and verify the pinned private-use H&M artifacts
 	uv run --frozen python scripts/hm_data.py sync

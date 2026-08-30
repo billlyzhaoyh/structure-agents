@@ -175,6 +175,13 @@ def test_daytona_executor_uses_private_cpu_boundary_and_cleans_up(tmp_path: Path
         (f"{REMOTE_INPUT}/customer.parquet", "444"),
         (f"{REMOTE_INPUT}/transactions.parquet", "444"),
     ]
+    uploaded_destinations = {destination for _, destination in sandbox.fs.uploads}
+    assert any(
+        destination.endswith("contracts/compiler.py") for destination in uploaded_destinations
+    )
+    assert any(
+        destination.endswith("contracts/inference.py") for destination in uploaded_destinations
+    )
     request_upload = next(src for src, dst in sandbox.fs.uploads if dst.endswith("request.json"))
     assert isinstance(request_upload, bytes)
     assert b"OPENAI_API_KEY" not in request_upload

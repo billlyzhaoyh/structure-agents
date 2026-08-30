@@ -35,6 +35,8 @@ export function createObjective(state, title = "Define a business outcome") {
     confirmed: false,
     rtjRun: null,
     taskDraft: null,
+    originalPrompt: null,
+    clarificationHistory: { questions: [], answers: [] },
     run: null,
     evaluation: null,
     selectedTaskId: "rel-hm/item-sales",

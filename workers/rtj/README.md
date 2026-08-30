@@ -1,22 +1,14 @@
-# RT-J worker placeholder
+# Private RT-J Modal worker
 
-This directory reserves the future isolated RT-J execution boundary. It intentionally
-contains no Python package, container image, Modal configuration, model source,
-checkpoint, dataset, or runnable inference code.
+This package implements the network-isolated inference boundary for the two reviewed H&M
+defaults. Source, model weights, data, and predictions remain ephemeral and are never
+committed to this repository.
 
-The planned worker will eventually receive an approved, versioned task contract plus
-external asset references and return sealed batch predictions with execution metadata.
-Evaluation truth and metric computation stay outside model context construction.
-
-Before worker implementation begins, the project must separately approve:
-
-- the exact RT-J source and checkpoint revisions and their permitted use;
-- classification and regression adapter contracts;
-- database preprocessing and point-in-time validation;
-- context construction, resource limits, and failure behavior;
-- Modal image, GPU, volume, secret, timeout, and cleanup policies; and
-- prediction/evaluation artifact retention.
+The worker receives six digest-verified, model-visible Parquet files. It creates a private
+copy of masked test rows with a zero-valued placeholder target because RT's task-table
+preprocessor requires that column. Evaluator truth and metric computation stay outside the
+container and are never uploaded.
 
 The Modal credential belongs only in the trusted API control plane. OpenAI and Daytona
-credentials must not be sent to the inference container. No external asset may be committed
-here.
+credentials are not function secrets or environment variables. See
+[`docs/rtj-modal.md`](../../docs/rtj-modal.md) for the fixed protocol and permission boundary.

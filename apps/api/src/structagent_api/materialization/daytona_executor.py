@@ -34,6 +34,8 @@ _SOURCE_FILES: Final = (
     "structagent_api/__init__.py",
     "structagent_api/catalog.py",
     "structagent_api/contracts/__init__.py",
+    "structagent_api/contracts/compiler.py",
+    "structagent_api/contracts/inference.py",
     "structagent_api/contracts/models.py",
     "structagent_api/materialization/__init__.py",
     "structagent_api/materialization/daytona_runner.py",

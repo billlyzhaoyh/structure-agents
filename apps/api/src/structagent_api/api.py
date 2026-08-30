@@ -12,23 +12,30 @@ from pydantic import BaseModel, TypeAdapter
 
 from structagent_api import __version__
 from structagent_api.catalog import ACTIVE_DATASET_ID, REL_HM_DATASET, REL_HM_DEFAULT_TASKS
+from structagent_api.compiler import TaskCompiler, TaskCompilerError
+from structagent_api.compiler.agent import compiler_from_environment
+from structagent_api.compiler.service import draft_id_for
 from structagent_api.contracts import (
     DatasetDescriptor,
     DaytonaMaterializationRequest,
     DaytonaMaterializationResponse,
     DefaultTaskCatalog,
     EvaluationResult,
+    LiveTaskDraftOutcome,
     RunRecord,
-    TaskDraftOutcome,
+    SimulatedInferenceRequest,
+    SimulatedInferenceResponse,
+    TaskClarificationRequest,
     TaskDraftRequest,
+    UnsupportedTaskDraft,
 )
+from structagent_api.inference.simulated import simulate_inference
 from structagent_api.materialization.daytona_executor import DaytonaExecutionError
 from structagent_api.materialization.daytona_service import materialize_synthetic_in_daytona
 from structagent_api.materialization.task_sql import TaskId
 from structagent_api.settings import Settings
 
 FIXTURE_DIR = Path(__file__).resolve().parents[4] / "contracts" / "v1" / "examples" / "rel-hm"
-TASK_DRAFT_ADAPTER: TypeAdapter[TaskDraftOutcome] = TypeAdapter(TaskDraftOutcome)
 EVALUATION_ADAPTER: TypeAdapter[EvaluationResult] = TypeAdapter(EvaluationResult)
 DaytonaMaterializer = Callable[[Sequence[TaskId]], DaytonaMaterializationResponse]
 
@@ -44,11 +51,13 @@ class HealthResponse(BaseModel):
 
 def create_app(
     settings: Settings | None = None,
+    task_compiler: TaskCompiler | None = None,
     daytona_materializer: DaytonaMaterializer | None = None,
 ) -> FastAPI:
     """Create an API instance without performing external work at import time."""
 
     resolved = settings or Settings()
+    compiler = task_compiler or compiler_from_environment()
     resolved_daytona_materializer = daytona_materializer or materialize_synthetic_in_daytona
     app = FastAPI(
         title="StructAgent API",
@@ -119,11 +128,50 @@ def create_app(
                 },
             ) from error
 
-    @app.post("/v1/task-drafts", response_model=TaskDraftOutcome, tags=["demo-contracts"])
-    def create_task_draft(request: TaskDraftRequest) -> TaskDraftOutcome:
+    @app.post(
+        "/v1/inferences/simulated",
+        response_model=SimulatedInferenceResponse,
+        tags=["demo-contracts"],
+    )
+    def create_simulated_inference(
+        request: SimulatedInferenceRequest,
+    ) -> SimulatedInferenceResponse:
+        return simulate_inference(request)
+
+    @app.post("/v1/task-drafts", response_model=LiveTaskDraftOutcome, tags=["task-compiler"])
+    async def create_task_draft(request: TaskDraftRequest) -> LiveTaskDraftOutcome:
         if request.dataset_id != "rel-hm":
-            raise HTTPException(status_code=404, detail="Dataset is not available in this demo")
-        return TASK_DRAFT_ADAPTER.validate_json(_fixture_text("task-contract.json"))
+            return UnsupportedTaskDraft(
+                contract_version="v1",
+                outcome="unsupported",
+                draft_id=draft_id_for(request.dataset_id, request.prompt),
+                reason_code="unsupported_dataset",
+                explanation="V1 supports only RelBench H&M.",
+            )
+        try:
+            return await compiler.compile(request)
+        except TaskCompilerError as error:
+            raise HTTPException(
+                status_code=error.status_code,
+                detail={"code": error.code, "message": error.detail},
+            ) from error
+
+    @app.post(
+        "/v1/task-drafts/{draft_id}/clarifications",
+        response_model=LiveTaskDraftOutcome,
+        tags=["task-compiler"],
+    )
+    async def clarify_task_draft(
+        draft_id: str,
+        request: TaskClarificationRequest,
+    ) -> LiveTaskDraftOutcome:
+        try:
+            return await compiler.clarify(draft_id, request)
+        except TaskCompilerError as error:
+            raise HTTPException(
+                status_code=error.status_code,
+                detail={"code": error.code, "message": error.detail},
+            ) from error
 
     @app.get("/v1/runs/{run_id}", response_model=RunRecord, tags=["demo-contracts"])
     def get_run(run_id: str) -> RunRecord:

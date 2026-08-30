@@ -228,6 +228,7 @@ function objectiveBrief(objective) {
 }
 
 function selectedDefaultTask(objective) {
+  if (objective.selectedTaskId === "custom") return null;
   const tasks = state.defaultTaskCatalog?.tasks ?? [];
   return tasks.find((task) => task.task_id === objective.selectedTaskId) ?? tasks[0] ?? null;
 }
@@ -237,7 +238,27 @@ function defaultTaskSelector(objective) {
   if (!tasks.length) {
     return `<div class="api-error">${icon("warning")}<p><b>Task catalog unavailable</b><small>Reconnect the demo dataset to load the reviewed defaults.</small></p></div>`;
   }
-  return `<div class="default-task-selector"><small>Choose reviewed task</small><div>${tasks.map((task) => `<button data-default-task="${escapeHtml(task.task_id)}" class="${task.task_id === objective.selectedTaskId ? "selected" : ""}"><span>${task.task_type === "regression" ? "REG" : "CLS"}</span><p><b>${escapeHtml(task.display_name)}</b><small>${escapeHtml(task.description)}</small></p><i>${task.horizon.value} ${escapeHtml(task.horizon.unit)}</i></button>`).join("")}</div></div>`;
+  const defaults = tasks.map((task) => `<button data-default-task="${escapeHtml(task.task_id)}" class="${task.task_id === objective.selectedTaskId ? "selected" : ""}"><span>${task.task_type === "regression" ? "REG" : "CLS"}</span><p><b>${escapeHtml(task.display_name)}</b><small>${escapeHtml(task.description)}</small></p><i>${task.horizon.value} ${escapeHtml(task.horizon.unit)}</i></button>`).join("");
+  const custom = `<button data-custom-task class="${objective.selectedTaskId === "custom" ? "selected" : ""}"><span>NL</span><p><b>Custom task</b><small>Compile this objective into review-required SQL.</small></p><i>Agent</i></button>`;
+  return `<div class="default-task-selector"><small>Choose task route</small><div>${defaults}${custom}</div></div>`;
+}
+
+function clarificationForm(objective) {
+  const questions = objective.taskDraft?.questions ?? [];
+  const fields = questions.map((question) => {
+    const id = escapeHtml(question.question_id);
+    const control = question.answer_kind === "single_choice"
+      ? `<select name="${id}" required><option value="">Choose…</option>${question.choices.map((choice) => `<option value="${escapeHtml(choice)}">${escapeHtml(choice)}</option>`).join("")}</select>`
+      : `<input name="${id}" required autocomplete="off">`;
+    return `<label><span>${escapeHtml(question.prompt)}</span>${control}</label>`;
+  }).join("");
+  return `<form class="clarification-form">${fields}<button class="agent-action">Continue task compilation ${icon("arrow")}</button></form>`;
+}
+
+function customDraftReview(objective) {
+  const draft = objective.taskDraft;
+  const contract = taskContractFrom(draft);
+  return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("check")}</span><p><small>SQL validated in Daytona</small><b>Custom task draft ready for human review.</b></p></div><div class="task-preview"><p><small>Entity</small><b>${escapeHtml(contract.entity.table)}</b></p><p><small>Outcome window</small><b>${contract.horizon.value} ${escapeHtml(contract.horizon.unit)}</b></p><p><small>Task</small><b>${escapeHtml(contract.task_type.replaceAll("_", " "))}</b></p></div><div class="sql-review"><header><span>Generated DuckDB SQL</span><i>Review required</i></header><pre>${escapeHtml(draft.sql_artifact.normalized_sql)}</pre><footer>${draft.validation_evidence.row_count.toLocaleString()} validation rows · digest ${escapeHtml(draft.sql_artifact.query_sha256.slice(0, 12))}…</footer></div><div class="fixture-separation"><b>Demo shortcut.</b><span>The next screen uses seeded pseudo-random metrics. It does not materialize this custom task or run a model.</span></div><button class="agent-action" data-run-simulated>Preview simulated result ${icon("arrow")}</button></div>`;
 }
 
 function materializationReceipt(objective) {
@@ -251,6 +272,9 @@ function objectiveAgentGuidance(objective) {
     return `<div class="chat agent agent-task data-gap"><div class="agent-task-status"><span>${icon("warning")}</span><p><small>Data check</small><b>We need one more source before creating this task.</b></p></div><p>Purchases cannot show who entered a store without buying. I’ve paused this objective so the resulting model does not create false confidence.</p><div class="missing-data"><b>Data to collect</b><span>store_id</span><span>visit_timestamp</span><span>customer_id or cohort</span></div>${objective.collectionPlan ? `<div class="plan-ready">${icon("check")}<p><b>Collection plan created</b><small>Add store-visit events, validate identity coverage, then return to this conversation.</small></p></div>` : `<button class="agent-action" data-collection-plan>Create data collection plan ${icon("arrow")}</button>`}</div>`;
   }
   const task = selectedDefaultTask(objective);
+  if (objective.apiStatus === "compiling") {
+    return `<div class="chat agent agent-task"><div class="agent-task-status"><span class="status-spinner"></span><p><small>Task compiler running</small><b>Translating the objective into guarded H&amp;M SQL.</b></p></div><p>OpenAI can inspect reviewed schema metadata only. Candidate SQL is statically checked and executed in a private Daytona sandbox; raw rows are never returned to the model.</p></div>`;
+  }
   if (objective.materializationStatus === "loading") {
     return `<div class="chat agent agent-task"><div class="agent-task-status"><span class="status-spinner"></span><p><small>Daytona sandbox running</small><b>Materializing ${escapeHtml(task?.display_name ?? "the reviewed task")}.</b></p></div><p>The trusted API is creating a private synthetic sandbox, validating the task package, and deleting the sandbox before returning.</p></div>`;
   }
@@ -261,27 +285,47 @@ function objectiveAgentGuidance(objective) {
     return inferenceWaitingMarkup();
   }
   if (objective.apiError) {
-    return `<div class="chat agent agent-task data-gap"><div class="agent-task-status"><span>${icon("warning")}</span><p><small>Fixture API</small><b>The synthetic evaluation preview is unavailable.</b></p></div><p>${escapeHtml(objective.apiError)}</p><button class="agent-action" data-run-fixture>Try the fixture preview again ${icon("arrow")}</button></div>`;
+    const custom = objective.selectedTaskId === "custom";
+    const compiled = custom && objective.taskDraft?.outcome === "draft_ready";
+    const simulationError = compiled || !custom;
+    return `<div class="chat agent agent-task data-gap"><div class="agent-task-status"><span>${icon("warning")}</span><p><small>${simulationError ? "Simulation API" : "Task compiler"}</small><b>${simulationError ? "The simulated result is unavailable." : "The custom task could not be compiled."}</b></p></div><p>${escapeHtml(objective.apiError)}</p><button class="agent-action" ${simulationError ? "data-run-simulated" : "data-compile-custom"}>Try again ${icon("arrow")}</button></div>`;
+  }
+  if (objective.taskDraft?.outcome === "needs_clarification") {
+    return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("spark")}</span><p><small>Clarification needed</small><b>I need a little more detail before creating this task.</b></p></div>${clarificationForm(objective)}</div>`;
+  }
+  if (objective.taskDraft?.outcome === "unsupported") {
+    return `<div class="chat agent agent-task data-gap"><div class="agent-task-status"><span>${icon("warning")}</span><p><small>Unsupported V1 task</small><b>This objective cannot be compiled safely yet.</b></p></div><p>${escapeHtml(objective.taskDraft.explanation)}</p></div>`;
+  }
+  if (objective.selectedTaskId === "custom" && objective.taskDraft?.outcome === "draft_ready") {
+    return customDraftReview(objective);
   }
   if (objective.confirmed) {
     const contract = taskContractFrom(objective.taskDraft);
-    return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("check")}</span><p><small>Objective ready</small><b>The V1 task contract is defined and linked to this objective.</b></p></div><div class="task-preview"><p><small>Entity</small><b>${escapeHtml(contract.entity.table)}</b></p><p><small>Outcome window</small><b>${contract.horizon.value} ${contract.horizon.unit}</b></p><p><small>Task</small><b>Sales regression</b></p></div><button class="agent-action" data-objective-view="insights">Open item insights ${icon("arrow")}</button></div>`;
+    return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("check")}</span><p><small>Objective ready</small><b>The V1 task contract is defined and linked to this objective.</b></p></div><div class="task-preview"><p><small>Entity</small><b>${escapeHtml(contract.entity.table)}</b></p><p><small>Outcome window</small><b>${contract.horizon.value} ${escapeHtml(contract.horizon.unit)}</b></p><p><small>Task</small><b>${escapeHtml(contract.task_type.replaceAll("_", " "))}</b></p></div><button class="agent-action" data-objective-view="insights">Open item insights ${icon("arrow")}</button></div>`;
   }
   if (objective.materialization) {
-    const fixturePreview = objective.selectedTaskId === "rel-hm/item-sales" ? `<button class="agent-action" data-run-fixture>Continue to synthetic evaluation preview ${icon("arrow")}</button>` : `<div class="fixture-separation"><b>Materialization complete.</b><span>No churn evaluation result is available in the current fixture demo.</span></div>`;
-    return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("check")}</span><p><small>Task package verified</small><b>${escapeHtml(task?.display_name ?? objective.selectedTaskId)} completed in Daytona.</b></p></div>${materializationReceipt(objective)}${fixturePreview}</div>`;
+    return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("check")}</span><p><small>Task package verified</small><b>${escapeHtml(task?.display_name ?? objective.selectedTaskId)} completed in Daytona.</b></p></div>${materializationReceipt(objective)}<div class="fixture-separation"><b>Demo shortcut.</b><span>The next screen uses seeded pseudo-random metrics; no model inference is launched.</span></div><button class="agent-action" data-run-simulated>Continue to simulated result ${icon("arrow")}</button></div>`;
   }
-  return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("check")}</span><p><small>Supported by current data</small><b>Two reviewed H&amp;M defaults are executable.</b></p></div><p>Select a task. Clicking launch explicitly approves a synthetic, bounded Daytona materialization; it does not transfer private H&amp;M data or run model training.</p>${defaultTaskSelector(objective)}<button class="agent-action" data-launch-daytona ${task ? "" : "disabled"}>Launch ${escapeHtml(task?.display_name ?? "task")} in Daytona ${icon("arrow")}</button></div>`;
+  const action = objective.selectedTaskId === "custom"
+    ? `<button class="agent-action" data-compile-custom>Compile custom task ${icon("arrow")}</button>`
+    : `<button class="agent-action" data-launch-daytona ${task ? "" : "disabled"}>Launch ${escapeHtml(task?.display_name ?? "task")} in Daytona ${icon("arrow")}</button>`;
+  return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("check")}</span><p><small>Supported by current data</small><b>Choose a reviewed default or compile a custom task.</b></p></div><p>Defaults launch bounded synthetic Daytona materialization. Custom input generates review-required SQL and stops before materialization or inference.</p>${defaultTaskSelector(objective)}${action}</div>`;
 }
 
 function insightsModule(objective) {
   const evaluation = objective.evaluation;
-  const metrics = evaluation?.metrics ?? { mae: "—", rmse: "—", r2: 0 };
+  const classification = evaluation?.task_type === "binary_classification";
+  const metrics = evaluation?.metrics ?? (classification
+    ? { auroc: 0, average_precision: 0, accuracy: 0, f1: 0 }
+    : { mae: "—", rmse: "—", r2: 0 });
   const coverage = evaluation ? `${Math.round(evaluation.coverage * 100)}%` : "—";
-  const fit = evaluation ? `${Math.round(metrics.r2 * 100)}%` : "—";
+  const fit = evaluation ? `${Math.round((classification ? metrics.auroc : metrics.r2) * 100)}%` : "—";
   const checks = evaluation?.integrity_checks ?? [];
-  return `<section class="insights-workspace"><div class="run-context"><div><span>Selected objective</span><b>OBJ-${String(objective.number).padStart(2, "0")} · ${escapeHtml(objective.title)}</b></div>${icon("arrow")}<div><span>Contract run</span><b>${escapeHtml(objective.run?.run_id ?? "Awaiting run")}</b></div><i>${escapeHtml(objective.run?.status ?? "Pending")}</i></div><div class="insights-layout"><div class="insight-summary"><span class="eyebrow">Seven-day regression</span><h2>Useful evidence—with its limits visible.</h2><div class="confidence-ring"><span><b>${fit}</b><small>variance explained</small></span></div><p>The evaluation covers ${coverage} of ${evaluation?.sample_count ?? "—"} eligible articles. Treat this as planning evidence, not an automatic inventory decision.</p><button data-open-decisions>Use this evidence in Decision Studio ${icon("arrow")}</button></div>
-    <div class="feature-panel"><div class="panel-heading"><span>Model evaluation</span><small>Contract metrics</small></div><div class="feature-row"><span>Mean absolute error</span><b></b><small>${metrics.mae}</small></div><div class="feature-row"><span>Root mean squared error</span><b></b><small>${metrics.rmse}</small></div><div class="feature-row"><span>R²</span><b><i style="--width:${Math.max(0, Number(metrics.r2) * 100)}%"></i></b><small>${metrics.r2}</small></div><div class="feature-row"><span>Coverage</span><b><i style="--width:${evaluation ? evaluation.coverage * 100 : 0}%"></i></b><small>${coverage}</small></div><div class="caveat"><b>Provenance</b><span>${escapeHtml(evaluation?.provenance?.model_id ?? "Not available")} · ${escapeHtml(evaluation?.provenance?.dataset_revision ?? "unknown revision")}</span></div></div>
+  const metricRows = classification
+    ? `<div class="feature-row"><span>AUROC</span><b><i style="--width:${Number(metrics.auroc) * 100}%"></i></b><small>${metrics.auroc}</small></div><div class="feature-row"><span>Average precision</span><b><i style="--width:${Number(metrics.average_precision) * 100}%"></i></b><small>${metrics.average_precision}</small></div><div class="feature-row"><span>Accuracy</span><b><i style="--width:${Number(metrics.accuracy) * 100}%"></i></b><small>${metrics.accuracy}</small></div><div class="feature-row"><span>F1</span><b><i style="--width:${Number(metrics.f1) * 100}%"></i></b><small>${metrics.f1}</small></div>`
+    : `<div class="feature-row"><span>Mean absolute error</span><b></b><small>${metrics.mae}</small></div><div class="feature-row"><span>Root mean squared error</span><b></b><small>${metrics.rmse}</small></div><div class="feature-row"><span>R²</span><b><i style="--width:${Math.max(0, Number(metrics.r2) * 100)}%"></i></b><small>${metrics.r2}</small></div>`;
+  return `<section class="insights-workspace"><div class="run-context"><div><span>Selected objective</span><b>OBJ-${String(objective.number).padStart(2, "0")} · ${escapeHtml(objective.title)}</b></div>${icon("arrow")}<div><span>Demo run</span><b>${escapeHtml(objective.run?.run_id ?? "Awaiting run")}</b></div><i>Simulated · not model output</i></div><div class="insights-layout"><div class="insight-summary"><span class="eyebrow">${classification ? "Customer classification" : "Seven-day regression"} · simulated</span><h2>A product-flow preview—not model evidence.</h2><div class="confidence-ring"><span><b>${fit}</b><small>${classification ? "demo AUROC" : "demo variance explained"}</small></span></div><p>The seeded demo covers ${coverage} of ${evaluation?.sample_count ?? "—"} synthetic ${classification ? "customers" : "articles"}. These pseudo-random metrics are for interface testing only.</p><button data-open-decisions>Use this demo in Decision Studio ${icon("arrow")}</button></div>
+    <div class="feature-panel"><div class="panel-heading"><span>Simulated evaluation</span><small>Pseudo-random metrics</small></div>${metricRows}<div class="feature-row"><span>Coverage</span><b><i style="--width:${evaluation ? evaluation.coverage * 100 : 0}%"></i></b><small>${coverage}</small></div><div class="caveat"><b>Provenance</b><span>${escapeHtml(evaluation?.provenance?.model_id ?? "Not available")} · ${escapeHtml(evaluation?.provenance?.dataset_revision ?? "unknown revision")}</span></div></div>
     <div class="cohort-panel"><div class="panel-heading"><span>Integrity checks</span><small>Evaluation contract</small></div>${checks.map((check) => `<button><span><b>${escapeHtml(check.name.replaceAll("_", " "))}</b><small>${escapeHtml(check.detail)}</small></span><strong>${escapeHtml(check.status)}</strong>${icon("arrow")}</button>`).join("")}</div>
   </div></section>`;
 }
@@ -329,6 +373,65 @@ function render() {
       render();
     },
   });
+}
+
+async function compileCustomTask(objective) {
+  objective.selectedTaskId = "custom";
+  objective.originalPrompt = objective.title;
+  objective.clarificationHistory = { questions: [], answers: [] };
+  objective.taskDraft = null;
+  objective.materializationStatus = "idle";
+  objective.materializationError = null;
+  objective.materialization = null;
+  objective.apiStatus = "compiling";
+  objective.apiError = null;
+  render();
+  try {
+    objective.taskDraft = await api.createTaskDraft(objective.originalPrompt);
+    objective.apiStatus = "ready";
+  } catch (error) {
+    objective.apiStatus = "error";
+    objective.apiError = error.message;
+  }
+  render();
+}
+
+async function continueCustomTask(objective, form) {
+  const questions = objective.taskDraft.questions;
+  const values = new FormData(form);
+  const answers = questions.map((question) => ({
+    question_id: question.question_id,
+    answer_kind: question.answer_kind,
+    value: String(values.get(question.question_id) ?? "").trim(),
+  }));
+  const replacedIds = new Set(questions.map((question) => question.question_id));
+  const history = objective.clarificationHistory ?? { questions: [], answers: [] };
+  const priorQuestions = [
+    ...history.questions.filter((question) => !replacedIds.has(question.question_id)),
+    ...questions,
+  ];
+  const priorAnswers = [
+    ...history.answers.filter((answer) => !replacedIds.has(answer.question_id)),
+    ...answers,
+  ];
+  objective.clarificationHistory = { questions: priorQuestions, answers: priorAnswers };
+  objective.apiStatus = "compiling";
+  objective.apiError = null;
+  render();
+  try {
+    objective.taskDraft = await api.clarifyTaskDraft(objective.taskDraft.draft_id, {
+      contract_version: "v1",
+      dataset_id: "rel-hm",
+      original_prompt: objective.originalPrompt,
+      prior_questions: priorQuestions,
+      answers: priorAnswers,
+    });
+    objective.apiStatus = "ready";
+  } catch (error) {
+    objective.apiStatus = "error";
+    objective.apiError = error.message;
+  }
+  render();
 }
 
 function bind() {
@@ -419,11 +522,34 @@ function bind() {
   document.querySelectorAll("[data-default-task]").forEach((button) => button.addEventListener("click", () => {
     const objective = getActiveObjective(state);
     objective.selectedTaskId = button.dataset.defaultTask;
+    objective.taskDraft = null;
+    objective.originalPrompt = null;
+    objective.clarificationHistory = { questions: [], answers: [] };
+    objective.materializationStatus = "idle";
+    objective.materializationError = null;
+    objective.materialization = null;
+    objective.apiStatus = "idle";
+    objective.apiError = null;
+    render();
+  }));
+  document.querySelector("[data-custom-task]")?.addEventListener("click", () => {
+    const objective = getActiveObjective(state);
+    objective.selectedTaskId = "custom";
+    objective.taskDraft = null;
+    objective.apiStatus = "idle";
+    objective.apiError = null;
     objective.materializationStatus = "idle";
     objective.materializationError = null;
     objective.materialization = null;
     render();
-  }));
+  });
+  document.querySelector("[data-compile-custom]")?.addEventListener("click", () => {
+    compileCustomTask(getActiveObjective(state));
+  });
+  document.querySelector(".clarification-form")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    continueCustomTask(getActiveObjective(state), event.currentTarget);
+  });
   document.querySelector("[data-launch-daytona]")?.addEventListener("click", async () => {
     const objective = getActiveObjective(state);
     objective.materializationStatus = "loading";
@@ -440,22 +566,32 @@ function bind() {
     }
     render();
   });
-  document.querySelector("[data-run-fixture]")?.addEventListener("click", async () => {
+  document.querySelector("[data-run-simulated]")?.addEventListener("click", async () => {
     const objective = getActiveObjective(state);
     objective.apiStatus = "loading";
     objective.apiError = null;
     const minimumWait = minimumInferenceWait();
     render();
     try {
-      const taskDraft = await api.createTaskDraft(objective.title);
-      taskContractFrom(taskDraft);
-      const run = await api.getRun("fixture-hm-run");
-      const evaluation = await api.getEvaluation(run.run_id);
+      const defaultTask = selectedDefaultTask(objective);
+      const taskDraft = objective.selectedTaskId === "custom"
+        ? objective.taskDraft
+        : { contract_version: "v1", outcome: "draft_ready", contract: defaultTask };
+      const contract = taskContractFrom(taskDraft);
+      if (objective.selectedTaskId !== "custom") objective.taskDraft = taskDraft;
+      objective.apiStatus = "ready";
+      if (!contract) {
+        render();
+        return;
+      }
+      const taskId = objective.selectedTaskId === "custom"
+        ? objective.taskDraft.sql_artifact.task_id
+        : contract.task_id;
+      const result = await api.runSimulatedInference(taskId, contract.task_type);
       const latestRun = state.objectives.reduce((highest, item) => Math.max(highest, item.rtjRun ?? 0), 0);
       await minimumWait;
-      objective.taskDraft = taskDraft;
-      objective.run = run;
-      objective.evaluation = evaluation;
+      objective.run = result.run;
+      objective.evaluation = result.evaluation;
       objective.confirmed = true;
       objective.rtjRun = objective.rtjRun ?? latestRun + 1;
       objective.apiStatus = "ready";
@@ -483,7 +619,7 @@ function bind() {
     const objective = getActiveObjective(state);
     objective.title = document.querySelector("#objective-input").value.trim() || objective.title;
     objective.fit = "supported";
-    render();
+    compileCustomTask(objective);
   });
   document.querySelector(".strategy-compose")?.addEventListener("submit", (event) => { event.preventDefault(); getActiveObjective(state).chatCount = 3; render(); });
 }

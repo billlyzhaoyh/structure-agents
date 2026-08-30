@@ -53,6 +53,15 @@ test("the frontend does not expose the implementation codename in user-facing co
   assert.doesNotMatch(appSource, /RT-J/);
 });
 
+test("the objective composer exposes the natural-language compiler route", async () => {
+  const appSource = await readFile(new URL("../app.js", import.meta.url), "utf8");
+
+  assert.match(appSource, /data-custom-task/);
+  assert.match(appSource, /api\.createTaskDraft\(objective\.originalPrompt\)/);
+  assert.match(appSource, /api\.clarifyTaskDraft/);
+  assert.match(appSource, /Custom task draft ready for human review/);
+});
+
 test("store wait loop covers the requested customer behaviours", async () => {
   assert.equal(STORE_TIMELINE.durationMs, 10_000);
   assert.equal(STORE_TIMELINE.synthetic, true);
