@@ -51,7 +51,8 @@ from structagent_api.materialization.hm_assets import verify_hm_assets
 from structagent_api.materialization.task_sql import SqlPolicyError
 
 MODEL = "gpt-5.6-terra"
-OVERALL_TIMEOUT_SECONDS = 180
+OVERALL_TIMEOUT_SECONDS = 300
+SQL_EXECUTION_TOOL_TIMEOUT_SECONDS = 180
 INSTRUCTIONS = """You compile one natural-language request into a RelBench H&M task.
 V1 supports only customer or article entities, binary classification or regression, and a
 one-to-seven-day horizon. Ask concise clarification questions when entity, eligibility,
@@ -190,7 +191,7 @@ class OpenAIAgentRunner:
                 code = getattr(error, "code", "candidate_limit")
                 return json.dumps({"status": "rejected", "code": code})
 
-        @function_tool(timeout=30)
+        @function_tool(timeout=SQL_EXECUTION_TOOL_TIMEOUT_SECONDS)
         async def execute_validated_sql(
             wrapper: RunContextWrapper[CompilationContext],
             query_sha256: str,

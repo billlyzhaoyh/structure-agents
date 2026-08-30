@@ -18,7 +18,7 @@ REMOTE_ROOT: Final = "/workspace/structagent-compiler"
 REMOTE_SOURCE: Final = f"{REMOTE_ROOT}/src"
 REMOTE_INPUT: Final = f"{REMOTE_ROOT}/input"
 REMOTE_OUTPUT: Final = f"{REMOTE_ROOT}/output"
-QUERY_TIMEOUT_SECONDS: Final = 30
+QUERY_TIMEOUT_SECONDS: Final = 120
 
 _SOURCE_FILES: Final = (
     "structagent_api/__init__.py",
@@ -105,8 +105,8 @@ class DaytonaEvidenceExecutor:
         if self._sandbox is not None:
             return self._sandbox
         try:
-            sandbox = self._client.create(_sandbox_params(), timeout=60)
-            sandbox.refresh_data(request_timeout=15)
+            sandbox = self._client.create(_sandbox_params(), timeout=120)
+            sandbox.refresh_data(request_timeout=30)
             if sandbox.public or sandbox.network_block_all is not True:
                 raise EvidenceExecutionError(
                     "sandbox_policy", "Daytona did not confirm the private network policy."
