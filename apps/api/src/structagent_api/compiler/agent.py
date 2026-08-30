@@ -59,8 +59,40 @@ target semantics, aggregation/condition, type, or horizon is ambiguous. Return u
 for recommendation, multiclass, causal, intervention, policy-learning, or longer-horizon
 requests. A ready task must call all four tools in order: inspect_reviewed_schema,
 static_validate_sql, execute_validated_sql, read_aggregate_evidence. SQL must return exactly
-timestamp, the reviewed entity key, and target. Never request or infer raw rows. Human review
-is always required after compilation."""
+timestamp, the reviewed entity key, and target. The SQL candidate budget limits repair attempts,
+not rows or entities; never ask to narrow a population because that budget is exhausted. Never
+return draft_ready unless aggregate evidence was returned for that exact digest during the
+current run. Never request or infer raw rows. Human review is always required after compilation."""
+
+
+def _reviewed_schema_json() -> str:
+    """Describe source tables plus the framework-provided prediction cutoffs."""
+    dataset = REL_HM_DATASET.model_dump(
+        mode="json",
+        exclude={"description", "display_name", "fixture", "implementation_status"},
+    )
+    return json.dumps(
+        {
+            "dataset": dataset,
+            "framework_relations": [
+                {
+                    "name": "timestamps",
+                    "purpose": "Scheduled prediction cutoffs supplied by the evaluation framework.",
+                    "columns": [{"name": "timestamp", "data_type": "timestamp"}],
+                }
+            ],
+            "sql_policy": {
+                "dialect": "duckdb",
+                "allowed_tables": ["article", "customer", "timestamps", "transactions"],
+                "allowed_functions": ["AND", "CAST", "COALESCE", "EXISTS", "SUM"],
+                "interval_rule": "Every interval must equal the declared horizon in days.",
+                "output_columns": ["timestamp", "reviewed_entity_key", "target"],
+                "candidate_budget": "At most three distinct SQL repair attempts per run.",
+            },
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
 
 
 class DecisionModel(BaseModel):
@@ -130,10 +162,8 @@ class OpenAIAgentRunner:
 
         @function_tool
         async def inspect_reviewed_schema() -> str:
-            """Return only the reviewed H&M schema and relationships."""
-            return REL_HM_DATASET.model_dump_json(
-                exclude={"description", "display_name", "fixture", "implementation_status"}
-            )
+            """Return reviewed H&M tables, relationships, and framework inputs."""
+            return _reviewed_schema_json()
 
         @function_tool
         async def static_validate_sql(
@@ -269,7 +299,7 @@ class NaturalLanguageTaskCompiler(TaskCompiler):
             )
         draft_id = draft_id_for(dataset_id, original_prompt)
         prompt_sha = hashlib.sha256(original_prompt.encode("utf-8")).hexdigest()
-        schema_payload = REL_HM_DATASET.model_dump_json()
+        schema_payload = _reviewed_schema_json()
         context = CompilationContext(
             cache=CandidateCache(
                 draft_id=draft_id,

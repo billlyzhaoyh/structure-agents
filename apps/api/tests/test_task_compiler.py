@@ -13,6 +13,7 @@ from structagent_api.compiler.agent import (
     OpenAIAgentRunner,
     ReadyDecision,
     UnsupportedDecision,
+    _reviewed_schema_json,
 )
 from structagent_api.compiler.service import TaskCompilerError, draft_id_for
 from structagent_api.compiler.sql import CandidateCache, CandidateSpec
@@ -27,6 +28,30 @@ from structagent_api.settings import Settings
 
 def candidate_sql() -> str:
     return build_default_task_sql("rel-hm/user-churn").sql.replace("AS churn", "AS target")
+
+
+def test_reviewed_compiler_schema_includes_framework_prediction_cutoffs() -> None:
+    import json
+
+    payload = json.loads(_reviewed_schema_json())
+
+    assert [relation["name"] for relation in payload["framework_relations"]] == ["timestamps"]
+    assert payload["framework_relations"][0]["columns"] == [
+        {"name": "timestamp", "data_type": "timestamp"}
+    ]
+    assert payload["sql_policy"]["allowed_tables"] == [
+        "article",
+        "customer",
+        "timestamps",
+        "transactions",
+    ]
+    assert payload["sql_policy"]["allowed_functions"] == [
+        "AND",
+        "CAST",
+        "COALESCE",
+        "EXISTS",
+        "SUM",
+    ]
 
 
 class FakeEvidenceExecutor:
