@@ -7,6 +7,8 @@ def test_schema_export_has_stable_expected_inventory() -> None:
     assert set(render_schemas()) == {
         "batch-evaluation-result.schema.json",
         "dataset-descriptor.schema.json",
+        "daytona-materialization-request.schema.json",
+        "daytona-materialization-response.schema.json",
         "default-task-catalog.schema.json",
         "evaluation-result.schema.json",
         "live-task-draft-outcome.schema.json",

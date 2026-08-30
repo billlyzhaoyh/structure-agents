@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 ContractVersion = Literal["v1"]
 TaskType = Literal["binary_classification", "regression"]
 TaskSource = Literal["default", "custom"]
+DefaultTaskId = Literal["rel-hm/user-churn", "rel-hm/item-sales"]
 DataType = Literal[
     "boolean",
     "categorical",
@@ -260,6 +261,64 @@ class DefaultTaskCatalog(StrictModel):
                 raise ValueError("default task dataset does not match its catalog")
             if not task.task_id.startswith(expected_prefix):
                 raise ValueError("default task ID does not match its catalog dataset")
+        return self
+
+
+class DaytonaMaterializationRequest(StrictModel):
+    """Explicit approval to materialize reviewed tasks on synthetic data."""
+
+    contract_version: ContractVersion
+    dataset_id: Literal["rel-hm"]
+    task_ids: list[DefaultTaskId] = Field(min_length=1, max_length=2)
+    approved: Literal[True]
+
+    @model_validator(mode="after")
+    def validate_unique_tasks(self) -> DaytonaMaterializationRequest:
+        if len(self.task_ids) != len(set(self.task_ids)):
+            raise ValueError("Daytona materialization contains duplicate task IDs")
+        return self
+
+
+class DaytonaTaskSummary(StrictModel):
+    """Sanitized evidence for one materialized task package."""
+
+    task_id: DefaultTaskId
+    package_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    validation_status: Literal["passed"]
+    train_rows: int = Field(ge=0)
+    validation_rows: int = Field(ge=0)
+    test_rows: int = Field(ge=0)
+
+
+class DaytonaResourceSummary(StrictModel):
+    """Bounded resources requested for the ephemeral sandbox."""
+
+    cpu_cores: int = Field(gt=0)
+    memory_gib: int = Field(gt=0)
+    disk_gib: int = Field(gt=0)
+
+
+class DaytonaMaterializationResponse(StrictModel):
+    """Successful synthetic Daytona execution after verified cleanup."""
+
+    contract_version: ContractVersion
+    fixture: Literal[True]
+    implementation_status: Literal["synthetic_execution"]
+    execution_id: str = Field(pattern=r"^mat-[0-9a-f]{16}$")
+    dataset_id: Literal["rel-hm"]
+    mode: Literal["daytona-synthetic"]
+    status: Literal["succeeded"]
+    cleanup_confirmed: Literal[True]
+    network_block_all: Literal[True]
+    sql_canary_confirmed: Literal[True]
+    resources: DaytonaResourceSummary
+    tasks: list[DaytonaTaskSummary] = Field(min_length=1, max_length=2)
+
+    @model_validator(mode="after")
+    def validate_unique_tasks(self) -> DaytonaMaterializationResponse:
+        task_ids = [task.task_id for task in self.tasks]
+        if len(task_ids) != len(set(task_ids)):
+            raise ValueError("Daytona response contains duplicate task IDs")
         return self
 
 

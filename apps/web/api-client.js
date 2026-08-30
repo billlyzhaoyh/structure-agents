@@ -23,10 +23,18 @@ export function createApiClient({ baseUrl = DEFAULT_API_BASE, fetchImpl = global
     }
 
     if (!response.ok) {
-      if (response.status === 503) {
-        throw new ContractApiError("The StructAgent task compiler is unavailable", 503);
+      let errorPayload = null;
+      try {
+        errorPayload = await response.json();
+      } catch {
+        // The status remains useful when an upstream proxy returns a non-JSON body.
       }
-      throw new ContractApiError(`The StructAgent API returned ${response.status}`, response.status);
+      const compilerUnavailable = response.status === 503 && path.startsWith("/v1/task-drafts");
+      const fallback = compilerUnavailable
+        ? "The StructAgent task compiler is unavailable"
+        : `The StructAgent API returned ${response.status}`;
+      const message = errorPayload?.detail?.message ?? fallback;
+      throw new ContractApiError(message, response.status);
     }
     const payload = await response.json();
     if (payload?.contract_version !== "v1") {
@@ -37,6 +45,16 @@ export function createApiClient({ baseUrl = DEFAULT_API_BASE, fetchImpl = global
 
   return {
     getDataset: () => request("/v1/datasets/rel-hm"),
+    getDefaultTasks: () => request("/v1/tasks/defaults?dataset_id=rel-hm"),
+    launchDaytona: (taskIds) => request("/v1/materializations/daytona", {
+      method: "POST",
+      body: JSON.stringify({
+        contract_version: "v1",
+        dataset_id: "rel-hm",
+        task_ids: taskIds,
+        approved: true,
+      }),
+    }),
     createTaskDraft: (prompt) => request("/v1/task-drafts", {
       method: "POST",
       body: JSON.stringify({ contract_version: "v1", dataset_id: "rel-hm", prompt }),

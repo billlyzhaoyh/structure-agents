@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Annotated
 
@@ -16,6 +17,8 @@ from structagent_api.compiler.agent import compiler_from_environment
 from structagent_api.compiler.service import draft_id_for
 from structagent_api.contracts import (
     DatasetDescriptor,
+    DaytonaMaterializationRequest,
+    DaytonaMaterializationResponse,
     DefaultTaskCatalog,
     EvaluationResult,
     LiveTaskDraftOutcome,
@@ -24,10 +27,14 @@ from structagent_api.contracts import (
     TaskDraftRequest,
     UnsupportedTaskDraft,
 )
+from structagent_api.materialization.daytona_executor import DaytonaExecutionError
+from structagent_api.materialization.daytona_service import materialize_synthetic_in_daytona
+from structagent_api.materialization.task_sql import TaskId
 from structagent_api.settings import Settings
 
 FIXTURE_DIR = Path(__file__).resolve().parents[4] / "contracts" / "v1" / "examples" / "rel-hm"
 EVALUATION_ADAPTER: TypeAdapter[EvaluationResult] = TypeAdapter(EvaluationResult)
+DaytonaMaterializer = Callable[[Sequence[TaskId]], DaytonaMaterializationResponse]
 
 
 class HealthResponse(BaseModel):
@@ -42,11 +49,13 @@ class HealthResponse(BaseModel):
 def create_app(
     settings: Settings | None = None,
     task_compiler: TaskCompiler | None = None,
+    daytona_materializer: DaytonaMaterializer | None = None,
 ) -> FastAPI:
     """Create an API instance without performing external work at import time."""
 
     resolved = settings or Settings()
     compiler = task_compiler or compiler_from_environment()
+    resolved_daytona_materializer = daytona_materializer or materialize_synthetic_in_daytona
     app = FastAPI(
         title="StructAgent API",
         description="Control-plane shell for the provisional StructAgent research demo.",
@@ -90,6 +99,31 @@ def create_app(
                 detail=f"Dataset {dataset_id!r} is not available in the V1 default catalog.",
             )
         return REL_HM_DEFAULT_TASKS
+
+    @app.post(
+        "/v1/materializations/daytona",
+        response_model=DaytonaMaterializationResponse,
+        tags=["materialization"],
+    )
+    def create_daytona_materialization(
+        request: DaytonaMaterializationRequest,
+    ) -> DaytonaMaterializationResponse:
+        try:
+            return resolved_daytona_materializer(request.task_ids)
+        except DaytonaExecutionError as error:
+            status_code = 503 if error.code == "missing_credential" else 502
+            raise HTTPException(
+                status_code=status_code,
+                detail={"code": error.code, "message": error.detail},
+            ) from error
+        except Exception as error:
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "code": "materialization_failure",
+                    "message": "Synthetic Daytona materialization failed",
+                },
+            ) from error
 
     @app.post("/v1/task-drafts", response_model=LiveTaskDraftOutcome, tags=["task-compiler"])
     async def create_task_draft(request: TaskDraftRequest) -> LiveTaskDraftOutcome:

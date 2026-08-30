@@ -8,10 +8,12 @@ export function createWorkspaceState(overrides = {}) {
     knowledgeComplete: false,
     experimentCount: 0,
     experimentReady: false,
+    simulationStatus: "idle",
     banked: false,
     apiStatus: "idle",
     apiError: null,
     dataset: null,
+    defaultTaskCatalog: null,
     source: "sqldb",
     table: "customer",
     metric: "Item sales",
@@ -33,8 +35,14 @@ export function createObjective(state, title = "Define a business outcome") {
     confirmed: false,
     rtjRun: null,
     taskDraft: null,
+    originalPrompt: null,
+    clarificationHistory: { questions: [], answers: [] },
     run: null,
     evaluation: null,
+    selectedTaskId: "rel-hm/item-sales",
+    materializationStatus: "idle",
+    materializationError: null,
+    materialization: null,
     apiStatus: "idle",
     apiError: null,
     collectionPlan: false,
@@ -70,6 +78,17 @@ export function workspaceProgress(state) {
     rtjRunCount: confirmed.filter((item) => item.rtjRun).length,
     experimentCount: state.experimentCount,
   };
+}
+
+export function beginSimulation(state) {
+  state.simulationStatus = "loading";
+}
+
+export function completeSimulation(state) {
+  state.simulationStatus = "ready";
+  state.experimentReady = true;
+  state.experimentCount = Math.max(1, state.experimentCount);
+  state.module = "experiments";
 }
 
 export function saveWorkspaceState(storage, state) {

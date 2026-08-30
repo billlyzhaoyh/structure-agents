@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  beginSimulation,
+  completeSimulation,
   createObjective,
   createWorkspaceState,
   getActiveObjective,
@@ -65,7 +67,38 @@ test("new workspaces default to contract-aligned retail conventions", () => {
 
   assert.equal(state.table, "customer");
   assert.equal(state.metric, "Item sales");
+  assert.equal(state.defaultTaskCatalog, null);
   assert.deepEqual(state.guardrails, ["margin", "stockouts"]);
+  assert.equal(state.simulationStatus, "idle");
+});
+
+test("a staged simulation stays unavailable until its waiting run completes", () => {
+  const state = createWorkspaceState({
+    module: "objectives",
+    connected: true,
+    knowledgeComplete: true,
+  });
+
+  beginSimulation(state);
+  assert.equal(state.simulationStatus, "loading");
+  assert.equal(state.experimentReady, false);
+  assert.equal(state.experimentCount, 0);
+  assert.equal(state.module, "objectives");
+
+  completeSimulation(state);
+  assert.equal(state.simulationStatus, "ready");
+  assert.equal(state.experimentReady, true);
+  assert.equal(state.experimentCount, 1);
+  assert.equal(state.module, "experiments");
+});
+
+test("new objectives default to the reviewed article-sales task without claiming a run", () => {
+  const state = createWorkspaceState();
+  const objective = createObjective(state);
+
+  assert.equal(objective.selectedTaskId, "rel-hm/item-sales");
+  assert.equal(objective.materializationStatus, "idle");
+  assert.equal(objective.materialization, null);
 });
 
 test("invalid persisted state falls back safely", () => {

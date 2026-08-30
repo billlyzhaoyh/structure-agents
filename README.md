@@ -16,7 +16,8 @@ inference core, and guarded OpenAI, Daytona, and Modal provider boundaries.
 
 Implemented today:
 
-- a typed FastAPI application with health, catalog, and fixture-backed V1 demo routes;
+- a typed FastAPI application with health, catalog, synthetic Daytona materialization, and
+  fixture-backed V1 demo routes;
 - reviewed customer-churn and article-sales definitions in the H&M default-task catalog;
 - strict V1 Pydantic contracts with generated JSON Schemas;
 - validated, synthetic Amazon classification and H&M regression interface journeys;
@@ -27,6 +28,7 @@ Implemented today:
 - checksum-verified staging of the approved, revision-pinned private H&M snapshot;
 - opt-in SQL materialization in a private ephemeral Daytona CPU sandbox, with network
   blocking, output validation, parity checks, and verified cleanup; and
+- explicit, synthetic-only Daytona launches from the frontend for either reviewed default;
 - a revision-pinned RT-J H&M adapter, masked-test preparation, sealed evaluator, and
   deterministic classification/regression vertical slices; and
 - a fakeable Modal controller enforcing exact uploads, isolation policy, preflight projection,
@@ -38,7 +40,7 @@ Implemented today:
 
 It does not yet:
 
-- expose live materialization or run orchestration through HTTP;
+- expose private H&M materialization or RT-J run orchestration through HTTP;
 - complete the paid full-split RT-J acceptance run for both reviewed tasks;
 - ingest arbitrary databases;
 - execute custom prediction tasks without human review; or
@@ -47,8 +49,8 @@ It does not yet:
 `apps/web` contains a dependency-free interactive Decision OS demo for the hackathon
 journey. Its fashion retail content is a small synthetic placeholder; its SQL database,
 Snowflake, Redshift, and BigQuery connection choices are mock UI only. The demo connects
-to the local API. Catalog, run, and evaluation data remain fixtures; task drafting uses the
-live compiler when configured and otherwise shows an explicit unavailable state.
+to the local API, can explicitly request bounded synthetic Daytona materialization, and uses
+the live task compiler when configured. Catalog, run, and evaluation data remain fixtures.
 
 See [architecture](docs/architecture.md), [product flow](docs/product-flow.md), the
 [H&M backend roadmap](docs/backend-roadmap.md), the isolated
@@ -75,7 +77,9 @@ make materialize-hm-local
 The local API listens on `http://127.0.0.1:8000`. Alongside `GET /healthz`, it serves the
 reviewed H&M metadata and default-task catalog plus run and evaluation fixtures under `/v1`.
 Task-draft routes compile custom H&M tasks only when both provider credentials are configured;
-otherwise they return a sanitized `503`. No route executes RT-J.
+otherwise they return a sanitized `503`. `POST /v1/materializations/daytona` launches one or
+two explicitly approved reviewed tasks against generated H&M-shaped data. It requires
+`DAYTONA_API_KEY` only in the ignored server environment. No HTTP route executes RT-J.
 
 The frontend demo will listen on `http://127.0.0.1:4173`.
 

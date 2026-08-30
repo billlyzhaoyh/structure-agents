@@ -2,7 +2,7 @@
 
 ## Current implementation
 
-StructAgent currently consists of seven implemented pieces:
+StructAgent currently consists of eight implemented pieces:
 
 1. a Python 3.12 `uv` workspace;
 2. a FastAPI shell exposing health, H&M catalog, and fixture-backed V1 demo routes;
@@ -10,7 +10,8 @@ StructAgent currently consists of seven implemented pieces:
 4. versioned Pydantic contracts, generated JSON Schemas, and synthetic fixtures;
 5. a dependency-free Decision OS frontend that consumes those demo contracts;
 6. a guarded DuckDB materializer that separates model input from evaluator truth; and
-7. an opt-in Daytona CPU executor for private, ephemeral SQL materialization.
+7. an opt-in Daytona CPU executor for private, ephemeral SQL materialization; and
+8. a synthetic-only HTTP bridge and frontend controls for either reviewed H&M default.
 
 The natural-language task compiler, arbitrary-database adapters, Modal RT-J worker, live run
 orchestration, and model-evaluation runtime do not exist yet.
@@ -18,7 +19,7 @@ orchestration, and model-evaluation runtime do not exist yet.
 ```text
 apps/web/                 contract-backed demo workspace
         |
-        | V1 metadata, task, run, and evaluation fixtures
+        | V1 metadata, synthetic Daytona requests, task/run/evaluation fixtures
         v
 apps/api/                 health + H&M catalog + synthetic contract routes
         |
@@ -28,7 +29,7 @@ materialization/          guarded SQL + local DuckDB materializer
         |
         | local execution or private ephemeral upload
         v
-Daytona                   CPU-only SQL execution [implemented by opt-in CLI]
+Daytona                   CPU-only SQL execution [implemented by CLI + synthetic API route]
         |
         | future model-visible task package
         v
@@ -43,11 +44,12 @@ provider credentials.
 
 ## Contract-backed demo boundary
 
-The frontend reads the reviewed H&M relational descriptor, submits a V1 task-draft request,
-and renders the matching synthetic run and evaluation records. The supported journey follows
-the seven-day article-sales regression fixture. Business knowledge, scenario interventions,
-and experiments remain browser-side demo state because public contracts for those modules do
-not exist yet.
+The frontend reads the reviewed H&M relational descriptor and both default tasks. An explicit
+button click can launch either default against generated H&M-shaped data in Daytona and render
+only sanitized materialization evidence after cleanup. The separate article-sales RT-J run and
+evaluation preview remains synthetic and fixture-backed. Business knowledge, scenario
+interventions, and experiments remain browser-side demo state because public contracts for
+those modules do not exist yet.
 
 ## Why a lightweight monorepo
 
@@ -74,11 +76,13 @@ Trusted API control plane
    |-- reviewed H&M schema and default-task catalog [implemented]
    |-- natural-language custom-task compiler [planned]
    |-- guarded SQL policy and deterministic materializer [defaults implemented]
-   |-- human approval and budget gate [planned HTTP workflow]
+   |-- explicit synthetic-materialization approval [implemented]
+   |-- durable human approval and budget gate [planned run workflow]
    |
    v
 Daytona SQL execution plane
    |-- private, ephemeral H&M inputs [implemented by opt-in CLI]
+   |-- generated synthetic H&M-shaped inputs [implemented by HTTP route]
    |-- read-only task materialization [implemented for defaults]
    |-- model/evaluator artifact separation [implemented]
    |
@@ -101,11 +105,13 @@ only the model-visible task package and approved model assets. Predictions must 
 before evaluator truth is joined.
 
 The reviewed H&M `user-churn` and `item-sales` definitions can be materialized without a
-language-model call through local services and scripts. No materialization HTTP endpoint or
-model execution exists. Custom tasks are limited by the planned V1 contract to customer or
-article entity prediction, binary classification or regression, and horizons from one
-through seven days. The OpenAI agent may eventually submit DuckDB SQL only through guarded
-tools; it will not receive general sandbox shell access or raw H&M rows.
+language-model call through local services and scripts. The synchronous synthetic HTTP route
+accepts only those reviewed IDs and returns after verified sandbox deletion; private pinned
+H&M inputs remain CLI-only. No model execution exists. Custom tasks are limited by the
+planned V1 contract to customer or article entity prediction, binary classification or
+regression, and horizons from one through seven days. The OpenAI agent may eventually submit
+DuckDB SQL only through guarded tools; it will not receive general sandbox shell access or
+raw H&M rows.
 
 The fixture-backed route shapes are exercised by the frontend. The route shapes, milestone
 boundaries, test plans, and definitions of done are in the

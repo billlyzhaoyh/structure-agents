@@ -7,6 +7,7 @@ from pydantic import TypeAdapter, ValidationError
 from structagent_api.catalog import REL_HM_DEFAULT_TASKS
 from structagent_api.contracts import (
     DatasetDescriptor,
+    DaytonaMaterializationRequest,
     DefaultTaskCatalog,
     DefaultTaskSqlArtifact,
     MaterializedFileReference,
@@ -201,6 +202,24 @@ def test_default_task_catalog_rejects_unknown_or_recommendation_tasks() -> None:
 
     with pytest.raises(ValidationError):
         DefaultTaskCatalog.model_validate(recommendation)
+
+
+def test_daytona_materialization_request_requires_explicit_unique_reviewed_tasks() -> None:
+    request = DaytonaMaterializationRequest(
+        contract_version="v1",
+        dataset_id="rel-hm",
+        task_ids=["rel-hm/user-churn", "rel-hm/item-sales"],
+        approved=True,
+    )
+
+    assert request.task_ids == ["rel-hm/user-churn", "rel-hm/item-sales"]
+    with pytest.raises(ValidationError, match="duplicate task IDs"):
+        DaytonaMaterializationRequest.model_validate(
+            {
+                **request.model_dump(mode="json"),
+                "task_ids": ["rel-hm/user-churn", "rel-hm/user-churn"],
+            }
+        )
 
 
 def test_materialized_file_paths_must_be_relative_and_normalized() -> None:

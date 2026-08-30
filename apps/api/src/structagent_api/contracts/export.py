@@ -18,6 +18,8 @@ from structagent_api.contracts.inference import (
 )
 from structagent_api.contracts.models import (
     DatasetDescriptor,
+    DaytonaMaterializationRequest,
+    DaytonaMaterializationResponse,
     DefaultTaskCatalog,
     EvaluationResult,
     MaterializationResult,
@@ -33,6 +35,10 @@ SchemaFactory = Callable[[], dict[str, Any]]
 
 SCHEMA_FACTORIES: dict[str, SchemaFactory] = {
     "dataset-descriptor.schema.json": DatasetDescriptor.model_json_schema,
+    "daytona-materialization-request.schema.json": DaytonaMaterializationRequest.model_json_schema,
+    "daytona-materialization-response.schema.json": (
+        DaytonaMaterializationResponse.model_json_schema
+    ),
     "default-task-catalog.schema.json": DefaultTaskCatalog.model_json_schema,
     "evaluation-result.schema.json": TypeAdapter(EvaluationResult).json_schema,
     "materialization-result.schema.json": MaterializationResult.model_json_schema,

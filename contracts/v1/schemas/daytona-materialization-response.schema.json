@@ -1,0 +1,163 @@
+{
+  "$defs": {
+    "DaytonaResourceSummary": {
+      "additionalProperties": false,
+      "description": "Bounded resources requested for the ephemeral sandbox.",
+      "properties": {
+        "cpu_cores": {
+          "exclusiveMinimum": 0,
+          "title": "Cpu Cores",
+          "type": "integer"
+        },
+        "disk_gib": {
+          "exclusiveMinimum": 0,
+          "title": "Disk Gib",
+          "type": "integer"
+        },
+        "memory_gib": {
+          "exclusiveMinimum": 0,
+          "title": "Memory Gib",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "cpu_cores",
+        "memory_gib",
+        "disk_gib"
+      ],
+      "title": "DaytonaResourceSummary",
+      "type": "object"
+    },
+    "DaytonaTaskSummary": {
+      "additionalProperties": false,
+      "description": "Sanitized evidence for one materialized task package.",
+      "properties": {
+        "package_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Package Sha256",
+          "type": "string"
+        },
+        "task_id": {
+          "enum": [
+            "rel-hm/user-churn",
+            "rel-hm/item-sales"
+          ],
+          "title": "Task Id",
+          "type": "string"
+        },
+        "test_rows": {
+          "minimum": 0,
+          "title": "Test Rows",
+          "type": "integer"
+        },
+        "train_rows": {
+          "minimum": 0,
+          "title": "Train Rows",
+          "type": "integer"
+        },
+        "validation_rows": {
+          "minimum": 0,
+          "title": "Validation Rows",
+          "type": "integer"
+        },
+        "validation_status": {
+          "const": "passed",
+          "title": "Validation Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "task_id",
+        "package_sha256",
+        "validation_status",
+        "train_rows",
+        "validation_rows",
+        "test_rows"
+      ],
+      "title": "DaytonaTaskSummary",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Successful synthetic Daytona execution after verified cleanup.",
+  "properties": {
+    "cleanup_confirmed": {
+      "const": true,
+      "title": "Cleanup Confirmed",
+      "type": "boolean"
+    },
+    "contract_version": {
+      "const": "v1",
+      "title": "Contract Version",
+      "type": "string"
+    },
+    "dataset_id": {
+      "const": "rel-hm",
+      "title": "Dataset Id",
+      "type": "string"
+    },
+    "execution_id": {
+      "pattern": "^mat-[0-9a-f]{16}$",
+      "title": "Execution Id",
+      "type": "string"
+    },
+    "fixture": {
+      "const": true,
+      "title": "Fixture",
+      "type": "boolean"
+    },
+    "implementation_status": {
+      "const": "synthetic_execution",
+      "title": "Implementation Status",
+      "type": "string"
+    },
+    "mode": {
+      "const": "daytona-synthetic",
+      "title": "Mode",
+      "type": "string"
+    },
+    "network_block_all": {
+      "const": true,
+      "title": "Network Block All",
+      "type": "boolean"
+    },
+    "resources": {
+      "$ref": "#/$defs/DaytonaResourceSummary"
+    },
+    "sql_canary_confirmed": {
+      "const": true,
+      "title": "Sql Canary Confirmed",
+      "type": "boolean"
+    },
+    "status": {
+      "const": "succeeded",
+      "title": "Status",
+      "type": "string"
+    },
+    "tasks": {
+      "items": {
+        "$ref": "#/$defs/DaytonaTaskSummary"
+      },
+      "maxItems": 2,
+      "minItems": 1,
+      "title": "Tasks",
+      "type": "array"
+    }
+  },
+  "required": [
+    "contract_version",
+    "fixture",
+    "implementation_status",
+    "execution_id",
+    "dataset_id",
+    "mode",
+    "status",
+    "cleanup_confirmed",
+    "network_block_all",
+    "sql_canary_confirmed",
+    "resources",
+    "tasks"
+  ],
+  "title": "DaytonaMaterializationResponse",
+  "type": "object"
+}
