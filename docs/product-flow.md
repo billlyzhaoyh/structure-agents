@@ -15,7 +15,7 @@ review. Default tasks do not call a language model.
 2. **Review the task** — inspect the pinned entity, horizon, target, and evaluation contract.
 3. **Approve execution** — explicitly approve materialization and compute spend.
 4. **Materialize** — create the model-visible package and separately sealed truth through the
-   implemented local or opt-in Daytona SQL path.
+   implemented local path, CLI path, or frontend-triggered synthetic Daytona path.
 5. **Run and evaluate** — a future Modal worker invokes the matching RT-J head, seals
    predictions, and reports batch metrics and provenance.
 
@@ -41,7 +41,8 @@ review. Default tasks do not call a language model.
 - `rel-hm`: the metadata-only catalog exposes reviewed customer-churn and article-sales
   defaults. Article sales includes every known article and zero-fills articles without a
   transaction in the future window. Both reviewed defaults have guarded SQL, deterministic
-  synthetic coverage, private artifact verification, and opt-in Daytona materialization.
+  synthetic coverage, private artifact verification, opt-in Daytona materialization, and a
+  synthetic-only frontend launch for either reviewed task.
 - `rel-amazon`: customer churn remains a deferred binary-classification reference fixture.
 
 No model inference or model evaluation has been implemented. The remaining journey fixtures

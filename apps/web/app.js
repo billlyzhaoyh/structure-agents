@@ -227,21 +227,51 @@ function objectiveBrief(objective) {
   </div>`;
 }
 
+function selectedDefaultTask(objective) {
+  const tasks = state.defaultTaskCatalog?.tasks ?? [];
+  return tasks.find((task) => task.task_id === objective.selectedTaskId) ?? tasks[0] ?? null;
+}
+
+function defaultTaskSelector(objective) {
+  const tasks = state.defaultTaskCatalog?.tasks ?? [];
+  if (!tasks.length) {
+    return `<div class="api-error">${icon("warning")}<p><b>Task catalog unavailable</b><small>Reconnect the demo dataset to load the reviewed defaults.</small></p></div>`;
+  }
+  return `<div class="default-task-selector"><small>Choose reviewed task</small><div>${tasks.map((task) => `<button data-default-task="${escapeHtml(task.task_id)}" class="${task.task_id === objective.selectedTaskId ? "selected" : ""}"><span>${task.task_type === "regression" ? "REG" : "CLS"}</span><p><b>${escapeHtml(task.display_name)}</b><small>${escapeHtml(task.description)}</small></p><i>${task.horizon.value} ${escapeHtml(task.horizon.unit)}</i></button>`).join("")}</div></div>`;
+}
+
+function materializationReceipt(objective) {
+  const result = objective.materialization?.tasks?.[0];
+  if (!result) return "";
+  return `<div class="materialization-receipt"><header>${icon("check")}<p><small>Synthetic Daytona execution</small><b>${escapeHtml(objective.materialization.execution_id)}</b></p><i>Sandbox deleted</i></header><div><p><small>Package digest</small><b>${escapeHtml(result.package_sha256.slice(0, 16))}…</b></p><p><small>Train rows</small><b>${result.train_rows}</b></p><p><small>Validation rows</small><b>${result.validation_rows}</b></p><p><small>Masked test rows</small><b>${result.test_rows}</b></p></div><footer>Private sandbox · network blocked · SQL canary passed · artifacts verified</footer></div>`;
+}
+
 function objectiveAgentGuidance(objective) {
   if (objective.fit === "unsupported") {
     return `<div class="chat agent agent-task data-gap"><div class="agent-task-status"><span>${icon("warning")}</span><p><small>Data check</small><b>We need one more source before creating this task.</b></p></div><p>Purchases cannot show who entered a store without buying. I’ve paused this objective so the resulting model does not create false confidence.</p><div class="missing-data"><b>Data to collect</b><span>store_id</span><span>visit_timestamp</span><span>customer_id or cohort</span></div>${objective.collectionPlan ? `<div class="plan-ready">${icon("check")}<p><b>Collection plan created</b><small>Add store-visit events, validate identity coverage, then return to this conversation.</small></p></div>` : `<button class="agent-action" data-collection-plan>Create data collection plan ${icon("arrow")}</button>`}</div>`;
+  }
+  const task = selectedDefaultTask(objective);
+  if (objective.materializationStatus === "loading") {
+    return `<div class="chat agent agent-task"><div class="agent-task-status"><span class="status-spinner"></span><p><small>Daytona sandbox running</small><b>Materializing ${escapeHtml(task?.display_name ?? "the reviewed task")}.</b></p></div><p>The trusted API is creating a private synthetic sandbox, validating the task package, and deleting the sandbox before returning.</p></div>`;
+  }
+  if (objective.materializationError) {
+    return `<div class="chat agent agent-task data-gap"><div class="agent-task-status"><span>${icon("warning")}</span><p><small>Daytona execution</small><b>The synthetic task was not materialized.</b></p></div><p>${escapeHtml(objective.materializationError)}</p>${defaultTaskSelector(objective)}<button class="agent-action" data-launch-daytona>Try Daytona again ${icon("arrow")}</button></div>`;
   }
   if (objective.apiStatus === "loading") {
     return inferenceWaitingMarkup();
   }
   if (objective.apiError) {
-    return `<div class="chat agent agent-task data-gap"><div class="agent-task-status"><span>${icon("warning")}</span><p><small>API connection</small><b>I couldn’t create the contract-backed task.</b></p></div><p>${escapeHtml(objective.apiError)}</p><button class="agent-action" data-run-rtj>Try the contract request again ${icon("arrow")}</button></div>`;
+    return `<div class="chat agent agent-task data-gap"><div class="agent-task-status"><span>${icon("warning")}</span><p><small>Fixture API</small><b>The synthetic evaluation preview is unavailable.</b></p></div><p>${escapeHtml(objective.apiError)}</p><button class="agent-action" data-run-fixture>Try the fixture preview again ${icon("arrow")}</button></div>`;
   }
   if (objective.confirmed) {
     const contract = taskContractFrom(objective.taskDraft);
     return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("check")}</span><p><small>Objective ready</small><b>The V1 task contract is defined and linked to this objective.</b></p></div><div class="task-preview"><p><small>Entity</small><b>${escapeHtml(contract.entity.table)}</b></p><p><small>Outcome window</small><b>${contract.horizon.value} ${contract.horizon.unit}</b></p><p><small>Task</small><b>Sales regression</b></p></div><button class="agent-action" data-objective-view="insights">Open item insights ${icon("arrow")}</button></div>`;
   }
-  return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("check")}</span><p><small>Supported by current data</small><b>This maps to the reviewed article-sales task.</b></p></div><p>Article identity, transaction time and price provide the required structure. I’ll submit the prompt through the V1 task-draft contract.</p><div class="task-contract"><small>Proposed task</small><p>For each eligible article, predict summed transaction value over the next seven days using only information known today.</p></div><div class="task-preview"><p><small>Entity</small><b>Article</b></p><p><small>Outcome window</small><b>7 days</b></p><p><small>Guardrail</small><b>Protect margin</b></p></div><button class="agent-action" data-run-rtj>Create objective and inference task ${icon("arrow")}</button></div>`;
+  if (objective.materialization) {
+    const fixturePreview = objective.selectedTaskId === "rel-hm/item-sales" ? `<button class="agent-action" data-run-fixture>Continue to synthetic evaluation preview ${icon("arrow")}</button>` : `<div class="fixture-separation"><b>Materialization complete.</b><span>No churn evaluation result is available in the current fixture demo.</span></div>`;
+    return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("check")}</span><p><small>Task package verified</small><b>${escapeHtml(task?.display_name ?? objective.selectedTaskId)} completed in Daytona.</b></p></div>${materializationReceipt(objective)}${fixturePreview}</div>`;
+  }
+  return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("check")}</span><p><small>Supported by current data</small><b>Two reviewed H&amp;M defaults are executable.</b></p></div><p>Select a task. Clicking launch explicitly approves a synthetic, bounded Daytona materialization; it does not transfer private H&amp;M data or run model training.</p>${defaultTaskSelector(objective)}<button class="agent-action" data-launch-daytona ${task ? "" : "disabled"}>Launch ${escapeHtml(task?.display_name ?? "task")} in Daytona ${icon("arrow")}</button></div>`;
 }
 
 function insightsModule(objective) {
@@ -320,6 +350,11 @@ function bind() {
     state.objectiveView = "brief";
     objective.view = "brief";
     objective.collectionPlan = false;
+    objective.materializationStatus = "idle";
+    objective.materializationError = null;
+    objective.materialization = null;
+    objective.apiStatus = "idle";
+    objective.apiError = null;
     render();
   }));
   document.querySelectorAll("[data-strategy]").forEach((button) => button.addEventListener("click", () => { getActiveObjective(state).strategy = button.dataset.strategy; render(); }));
@@ -329,7 +364,12 @@ function bind() {
     state.apiError = null;
     render();
     try {
-      state.dataset = await api.getDataset();
+      const [dataset, defaultTaskCatalog] = await Promise.all([
+        api.getDataset(),
+        api.getDefaultTasks(),
+      ]);
+      state.dataset = dataset;
+      state.defaultTaskCatalog = defaultTaskCatalog;
       state.connected = true;
       state.apiStatus = "ready";
       state.table = state.dataset.tables[0].name;
@@ -343,6 +383,7 @@ function bind() {
   document.querySelector("[data-disconnect]")?.addEventListener("click", () => {
     state.connected = false;
     state.dataset = null;
+    state.defaultTaskCatalog = null;
     state.apiStatus = "idle";
     state.apiError = null;
     state.knowledgeComplete = false;
@@ -375,7 +416,31 @@ function bind() {
     render();
   }));
   document.querySelector("[data-collection-plan]")?.addEventListener("click", () => { getActiveObjective(state).collectionPlan = true; render(); });
-  document.querySelector("[data-run-rtj]")?.addEventListener("click", async () => {
+  document.querySelectorAll("[data-default-task]").forEach((button) => button.addEventListener("click", () => {
+    const objective = getActiveObjective(state);
+    objective.selectedTaskId = button.dataset.defaultTask;
+    objective.materializationStatus = "idle";
+    objective.materializationError = null;
+    objective.materialization = null;
+    render();
+  }));
+  document.querySelector("[data-launch-daytona]")?.addEventListener("click", async () => {
+    const objective = getActiveObjective(state);
+    objective.materializationStatus = "loading";
+    objective.materializationError = null;
+    objective.apiStatus = "idle";
+    objective.apiError = null;
+    render();
+    try {
+      objective.materialization = await api.launchDaytona([objective.selectedTaskId]);
+      objective.materializationStatus = "ready";
+    } catch (error) {
+      objective.materializationStatus = "error";
+      objective.materializationError = error.message;
+    }
+    render();
+  });
+  document.querySelector("[data-run-fixture]")?.addEventListener("click", async () => {
     const objective = getActiveObjective(state);
     objective.apiStatus = "loading";
     objective.apiError = null;

@@ -2,9 +2,9 @@
 
 This is a dependency-free, interactive hackathon demo. It uses a small, synthetic
 fashion-retail-shaped placeholder and does not connect to a database, call RT-J, or report real
-model results. It does exchange versioned schema, task, run, and evaluation fixtures with
-the local API. The mock workspace is stored in the browser so that setup progress and
-objective records survive a refresh.
+model results. It exchanges versioned contracts with the local API and can explicitly launch
+either reviewed default against synthetic data in Daytona. The mock workspace is stored in
+the browser so that setup progress and objective records survive a refresh.
 
 Run the API and web app in separate terminals from the repository root:
 
@@ -26,7 +26,8 @@ The frontend boundary also includes:
 - versioned JSON Schemas in `contracts/v1/schemas`;
 - Amazon and H&M example journeys in `contracts/v1/examples`;
 - `GET http://127.0.0.1:8000/v1/datasets/rel-hm`; and
-- `GET http://127.0.0.1:8000/v1/tasks/defaults?dataset_id=rel-hm`.
+- `GET http://127.0.0.1:8000/v1/tasks/defaults?dataset_id=rel-hm`;
+- `POST http://127.0.0.1:8000/v1/materializations/daytona`.
 
 The default-task response is represented by
 `contracts/v1/schemas/default-task-catalog.schema.json`, with a matching example at
@@ -42,8 +43,10 @@ The live catalog is still marked `fixture: true` and has an implementation statu
 demo/fixture treatment and must not present task metadata, metrics, run state, provenance,
 or integrity checks as observed model behavior.
 
-Default catalog access makes no language-model or compute-provider call. The fixture-backed
-task-draft, run, and result routes perform no live compilation or execution. Do not infer
-additional transport routes from the remaining example filenames.
+Default catalog access makes no language-model or compute-provider call. A click on either
+reviewed task explicitly approves synthetic Daytona SQL materialization; the provider key
+remains in the API environment, and the response arrives only after artifact verification
+and sandbox deletion. This path does not transfer private H&M data or run RT-J. The separate
+task-draft, run, and result routes remain fixture-backed preview contracts.
 
 Run the deterministic API and interaction-model tests with `make test` and `make test-web`.
