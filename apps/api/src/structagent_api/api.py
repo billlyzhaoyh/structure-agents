@@ -11,18 +11,20 @@ from pydantic import BaseModel, TypeAdapter
 
 from structagent_api import __version__
 from structagent_api.catalog import ACTIVE_DATASET_ID, REL_HM_DATASET, REL_HM_DEFAULT_TASKS
+from structagent_api.compiler import TaskCompiler, TaskCompilerError
+from structagent_api.compiler.agent import compiler_from_environment
 from structagent_api.contracts import (
     DatasetDescriptor,
     DefaultTaskCatalog,
     EvaluationResult,
+    LiveTaskDraftOutcome,
     RunRecord,
-    TaskDraftOutcome,
+    TaskClarificationRequest,
     TaskDraftRequest,
 )
 from structagent_api.settings import Settings
 
 FIXTURE_DIR = Path(__file__).resolve().parents[4] / "contracts" / "v1" / "examples" / "rel-hm"
-TASK_DRAFT_ADAPTER: TypeAdapter[TaskDraftOutcome] = TypeAdapter(TaskDraftOutcome)
 EVALUATION_ADAPTER: TypeAdapter[EvaluationResult] = TypeAdapter(EvaluationResult)
 
 
@@ -35,10 +37,14 @@ class HealthResponse(BaseModel):
     version: str
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None,
+    task_compiler: TaskCompiler | None = None,
+) -> FastAPI:
     """Create an API instance without performing external work at import time."""
 
     resolved = settings or Settings()
+    compiler = task_compiler or compiler_from_environment()
     app = FastAPI(
         title="StructAgent API",
         description="Control-plane shell for the provisional StructAgent research demo.",
@@ -83,11 +89,34 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             )
         return REL_HM_DEFAULT_TASKS
 
-    @app.post("/v1/task-drafts", response_model=TaskDraftOutcome, tags=["demo-contracts"])
-    def create_task_draft(request: TaskDraftRequest) -> TaskDraftOutcome:
+    @app.post("/v1/task-drafts", response_model=LiveTaskDraftOutcome, tags=["task-compiler"])
+    async def create_task_draft(request: TaskDraftRequest) -> LiveTaskDraftOutcome:
         if request.dataset_id != "rel-hm":
             raise HTTPException(status_code=404, detail="Dataset is not available in this demo")
-        return TASK_DRAFT_ADAPTER.validate_json(_fixture_text("task-contract.json"))
+        try:
+            return await compiler.compile(request)
+        except TaskCompilerError as error:
+            raise HTTPException(
+                status_code=error.status_code,
+                detail={"code": error.code, "message": error.detail},
+            ) from error
+
+    @app.post(
+        "/v1/task-drafts/{draft_id}/clarifications",
+        response_model=LiveTaskDraftOutcome,
+        tags=["task-compiler"],
+    )
+    async def clarify_task_draft(
+        draft_id: str,
+        request: TaskClarificationRequest,
+    ) -> LiveTaskDraftOutcome:
+        try:
+            return await compiler.clarify(draft_id, request)
+        except TaskCompilerError as error:
+            raise HTTPException(
+                status_code=error.status_code,
+                detail={"code": error.code, "message": error.detail},
+            ) from error
 
     @app.get("/v1/runs/{run_id}", response_model=RunRecord, tags=["demo-contracts"])
     def get_run(run_id: str) -> RunRecord:

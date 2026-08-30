@@ -30,6 +30,7 @@ def test_openapi_exposes_catalog_and_fixture_backed_demo_routes() -> None:
         "/v1/runs/{run_id}",
         "/v1/runs/{run_id}/evaluation",
         "/v1/task-drafts",
+        "/v1/task-drafts/{draft_id}/clarifications",
         "/v1/tasks/defaults",
     }
     assert schema["info"]["title"] == "StructAgent API"
@@ -50,7 +51,7 @@ def test_retail_dataset_route_returns_the_versioned_metadata_contract() -> None:
     ]
 
 
-def test_task_draft_run_and_evaluation_follow_the_hm_fixture_contracts() -> None:
+def test_unconfigured_task_compiler_and_fixture_run_routes_are_explicit() -> None:
     client = TestClient(create_app(Settings(environment="test")))
 
     draft = client.post(
@@ -64,9 +65,8 @@ def test_task_draft_run_and_evaluation_follow_the_hm_fixture_contracts() -> None
     run = client.get("/v1/runs/fixture-hm-run")
     evaluation = client.get("/v1/runs/fixture-hm-run/evaluation")
 
-    assert draft.status_code == 200
-    assert draft.json()["contract"]["horizon"] == {"value": 7, "unit": "days"}
-    assert draft.json()["contract"]["task_type"] == "regression"
+    assert draft.status_code == 503
+    assert draft.json()["detail"]["code"] == "compiler_unavailable"
     assert run.json()["status"] == "succeeded"
     assert evaluation.json()["metrics"] == {"mae": 12.4, "rmse": 18.9, "r2": 0.37}
 
