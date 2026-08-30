@@ -17,7 +17,8 @@ reviewed H&M promotional study definition.
 
 Implemented today:
 
-- a typed FastAPI application with health, catalog, and fixture-backed V1 demo routes;
+- a typed FastAPI application with health, catalog, synthetic Daytona materialization, and
+  fixture-backed V1 demo routes;
 - reviewed customer-churn and article-sales definitions in the H&M default-task catalog;
 - strict V1 Pydantic contracts with generated JSON Schemas;
 - a reviewed H&M discrete-choice simulation study contract and deterministic design planner;
@@ -29,6 +30,8 @@ Implemented today:
 - checksum-verified staging of the approved, revision-pinned private H&M snapshot;
 - opt-in SQL materialization in a private ephemeral Daytona CPU sandbox, with network
   blocking, output validation, parity checks, and verified cleanup;
+- explicit, synthetic-only Daytona materialization launches from the frontend for either
+  reviewed prediction default;
 - opt-in execution of the simulation design planner in the same kind of private ephemeral
   Daytona boundary, using placeholder agents and returning a verified canonical run plan;
 - an opt-in, three-repeat EDSL integration smoke using one system-pinned respondent model,
@@ -38,7 +41,7 @@ Implemented today:
 It does not yet:
 
 - execute a full simulation study against H&M-conditioned agents;
-- expose live materialization or run orchestration through HTTP;
+- expose private H&M materialization, inference, or simulation orchestration through HTTP;
 - download or execute RT-J on Modal;
 - ingest arbitrary databases;
 - generate custom prediction tasks; or
@@ -52,8 +55,8 @@ access H&M rows, and cannot report simulated findings.
 `apps/web` contains a dependency-free interactive Decision OS demo for the hackathon
 journey. Its fashion retail content is a small synthetic placeholder; its SQL database,
 Snowflake, Redshift, and BigQuery connection choices are mock UI only. The demo connects
-only to reviewed synthetic contract fixtures served by the local API; it does not add
-database, model, or live-provider integrations.
+to reviewed synthetic contracts served by the local API and can explicitly request bounded
+synthetic Daytona materialization. It does not add database or model integrations.
 
 See [architecture](docs/architecture.md), [product flow](docs/product-flow.md), the
 [H&M backend roadmap](docs/backend-roadmap.md), the isolated
@@ -78,9 +81,11 @@ make simulation-plan-local
 
 The local API listens on `http://127.0.0.1:8000`. Alongside `GET /healthz`, it serves the
 reviewed H&M metadata and default-task catalog plus task-draft, run, and evaluation fixtures
-under `/v1` for frontend integration. It also serves the metadata-only reviewed simulation
-study at `GET /v1/simulation-studies/defaults?dataset_id=rel-hm`. These routes do not execute
-RT-J or a simulation.
+under `/v1` for frontend integration. It serves the metadata-only reviewed simulation study
+at `GET /v1/simulation-studies/defaults?dataset_id=rel-hm` and
+`POST /v1/materializations/daytona` launches one or two explicitly approved reviewed tasks
+against generated H&M-shaped data. The materialization route requires `DAYTONA_API_KEY` only
+in the ignored server environment; neither route executes RT-J or a full simulation.
 
 The frontend demo will listen on `http://127.0.0.1:4173`.
 

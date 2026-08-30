@@ -20,6 +20,17 @@ examples through `POST /v1/task-drafts`, `GET /v1/runs/{run_id}`, and
 `GET /v1/runs/{run_id}/evaluation`. These are deterministic demo responses, not database
 ingestion, task compilation, materialization, RT-J execution, or observed model results.
 
+Implemented synthetic execution route:
+
+- `POST /v1/materializations/daytona` accepts one or both reviewed task IDs plus explicit
+  approval, then returns only aggregate task counts, package digests, sandbox-policy evidence,
+  and verified-cleanup status.
+
+`daytona-materialization-request.schema.json` and
+`daytona-materialization-response.schema.json` define this boundary. The route generates
+H&M-shaped synthetic inputs inside the trusted API process. It does not expose credentials,
+private H&M rows, evaluator truth, artifact paths, or a general sandbox interface.
+
 Implemented internal materialization boundaries:
 
 - `task-sql-artifact.schema.json` describes reviewed SQL, its normalized digest, provenance,
@@ -27,5 +38,5 @@ Implemented internal materialization boundaries:
 - `materialization-result.schema.json` describes the separated model-input and evaluator-truth
   packages, file digests, invariant report, and package provenance.
 
-These contracts are currently consumed by local services and Make-driven scripts, not by a
-public API route.
+The complete materialization result remains an internal service and Make-script contract;
+the public route returns the narrower sanitized response described above.

@@ -23,7 +23,14 @@ export function createApiClient({ baseUrl = DEFAULT_API_BASE, fetchImpl = global
     }
 
     if (!response.ok) {
-      throw new ContractApiError(`The StructAgent API returned ${response.status}`, response.status);
+      let errorPayload = null;
+      try {
+        errorPayload = await response.json();
+      } catch {
+        // The status remains useful when an upstream proxy returns a non-JSON body.
+      }
+      const message = errorPayload?.detail?.message ?? `The StructAgent API returned ${response.status}`;
+      throw new ContractApiError(message, response.status);
     }
     const payload = await response.json();
     if (payload?.contract_version !== "v1") {
@@ -34,6 +41,16 @@ export function createApiClient({ baseUrl = DEFAULT_API_BASE, fetchImpl = global
 
   return {
     getDataset: () => request("/v1/datasets/rel-hm"),
+    getDefaultTasks: () => request("/v1/tasks/defaults?dataset_id=rel-hm"),
+    launchDaytona: (taskIds) => request("/v1/materializations/daytona", {
+      method: "POST",
+      body: JSON.stringify({
+        contract_version: "v1",
+        dataset_id: "rel-hm",
+        task_ids: taskIds,
+        approved: true,
+      }),
+    }),
     createTaskDraft: (prompt) => request("/v1/task-drafts", {
       method: "POST",
       body: JSON.stringify({ contract_version: "v1", dataset_id: "rel-hm", prompt }),

@@ -1,10 +1,43 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 from structagent_api.api import create_app
+from structagent_api.contracts import DaytonaMaterializationResponse
+from structagent_api.materialization.daytona_executor import DaytonaExecutionError
+from structagent_api.materialization.task_sql import TaskId
 from structagent_api.settings import Settings
+
+
+def successful_daytona_response() -> DaytonaMaterializationResponse:
+    return DaytonaMaterializationResponse.model_validate(
+        {
+            "contract_version": "v1",
+            "fixture": True,
+            "implementation_status": "synthetic_execution",
+            "execution_id": "mat-0123456789abcdef",
+            "dataset_id": "rel-hm",
+            "mode": "daytona-synthetic",
+            "status": "succeeded",
+            "cleanup_confirmed": True,
+            "network_block_all": True,
+            "sql_canary_confirmed": True,
+            "resources": {"cpu_cores": 4, "memory_gib": 8, "disk_gib": 10},
+            "tasks": [
+                {
+                    "task_id": "rel-hm/item-sales",
+                    "package_sha256": "a" * 64,
+                    "validation_status": "passed",
+                    "train_rows": 12,
+                    "validation_rows": 4,
+                    "test_rows": 4,
+                }
+            ],
+        }
+    )
 
 
 def test_health_endpoint_uses_typed_settings() -> None:
@@ -27,6 +60,7 @@ def test_openapi_exposes_catalog_and_fixture_backed_demo_routes() -> None:
     assert set(schema["paths"]) == {
         "/healthz",
         "/v1/datasets/rel-hm",
+        "/v1/materializations/daytona",
         "/v1/runs/{run_id}",
         "/v1/runs/{run_id}/evaluation",
         "/v1/simulation-studies/defaults",
@@ -160,6 +194,107 @@ def test_simulation_catalog_rejects_an_unsupported_dataset() -> None:
     assert response.status_code == 404
     assert response.json() == {
         "detail": "Dataset 'rel-amazon' is not available in the V1 simulation catalog."
+    }
+
+
+def test_daytona_route_launches_only_the_explicitly_approved_reviewed_task() -> None:
+    received_task_ids: list[str] = []
+
+    def materialize(task_ids: Sequence[TaskId]) -> DaytonaMaterializationResponse:
+        received_task_ids.extend(task_ids)
+        return successful_daytona_response()
+
+    client = TestClient(create_app(Settings(environment="test"), daytona_materializer=materialize))
+    response = client.post(
+        "/v1/materializations/daytona",
+        json={
+            "contract_version": "v1",
+            "dataset_id": "rel-hm",
+            "task_ids": ["rel-hm/item-sales"],
+            "approved": True,
+        },
+    )
+
+    assert response.status_code == 200
+    assert received_task_ids == ["rel-hm/item-sales"]
+    assert response.json()["tasks"] == [
+        {
+            "task_id": "rel-hm/item-sales",
+            "package_sha256": "a" * 64,
+            "validation_status": "passed",
+            "train_rows": 12,
+            "validation_rows": 4,
+            "test_rows": 4,
+        }
+    ]
+    assert response.json()["cleanup_confirmed"] is True
+
+
+@pytest.mark.parametrize(
+    "request_update",
+    [
+        {"approved": False},
+        {"task_ids": ["rel-hm/unknown"]},
+        {"task_ids": ["rel-hm/user-churn", "rel-hm/user-churn"]},
+    ],
+)
+def test_daytona_route_rejects_unapproved_or_unreviewed_requests(
+    request_update: dict[str, object],
+) -> None:
+    request = {
+        "contract_version": "v1",
+        "dataset_id": "rel-hm",
+        "task_ids": ["rel-hm/user-churn"],
+        "approved": True,
+        **request_update,
+    }
+    response = TestClient(create_app(Settings(environment="test"))).post(
+        "/v1/materializations/daytona",
+        json=request,
+    )
+
+    assert response.status_code == 422
+
+
+def test_daytona_route_sanitizes_missing_credentials_and_provider_failures() -> None:
+    def missing_credential(_: Sequence[TaskId]) -> DaytonaMaterializationResponse:
+        raise DaytonaExecutionError("missing_credential", "Server credential is unavailable")
+
+    def provider_failure(_: Sequence[TaskId]) -> DaytonaMaterializationResponse:
+        raise RuntimeError("secret provider detail")
+
+    missing_response = TestClient(
+        create_app(Settings(environment="test"), daytona_materializer=missing_credential)
+    ).post(
+        "/v1/materializations/daytona",
+        json={
+            "contract_version": "v1",
+            "dataset_id": "rel-hm",
+            "task_ids": ["rel-hm/user-churn"],
+            "approved": True,
+        },
+    )
+    failure_response = TestClient(
+        create_app(Settings(environment="test"), daytona_materializer=provider_failure)
+    ).post(
+        "/v1/materializations/daytona",
+        json={
+            "contract_version": "v1",
+            "dataset_id": "rel-hm",
+            "task_ids": ["rel-hm/item-sales"],
+            "approved": True,
+        },
+    )
+
+    assert missing_response.status_code == 503
+    assert missing_response.json()["detail"] == {
+        "code": "missing_credential",
+        "message": "Server credential is unavailable",
+    }
+    assert failure_response.status_code == 500
+    assert failure_response.json()["detail"] == {
+        "code": "materialization_failure",
+        "message": "Synthetic Daytona materialization failed",
     }
 
 

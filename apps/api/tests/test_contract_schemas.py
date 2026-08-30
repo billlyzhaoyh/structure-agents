@@ -6,6 +6,8 @@ from structagent_api.contracts.export import SCHEMA_DIR, check_schemas, render_s
 def test_schema_export_has_stable_expected_inventory() -> None:
     assert set(render_schemas()) == {
         "dataset-descriptor.schema.json",
+        "daytona-materialization-request.schema.json",
+        "daytona-materialization-response.schema.json",
         "default-task-catalog.schema.json",
         "evaluation-result.schema.json",
         "materialization-result.schema.json",

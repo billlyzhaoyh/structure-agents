@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Annotated
 
@@ -13,6 +14,8 @@ from structagent_api import __version__
 from structagent_api.catalog import ACTIVE_DATASET_ID, REL_HM_DATASET, REL_HM_DEFAULT_TASKS
 from structagent_api.contracts import (
     DatasetDescriptor,
+    DaytonaMaterializationRequest,
+    DaytonaMaterializationResponse,
     DefaultTaskCatalog,
     EvaluationResult,
     RunRecord,
@@ -20,12 +23,16 @@ from structagent_api.contracts import (
     TaskDraftOutcome,
     TaskDraftRequest,
 )
+from structagent_api.materialization.daytona_executor import DaytonaExecutionError
+from structagent_api.materialization.daytona_service import materialize_synthetic_in_daytona
+from structagent_api.materialization.task_sql import TaskId
 from structagent_api.settings import Settings
 from structagent_api.simulation_catalog import hm_promo_conjoint_v1
 
 FIXTURE_DIR = Path(__file__).resolve().parents[4] / "contracts" / "v1" / "examples" / "rel-hm"
 TASK_DRAFT_ADAPTER: TypeAdapter[TaskDraftOutcome] = TypeAdapter(TaskDraftOutcome)
 EVALUATION_ADAPTER: TypeAdapter[EvaluationResult] = TypeAdapter(EvaluationResult)
+DaytonaMaterializer = Callable[[Sequence[TaskId]], DaytonaMaterializationResponse]
 
 
 class HealthResponse(BaseModel):
@@ -37,10 +44,14 @@ class HealthResponse(BaseModel):
     version: str
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None,
+    daytona_materializer: DaytonaMaterializer | None = None,
+) -> FastAPI:
     """Create an API instance without performing external work at import time."""
 
     resolved = settings or Settings()
+    resolved_daytona_materializer = daytona_materializer or materialize_synthetic_in_daytona
     app = FastAPI(
         title="StructAgent API",
         description="Control-plane shell for the provisional StructAgent research demo.",
@@ -101,6 +112,31 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 detail=f"Dataset {dataset_id!r} is not available in the V1 simulation catalog.",
             )
         return [hm_promo_conjoint_v1()]
+
+    @app.post(
+        "/v1/materializations/daytona",
+        response_model=DaytonaMaterializationResponse,
+        tags=["materialization"],
+    )
+    def create_daytona_materialization(
+        request: DaytonaMaterializationRequest,
+    ) -> DaytonaMaterializationResponse:
+        try:
+            return resolved_daytona_materializer(request.task_ids)
+        except DaytonaExecutionError as error:
+            status_code = 503 if error.code == "missing_credential" else 502
+            raise HTTPException(
+                status_code=status_code,
+                detail={"code": error.code, "message": error.detail},
+            ) from error
+        except Exception as error:
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "code": "materialization_failure",
+                    "message": "Synthetic Daytona materialization failed",
+                },
+            ) from error
 
     @app.post("/v1/task-drafts", response_model=TaskDraftOutcome, tags=["demo-contracts"])
     def create_task_draft(request: TaskDraftRequest) -> TaskDraftOutcome:

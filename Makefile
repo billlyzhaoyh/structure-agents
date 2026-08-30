@@ -54,7 +54,7 @@ contracts-check: ## Reject drift between models and committed schemas
 	uv run python scripts/export_contracts.py --check
 
 serve-api: ## Start the local FastAPI service
-	uv run uvicorn structagent_api.api:create_app --factory
+	uv run $(ENV_FILE_ARGS) uvicorn structagent_api.api:create_app --factory
 
 serve-web: ## Serve the dependency-free Decision OS demo
 	python3 -m http.server 4173 --directory apps/web
