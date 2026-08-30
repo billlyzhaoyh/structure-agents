@@ -24,7 +24,7 @@ def build_upload_inventory(
     dataset_root: Path,
     task_root: Path,
 ) -> tuple[ModelUpload, ...]:
-    """Resolve only the seven files explicitly permitted to enter model context."""
+    """Resolve only the six files explicitly permitted to enter model context."""
     model = materialization.model_input
     task_name = model.task.task_id.rsplit("/", maxsplit=1)[1]
     database = sorted(model.database_files, key=lambda reference: reference.table)

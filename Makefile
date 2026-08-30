@@ -7,7 +7,7 @@ ENV_FILE_ARGS := $(if $(wildcard .env),--env-file .env,)
 export PRE_COMMIT_HOME
 export UV_CACHE_DIR
 
-.PHONY: help sync lock hooks format format-check lint typecheck test test-web test-materializer build contracts-export contracts-check quality-all check check-all serve-api serve-web hm-data-sync hm-data-verify materialize-hm-local materialize-hm-daytona-smoke materialize-hm-daytona-live
+.PHONY: help sync lock hooks format format-check lint typecheck test test-web test-materializer test-rtj build contracts-export contracts-check quality-all check check-all serve-api serve-web modal-auth-check hm-data-sync hm-data-verify materialize-hm-local materialize-hm-daytona-smoke materialize-hm-daytona-live
 
 help: ## Show available commands
 	@awk 'BEGIN {FS = ":.*## "}; /^[a-zA-Z_-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -44,6 +44,9 @@ test-web: ## Run deterministic frontend interaction-model tests
 test-materializer: ## Run deterministic SQL materialization tests
 	uv run pytest apps/api/tests/test_task_sql.py apps/api/tests/test_materializer.py apps/api/tests/test_hm_assets.py apps/api/tests/test_daytona_executor.py apps/api/tests/test_materialization_parity.py
 
+test-rtj: ## Run deterministic RT-J core and Modal-controller tests
+	uv run pytest apps/api/tests/test_rtj_core.py apps/api/tests/test_modal_runner.py
+
 build: ## Build the API wheel and source distribution
 	uv build --package structagent-api --out-dir dist --no-build-isolation
 
@@ -58,6 +61,9 @@ serve-api: ## Start the local FastAPI service
 
 serve-web: ## Serve the dependency-free Decision OS demo
 	python3 -m http.server 4173 --directory apps/web
+
+modal-auth-check: ## Verify the selected local Modal profile or environment token
+	uv run $(ENV_FILE_ARGS) modal token info
 
 hm-data-sync: ## Download and verify the pinned private-use H&M artifacts
 	uv run --frozen python scripts/hm_data.py sync
