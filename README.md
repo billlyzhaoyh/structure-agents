@@ -20,8 +20,7 @@ Implemented today:
 - a typed FastAPI application with health, catalog, and fixture-backed V1 demo routes;
 - reviewed customer-churn and article-sales definitions in the H&M default-task catalog;
 - strict V1 Pydantic contracts with generated JSON Schemas;
-- a reviewed H&M discrete-choice simulation study contract, explicitly blocked from execution
-  until its dataset handoff and respondent-model runtime are implemented;
+- a reviewed H&M discrete-choice simulation study contract and deterministic design planner;
 - validated, synthetic Amazon classification and H&M regression interface journeys;
 - an interactive Decision OS frontend demo;
 - reviewed, normalized DuckDB SQL for both H&M defaults behind a read-only SQL policy;
@@ -29,7 +28,9 @@ Implemented today:
   packages plus evaluator-owned test truth;
 - checksum-verified staging of the approved, revision-pinned private H&M snapshot;
 - opt-in SQL materialization in a private ephemeral Daytona CPU sandbox, with network
-  blocking, output validation, parity checks, and verified cleanup; and
+  blocking, output validation, parity checks, and verified cleanup;
+- opt-in execution of the simulation design planner in the same kind of private ephemeral
+  Daytona boundary, using placeholder agents and returning a verified canonical run plan; and
 - explicit placeholders for the OpenAI task compiler and Modal RT-J worker.
 
 It does not yet:
@@ -41,8 +42,9 @@ It does not yet:
 - generate custom prediction tasks; or
 - report observed model predictions or evaluation metrics.
 
-The simulation study catalog is metadata-only. It does not run EDSL, call a respondent model,
-or report simulated findings.
+The simulation study catalog remains metadata-only. Its reviewed design can be compiled into
+choice tasks locally or in Daytona, but the planner does not access H&M rows, run EDSL, call a
+respondent model, or report simulated findings.
 
 `apps/web` contains a dependency-free interactive Decision OS demo for the hackathon
 journey. Its fashion retail content is a small synthetic placeholder; its SQL database,
@@ -68,6 +70,7 @@ make serve-web
 make contracts-check
 make test-materializer
 make materialize-hm-local
+make simulation-plan-local
 ```
 
 The local API listens on `http://127.0.0.1:8000`. Alongside `GET /healthz`, it serves the
@@ -122,6 +125,26 @@ The live command requires the explicit acknowledgement shown above, verifies bot
 against the pinned official label files, transfers only checksum-verified inputs, and deletes
 the sandbox after execution. It is never part of CI. None of these commands runs a model:
 Modal remains the planned GPU boundary for RT-J inference.
+
+## Testing simulation design planning
+
+Generate the reviewed H&M promotional choice design locally with explicitly synthetic
+pseudonymous agent keys:
+
+```bash
+make simulation-plan-local
+```
+
+To upload the same reviewed request and actual planner sources to a private, network-blocked
+Daytona sandbox, execute the worker there, download and verify its canonical plan, and confirm
+sandbox deletion, place `DAYTONA_API_KEY` in the ignored `.env` file and run:
+
+```bash
+make simulation-plan-daytona-smoke
+```
+
+Both commands produce 4,000 design-only tasks for 400 placeholder agents. They do not use the
+H&M dataset or execute EDSL/respondent-model inference.
 
 ## Repository workflow
 

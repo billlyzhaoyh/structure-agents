@@ -7,7 +7,7 @@ ENV_FILE_ARGS := $(if $(wildcard .env),--env-file .env,)
 export PRE_COMMIT_HOME
 export UV_CACHE_DIR
 
-.PHONY: help sync lock hooks format format-check lint typecheck test test-web test-materializer build contracts-export contracts-check quality-all check check-all serve-api serve-web hm-data-sync hm-data-verify materialize-hm-local materialize-hm-daytona-smoke materialize-hm-daytona-live
+.PHONY: help sync lock hooks format format-check lint typecheck test test-web test-materializer build contracts-export contracts-check quality-all check check-all serve-api serve-web hm-data-sync hm-data-verify materialize-hm-local materialize-hm-daytona-smoke materialize-hm-daytona-live simulation-plan-local simulation-plan-daytona-smoke
 
 help: ## Show available commands
 	@awk 'BEGIN {FS = ":.*## "}; /^[a-zA-Z_-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -73,6 +73,12 @@ materialize-hm-daytona-smoke: ## Run both defaults on synthetic data in Daytona
 
 materialize-hm-daytona-live: ## Run and verify both pinned H&M defaults in Daytona
 	uv run $(ENV_FILE_ARGS) --frozen python scripts/materialize_hm.py daytona-live
+
+simulation-plan-local: ## Generate the reviewed design locally with placeholder agents
+	uv run --frozen python scripts/plan_simulation.py local
+
+simulation-plan-daytona-smoke: ## Generate and verify the reviewed design in Daytona
+	uv run $(ENV_FILE_ARGS) --frozen python scripts/plan_simulation.py daytona
 
 quality-all: format-check lint typecheck test test-web contracts-check ## Always-run local quality gate
 
