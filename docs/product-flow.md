@@ -16,8 +16,9 @@ review. Default tasks do not call a language model.
 3. **Approve execution** — explicitly approve materialization and compute spend.
 4. **Materialize** — create the model-visible package and separately sealed truth through the
    implemented local path, CLI path, or frontend-triggered synthetic Daytona path.
-5. **Run and evaluate** — a future Modal worker invokes the matching RT-J head, seals
-   predictions, and reports batch metrics and provenance.
+5. **Run and evaluate** — the local-only `user-churn` path can invoke the reviewed RT-J head
+   on a deterministic 32-customer cohort, seal predictions, and return batch metrics and
+   provenance after cleanup. `item-sales` remains simulated in the frontend.
 
 ### Custom tasks
 
@@ -42,12 +43,13 @@ review. Default tasks do not call a language model.
   defaults. Article sales includes every known article and zero-fills articles without a
   transaction in the future window. Both reviewed defaults have guarded SQL, deterministic
   synthetic coverage, private artifact verification, opt-in Daytona materialization, and a
-  synthetic-only frontend launch for either reviewed task.
+  synthetic frontend launch for either reviewed task and an opt-in observed `user-churn`
+  evaluation backed by separately configured private artifacts.
 - `rel-amazon`: customer churn remains a deferred binary-classification reference fixture.
 
-No model inference or model evaluation has been implemented. The remaining journey fixtures
-test interface shape only: their metrics are deliberately synthetic, their integrity checks
-are `not_run`, and their query artifacts contain no SQL.
+Observed inference is limited to the bounded private `user-churn` cohort. The remaining
+journey fixtures test interface shape only: their metrics are deliberately synthetic, their
+integrity checks are `not_run`, and their query artifacts contain no SQL.
 
 ## Deferred beyond V1
 
