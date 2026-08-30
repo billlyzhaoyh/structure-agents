@@ -8,6 +8,7 @@ export function createWorkspaceState(overrides = {}) {
     knowledgeComplete: false,
     experimentCount: 0,
     experimentReady: false,
+    simulationStatus: "idle",
     banked: false,
     apiStatus: "idle",
     apiError: null,
@@ -70,6 +71,17 @@ export function workspaceProgress(state) {
     rtjRunCount: confirmed.filter((item) => item.rtjRun).length,
     experimentCount: state.experimentCount,
   };
+}
+
+export function beginSimulation(state) {
+  state.simulationStatus = "loading";
+}
+
+export function completeSimulation(state) {
+  state.simulationStatus = "ready";
+  state.experimentReady = true;
+  state.experimentCount = Math.max(1, state.experimentCount);
+  state.module = "experiments";
 }
 
 export function saveWorkspaceState(storage, state) {
