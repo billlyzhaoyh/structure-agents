@@ -34,14 +34,16 @@ review. Default tasks do not call a language model.
 8. **Evaluate** — align sealed predictions with evaluator-owned truth, run integrity checks, and
    report task-appropriate batch metrics and provenance.
 
-## Current fixture coverage
+## Current catalog and fixture coverage
 
-- `rel-hm`: article sales is the active regression fixture; customer churn will be added as
-  the second reviewed default in its catalog milestone.
+- `rel-hm`: the metadata-only catalog exposes reviewed customer-churn and article-sales
+  defaults. Article sales includes every known article and zero-fills articles without a
+  transaction in the future window.
 - `rel-amazon`: customer churn remains a deferred binary-classification reference fixture.
 
-These journeys test interface shape only. Their metrics are deliberately synthetic,
-their integrity checks are `not_run`, and their query artifacts contain no SQL.
+The catalog records pinned definitions and metrics but no observed execution. The remaining
+journey fixtures test interface shape only: their metrics are deliberately synthetic, their
+integrity checks are `not_run`, and their query artifacts contain no SQL.
 
 ## Deferred beyond V1
 

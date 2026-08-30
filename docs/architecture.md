@@ -2,19 +2,23 @@
 
 ## Current implementation
 
-StructAgent currently consists of four implemented pieces:
+StructAgent currently consists of five implemented pieces:
 
 1. a Python 3.12 `uv` workspace;
-2. a FastAPI shell exposing health and fixture-backed V1 demo routes;
-3. versioned Pydantic contracts, generated JSON Schemas, and synthetic fixtures; and
-4. a dependency-free Decision OS frontend that consumes those demo contracts.
+2. a FastAPI shell exposing health, H&M catalog, and fixture-backed V1 demo routes;
+3. a reviewed, revision-pinned H&M default-task catalog;
+4. versioned Pydantic contracts, generated JSON Schemas, and synthetic fixtures; and
+5. a dependency-free Decision OS frontend that consumes those demo contracts.
+
+The task compiler, database adapters, execution worker, and model-evaluation runtime do not
+exist yet.
 
 ```text
 apps/web/                 contract-backed demo workspace
         |
         | V1 metadata, task, run, and evaluation fixtures
         v
-apps/api/                 health route + synthetic contract routes
+apps/api/                 health + H&M catalog + synthetic contract routes
         |
         | future approved run bundle
         v
@@ -49,14 +53,15 @@ does not inherit the cookiecutter's Supabase or Vite application assumptions.
 
 ## Planned control and compute planes
 
-The following remains a direction for later milestones, not implemented behavior:
+The following separates the implemented catalog boundary from later control-plane and
+compute milestones:
 
 ```text
 Frontend
    |
    v
 Trusted API control plane
-   |-- reviewed H&M schema and default-task catalog
+   |-- reviewed H&M schema and default-task catalog [implemented]
    |-- natural-language custom-task compiler
    |-- guarded SQL validation tools
    |-- deterministic validation
@@ -79,13 +84,13 @@ OpenAI and Daytona credentials remain in the trusted API process. Browser code r
 neither. The execution worker receives only narrowly scoped inputs required for an
 approved run. Predictions must be sealed before evaluator truth is joined.
 
-The planned V1 supports the reviewed H&M `user-churn` and `item-sales` defaults without a
-language-model call. Custom tasks are limited to customer or article entity prediction,
-binary classification or regression, and horizons from one through seven days. The OpenAI
-agent may submit DuckDB SQL only through guarded tools; it does not receive general sandbox
-shell access or raw H&M rows.
+The implemented catalog exposes the reviewed H&M `user-churn` and `item-sales` definitions
+without a language-model call. Execution remains planned. Custom tasks are limited to
+customer or article entity prediction, binary classification or regression, and horizons
+from one through seven days. The OpenAI agent may eventually submit DuckDB SQL only through
+guarded tools; it will not receive general sandbox shell access or raw H&M rows.
 
-The fixture-backed route shapes are now exercised by the frontend, but the execution
-milestones, test plans, and definitions of done remain in the backend roadmap.
-Authentication, arbitrary databases, production persistence, streaming, and deployment
-are still deferred.
+The fixture-backed route shapes are exercised by the frontend. The execution milestones,
+test plans, and definitions of done are in the [backend roadmap](backend-roadmap.md); only
+the catalog milestone is implemented. Authentication, arbitrary databases, production
+persistence, streaming, and deployment are still deferred.

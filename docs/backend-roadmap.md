@@ -1,8 +1,8 @@
 # H&M backend roadmap
 
 This document defines the backend delivery sequence for the first executable StructAgent
-demo. It is a plan, not a description of implemented behavior. The current implementation
-remains the API shell and fixture contracts described in the repository README.
+demo. Milestone 1 is implemented as metadata-only catalog behavior; Milestones 2 through 5
+remain plans rather than descriptions of working execution.
 
 ## Product boundary
 
@@ -57,6 +57,8 @@ Relational Transformer source revision did not contain a root licence. Keep the 
 task tables, predictions, or evaluator truth may be committed.
 
 ## Milestone 1 - H&M catalog and reviewed defaults
+
+Status: implemented.
 
 Branch: `feat/hm-task-catalog`
 

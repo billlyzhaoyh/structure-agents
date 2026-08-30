@@ -9,13 +9,14 @@ and no trademark registration or employer affiliation is claimed.
 
 ## Status
 
-This repository is a lightweight monorepo. The current version contains a health-check
-API, versioned interface fixtures, a dependency-free frontend demo, and documented
-extension points for a future task compiler and RT-J execution worker.
+This repository is a lightweight monorepo. The current version contains a typed API,
+a metadata-only H&M task catalog, versioned interface fixtures, a dependency-free frontend
+demo, and documented extension points for a future task compiler and RT-J execution worker.
 
 Implemented today:
 
-- a typed FastAPI application with health and fixture-backed V1 demo routes;
+- a typed FastAPI application with health, catalog, and fixture-backed V1 demo routes;
+- reviewed customer-churn and article-sales definitions in the H&M default-task catalog;
 - strict V1 Pydantic contracts with generated JSON Schemas;
 - validated, synthetic Amazon classification and H&M regression interface journeys;
 - an interactive Decision OS frontend demo; and
@@ -27,7 +28,7 @@ It does not yet:
 - connect to Daytona;
 - download or execute RT-J;
 - ingest a database;
-- compile or execute live prediction tasks; or
+- compile custom or execute live prediction tasks; or
 - report real model results.
 
 `apps/web` contains a dependency-free interactive Decision OS demo for the hackathon
@@ -55,8 +56,8 @@ make contracts-check
 ```
 
 The local API listens on `http://127.0.0.1:8000`. Alongside `GET /healthz`, it serves the
-reviewed H&M metadata, task-draft, run, and evaluation fixtures under `/v1` for frontend
-integration. These routes do not ingest data or execute RT-J.
+reviewed H&M metadata and default-task catalog plus task-draft, run, and evaluation fixtures
+under `/v1` for frontend integration. These routes do not ingest data or execute RT-J.
 
 The frontend demo will listen on `http://127.0.0.1:4173`.
 
