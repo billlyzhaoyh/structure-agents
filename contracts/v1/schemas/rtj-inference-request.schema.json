@@ -392,7 +392,7 @@
     },
     "ModelTaskPackage": {
       "additionalProperties": false,
-      "description": "Only the files that a future Modal RT-J worker may receive.",
+      "description": "Only the files that the guarded Modal RT-J worker may receive.",
       "properties": {
         "contract_version": {
           "const": "v1",

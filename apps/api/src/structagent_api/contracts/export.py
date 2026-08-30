@@ -13,6 +13,8 @@ from pydantic import TypeAdapter
 from structagent_api.contracts.compiler import LiveTaskDraftOutcome, TaskClarificationRequest
 from structagent_api.contracts.inference import (
     BatchEvaluationResult,
+    ModalInferenceRequest,
+    ModalInferenceResponse,
     PredictionPackage,
     RTJInferenceRequest,
     SimulatedInferenceRequest,
@@ -45,6 +47,8 @@ SCHEMA_FACTORIES: dict[str, SchemaFactory] = {
     "evaluation-result.schema.json": TypeAdapter(EvaluationResult).json_schema,
     "materialization-result.schema.json": MaterializationResult.model_json_schema,
     "live-task-draft-outcome.schema.json": TypeAdapter(LiveTaskDraftOutcome).json_schema,
+    "modal-inference-request.schema.json": ModalInferenceRequest.model_json_schema,
+    "modal-inference-response.schema.json": ModalInferenceResponse.model_json_schema,
     "prediction-package.schema.json": TypeAdapter(PredictionPackage).json_schema,
     "rtj-inference-request.schema.json": RTJInferenceRequest.model_json_schema,
     "simulated-inference-request.schema.json": SimulatedInferenceRequest.model_json_schema,

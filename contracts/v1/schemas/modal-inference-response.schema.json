@@ -1,0 +1,571 @@
+{
+  "$defs": {
+    "BatchClassificationEvaluation": {
+      "additionalProperties": false,
+      "properties": {
+        "checkpoint": {
+          "$ref": "#/$defs/RTJCheckpointReference"
+        },
+        "config": {
+          "$ref": "#/$defs/RTJInferenceConfig"
+        },
+        "contract_version": {
+          "const": "v1",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "coverage": {
+          "maximum": 1,
+          "minimum": 1,
+          "title": "Coverage",
+          "type": "number"
+        },
+        "dataset_id": {
+          "const": "rel-hm",
+          "title": "Dataset Id",
+          "type": "string"
+        },
+        "dataset_revision": {
+          "pattern": "^[0-9a-f]{40}$|^synthetic$",
+          "title": "Dataset Revision",
+          "type": "string"
+        },
+        "integrity_checks": {
+          "items": {
+            "$ref": "#/$defs/IntegrityCheck"
+          },
+          "minItems": 1,
+          "title": "Integrity Checks",
+          "type": "array"
+        },
+        "materialization_package_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Materialization Package Sha256",
+          "type": "string"
+        },
+        "metrics": {
+          "$ref": "#/$defs/ClassificationMetrics"
+        },
+        "model_input_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Model Input Sha256",
+          "type": "string"
+        },
+        "prediction_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Prediction Sha256",
+          "type": "string"
+        },
+        "prevalence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Prevalence",
+          "type": "number"
+        },
+        "query_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Query Sha256",
+          "type": "string"
+        },
+        "result_status": {
+          "enum": [
+            "observed",
+            "synthetic"
+          ],
+          "title": "Result Status",
+          "type": "string"
+        },
+        "runtime": {
+          "$ref": "#/$defs/RTJRuntimeProvenance"
+        },
+        "sample_count": {
+          "exclusiveMinimum": 0,
+          "title": "Sample Count",
+          "type": "integer"
+        },
+        "task_id": {
+          "minLength": 1,
+          "title": "Task Id",
+          "type": "string"
+        },
+        "task_type": {
+          "const": "binary_classification",
+          "title": "Task Type",
+          "type": "string"
+        },
+        "truth_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Truth Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_version",
+        "result_status",
+        "dataset_id",
+        "task_id",
+        "task_type",
+        "dataset_revision",
+        "query_sha256",
+        "materialization_package_sha256",
+        "model_input_sha256",
+        "checkpoint",
+        "config",
+        "runtime",
+        "sample_count",
+        "coverage",
+        "prediction_sha256",
+        "truth_sha256",
+        "integrity_checks",
+        "prevalence",
+        "metrics"
+      ],
+      "title": "BatchClassificationEvaluation",
+      "type": "object"
+    },
+    "BatchRegressionEvaluation": {
+      "additionalProperties": false,
+      "properties": {
+        "checkpoint": {
+          "$ref": "#/$defs/RTJCheckpointReference"
+        },
+        "config": {
+          "$ref": "#/$defs/RTJInferenceConfig"
+        },
+        "contract_version": {
+          "const": "v1",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "coverage": {
+          "maximum": 1,
+          "minimum": 1,
+          "title": "Coverage",
+          "type": "number"
+        },
+        "dataset_id": {
+          "const": "rel-hm",
+          "title": "Dataset Id",
+          "type": "string"
+        },
+        "dataset_revision": {
+          "pattern": "^[0-9a-f]{40}$|^synthetic$",
+          "title": "Dataset Revision",
+          "type": "string"
+        },
+        "integrity_checks": {
+          "items": {
+            "$ref": "#/$defs/IntegrityCheck"
+          },
+          "minItems": 1,
+          "title": "Integrity Checks",
+          "type": "array"
+        },
+        "materialization_package_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Materialization Package Sha256",
+          "type": "string"
+        },
+        "metrics": {
+          "$ref": "#/$defs/BatchRegressionMetrics"
+        },
+        "model_input_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Model Input Sha256",
+          "type": "string"
+        },
+        "prediction_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Prediction Sha256",
+          "type": "string"
+        },
+        "query_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Query Sha256",
+          "type": "string"
+        },
+        "result_status": {
+          "enum": [
+            "observed",
+            "synthetic"
+          ],
+          "title": "Result Status",
+          "type": "string"
+        },
+        "runtime": {
+          "$ref": "#/$defs/RTJRuntimeProvenance"
+        },
+        "sample_count": {
+          "exclusiveMinimum": 0,
+          "title": "Sample Count",
+          "type": "integer"
+        },
+        "task_id": {
+          "minLength": 1,
+          "title": "Task Id",
+          "type": "string"
+        },
+        "task_type": {
+          "const": "regression",
+          "title": "Task Type",
+          "type": "string"
+        },
+        "truth_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Truth Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_version",
+        "result_status",
+        "dataset_id",
+        "task_id",
+        "task_type",
+        "dataset_revision",
+        "query_sha256",
+        "materialization_package_sha256",
+        "model_input_sha256",
+        "checkpoint",
+        "config",
+        "runtime",
+        "sample_count",
+        "coverage",
+        "prediction_sha256",
+        "truth_sha256",
+        "integrity_checks",
+        "metrics"
+      ],
+      "title": "BatchRegressionEvaluation",
+      "type": "object"
+    },
+    "BatchRegressionMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "mae": {
+          "minimum": 0,
+          "title": "Mae",
+          "type": "number"
+        },
+        "nmae": {
+          "minimum": 0,
+          "title": "Nmae",
+          "type": "number"
+        },
+        "r2": {
+          "title": "R2",
+          "type": "number"
+        },
+        "rmse": {
+          "minimum": 0,
+          "title": "Rmse",
+          "type": "number"
+        }
+      },
+      "required": [
+        "mae",
+        "rmse",
+        "r2",
+        "nmae"
+      ],
+      "title": "BatchRegressionMetrics",
+      "type": "object"
+    },
+    "ClassificationMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "accuracy": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Accuracy",
+          "type": "number"
+        },
+        "auroc": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Auroc",
+          "type": "number"
+        },
+        "average_precision": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Average Precision",
+          "type": "number"
+        },
+        "brier_score": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Brier Score",
+          "type": "number"
+        },
+        "f1": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "F1",
+          "type": "number"
+        },
+        "log_loss": {
+          "minimum": 0,
+          "title": "Log Loss",
+          "type": "number"
+        }
+      },
+      "required": [
+        "auroc",
+        "average_precision",
+        "log_loss",
+        "brier_score",
+        "accuracy",
+        "f1"
+      ],
+      "title": "ClassificationMetrics",
+      "type": "object"
+    },
+    "IntegrityCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "detail": {
+          "minLength": 1,
+          "title": "Detail",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "failed",
+            "not_run",
+            "passed"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "status",
+        "detail"
+      ],
+      "title": "IntegrityCheck",
+      "type": "object"
+    },
+    "RTJCheckpointReference": {
+      "additionalProperties": false,
+      "properties": {
+        "config_path": {
+          "enum": [
+            "classification/config.json",
+            "regression/config.json"
+          ],
+          "title": "Config Path",
+          "type": "string"
+        },
+        "license": {
+          "const": "CC-BY-NC-SA-4.0",
+          "title": "License",
+          "type": "string"
+        },
+        "repository_url": {
+          "const": "https://huggingface.co/stanford-star/rt-j",
+          "title": "Repository Url",
+          "type": "string"
+        },
+        "revision": {
+          "const": "a2c204c79d493ed0056661140e6fd24db3118381",
+          "title": "Revision",
+          "type": "string"
+        },
+        "variant": {
+          "enum": [
+            "classification",
+            "regression"
+          ],
+          "title": "Variant",
+          "type": "string"
+        },
+        "weights_path": {
+          "enum": [
+            "classification/model.safetensors",
+            "regression/model.safetensors"
+          ],
+          "title": "Weights Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "repository_url",
+        "revision",
+        "variant",
+        "config_path",
+        "weights_path",
+        "license"
+      ],
+      "title": "RTJCheckpointReference",
+      "type": "object"
+    },
+    "RTJInferenceConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "bfs_width": {
+          "const": 32,
+          "default": 32,
+          "title": "Bfs Width",
+          "type": "integer"
+        },
+        "context_length": {
+          "const": 256,
+          "default": 256,
+          "title": "Context Length",
+          "type": "integer"
+        },
+        "context_seed": {
+          "const": 101,
+          "default": 101,
+          "title": "Context Seed",
+          "type": "integer"
+        },
+        "gpu": {
+          "default": "L4",
+          "enum": [
+            "L4",
+            "L40S"
+          ],
+          "title": "Gpu",
+          "type": "string"
+        },
+        "local_context_length": {
+          "const": 128,
+          "default": 128,
+          "title": "Local Context Length",
+          "type": "integer"
+        },
+        "num_walks": {
+          "const": 10000,
+          "default": 10000,
+          "title": "Num Walks",
+          "type": "integer"
+        },
+        "shuffle_seed": {
+          "const": 0,
+          "default": 0,
+          "title": "Shuffle Seed",
+          "type": "integer"
+        },
+        "walk_length": {
+          "const": 20,
+          "default": 20,
+          "title": "Walk Length",
+          "type": "integer"
+        }
+      },
+      "title": "RTJInferenceConfig",
+      "type": "object"
+    },
+    "RTJRuntimeProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "checkpoint_revision": {
+          "pattern": "^[0-9a-f]{40}$|^synthetic$",
+          "title": "Checkpoint Revision",
+          "type": "string"
+        },
+        "duration_seconds": {
+          "minimum": 0,
+          "title": "Duration Seconds",
+          "type": "number"
+        },
+        "gpu": {
+          "enum": [
+            "L4",
+            "L40S",
+            "none"
+          ],
+          "title": "Gpu",
+          "type": "string"
+        },
+        "provider": {
+          "enum": [
+            "modal",
+            "fake"
+          ],
+          "title": "Provider",
+          "type": "string"
+        },
+        "source_revision": {
+          "pattern": "^[0-9a-f]{40}$|^synthetic$",
+          "title": "Source Revision",
+          "type": "string"
+        }
+      },
+      "required": [
+        "provider",
+        "gpu",
+        "duration_seconds",
+        "source_revision",
+        "checkpoint_revision"
+      ],
+      "title": "RTJRuntimeProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Sanitized observed output returned after Modal cleanup and sealed evaluation.",
+  "properties": {
+    "cleanup_confirmed": {
+      "const": true,
+      "title": "Cleanup Confirmed",
+      "type": "boolean"
+    },
+    "contract_version": {
+      "const": "v1",
+      "title": "Contract Version",
+      "type": "string"
+    },
+    "evaluation": {
+      "discriminator": {
+        "mapping": {
+          "binary_classification": "#/$defs/BatchClassificationEvaluation",
+          "regression": "#/$defs/BatchRegressionEvaluation"
+        },
+        "propertyName": "task_type"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/BatchClassificationEvaluation"
+        },
+        {
+          "$ref": "#/$defs/BatchRegressionEvaluation"
+        }
+      ],
+      "title": "Evaluation"
+    },
+    "fixture": {
+      "const": false,
+      "title": "Fixture",
+      "type": "boolean"
+    },
+    "implementation_status": {
+      "const": "observed",
+      "title": "Implementation Status",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^rtj-[0-9a-f]{16}$",
+      "title": "Run Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "contract_version",
+    "fixture",
+    "implementation_status",
+    "run_id",
+    "cleanup_confirmed",
+    "evaluation"
+  ],
+  "title": "ModalInferenceResponse",
+  "type": "object"
+}

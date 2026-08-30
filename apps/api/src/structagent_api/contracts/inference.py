@@ -183,6 +183,26 @@ BatchEvaluationResult = Annotated[
 ]
 
 
+class ModalInferenceRequest(StrictModel):
+    """Explicit approval for one bounded, observed H&M inference run."""
+
+    contract_version: ContractVersion
+    dataset_id: Literal["rel-hm"]
+    task_id: Literal["rel-hm/user-churn"]
+    approved: Literal[True]
+
+
+class ModalInferenceResponse(StrictModel):
+    """Sanitized observed output returned after Modal cleanup and sealed evaluation."""
+
+    contract_version: ContractVersion
+    fixture: Literal[False]
+    implementation_status: Literal["observed"]
+    run_id: str = Field(pattern=r"^rtj-[0-9a-f]{16}$")
+    cleanup_confirmed: Literal[True]
+    evaluation: BatchEvaluationResult
+
+
 class SimulatedInferenceRequest(StrictModel):
     """A no-provider demo request for a reviewed or compiled H&M task."""
 

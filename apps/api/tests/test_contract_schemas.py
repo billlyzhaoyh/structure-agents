@@ -13,6 +13,8 @@ def test_schema_export_has_stable_expected_inventory() -> None:
         "evaluation-result.schema.json",
         "live-task-draft-outcome.schema.json",
         "materialization-result.schema.json",
+        "modal-inference-request.schema.json",
+        "modal-inference-response.schema.json",
         "prediction-package.schema.json",
         "rtj-inference-request.schema.json",
         "run-record.schema.json",

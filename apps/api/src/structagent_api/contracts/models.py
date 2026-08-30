@@ -456,7 +456,7 @@ class DatasetTableReference(MaterializedFileReference):
 
 
 class ModelTaskPackage(StrictModel):
-    """Only the files that a future Modal RT-J worker may receive."""
+    """Only the files that the guarded Modal RT-J worker may receive."""
 
     contract_version: ContractVersion
     dataset_id: Literal["rel-hm"]
