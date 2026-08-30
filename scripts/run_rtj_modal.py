@@ -12,7 +12,13 @@ from typing import Any, cast
 
 from structagent_api.inference import build_inference_request, evaluate_predictions
 from structagent_api.inference.modal_provider import EphemeralModalProvider
-from structagent_api.inference.modal_runner import ProjectionLedger, RTWorker, run_modal_inference
+from structagent_api.inference.modal_runner import (
+    APPROVED_MODAL_GPUS,
+    ModalExecutionPolicy,
+    ProjectionLedger,
+    RTWorker,
+    run_modal_inference,
+)
 from structagent_api.inference.smoke import create_user_churn_smoke_materialization
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
@@ -29,6 +35,7 @@ def main() -> int:
     parser.add_argument("--materialization-root", required=True, type=Path)
     parser.add_argument("--output-root", required=True, type=Path)
     parser.add_argument("--sample-size", default=32, type=int)
+    parser.add_argument("--gpu", choices=APPROVED_MODAL_GPUS, default="L4")
     args = parser.parse_args()
 
     if os.environ.get("STRUCTAGENT_ALLOW_REAL_HM") != "1":
@@ -44,7 +51,7 @@ def main() -> int:
         task_root,
         sample_size=args.sample_size,
     )
-    request = build_inference_request(result)
+    request = build_inference_request(result, gpu=args.gpu)
     prediction_root = args.output_root / "prediction"
     provider = EphemeralModalProvider(
         task_name="user-churn",
@@ -59,6 +66,7 @@ def main() -> int:
         provider,
         worker,
         ProjectionLedger(),
+        policy=ModalExecutionPolicy(gpu=args.gpu),
     )
     evaluation = evaluate_predictions(
         modal_result.prediction,

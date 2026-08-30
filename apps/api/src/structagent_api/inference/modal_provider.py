@@ -16,6 +16,7 @@ from structagent_api.contracts import (
 from structagent_api.contracts.models import MaterializedFileReference
 from structagent_api.inference.artifacts import sha256_file
 from structagent_api.inference.modal_runner import (
+    APPROVED_MODAL_GPUS,
     InferenceObservation,
     ModalExecutionPolicy,
     ModalProvider,
@@ -26,6 +27,7 @@ from structagent_api.inference.modal_runner import (
 )
 
 MOUNT_ROOT = "/mnt/structagent"
+LOCAL_WORK_ROOT = "/tmp/structagent"
 SOURCE_REPOSITORY = "https://github.com/stanford-star/relational-transformer.git"
 SOURCE_REVISION = "455df27c1458e093eac00133d5bbf41a8263a2e3"
 CHECKPOINT_REPOSITORY = "stanford-star/rt-j"
@@ -33,9 +35,12 @@ CHECKPOINT_REVISION = "a2c204c79d493ed0056661140e6fd24db3118381"
 EMBEDDING_REPOSITORY = "sentence-transformers/all-MiniLM-L12-v2"
 EMBEDDING_REVISION = "a50ef00143b4d5391434df20ae11632588ac25be"
 
-# L4 + 8 requested physical CPU cores + 32 GiB at Modal's 2026-08-30 rates is
-# USD 0.00039784/s. This deliberately rounded-up rate keeps admission conservative.
-CONSERVATIVE_INFERENCE_USD_PER_SECOND = Decimal("0.00050")
+# Each rate includes the selected GPU, 8 requested physical CPU cores, and 32 GiB at
+# Modal's 2026-08-30 rates, then rounds up to keep admission conservative.
+CONSERVATIVE_INFERENCE_USD_PER_SECOND = {
+    "L4": Decimal("0.00050"),
+    "L40S": Decimal("0.00080"),
+}
 
 _RUNTIME_PACKAGES = (
     "duckdb==1.5.5",
@@ -86,6 +91,10 @@ def _volume_destination(task_name: str, upload: VerifiedUpload) -> str:
     return f"/input/rel-hm/tasks/{task_name}/{split_name}"
 
 
+def _volume_prediction_path(task_name: str, run_name: str) -> str:
+    return f"/{run_name}/outputs/{task_name}/predictions.parquet"
+
+
 def _exit_sync_context(context: Any) -> None:
     # Modal's synchronicity-generated context wrappers do not publish typed __exit__ methods.
     context.__exit__(None, None, None)
@@ -114,7 +123,7 @@ class EphemeralModalProvider(ModalProvider):
         policy: ModalExecutionPolicy,
         worker: RTWorker,
     ) -> ModalSession:
-        if policy != ModalExecutionPolicy():
+        if policy.gpu not in APPROVED_MODAL_GPUS or policy != ModalExecutionPolicy(gpu=policy.gpu):
             raise ModalRunnerError("modal_policy", "Modal execution policy was changed.")
         if (getattr(worker, "__module__", None), getattr(worker, "__name__", None)) != (
             "workers.rtj.runtime",
@@ -150,6 +159,7 @@ class _EphemeralModalSession:
         self._task_name = task_name
         self._checkpoint_variant = checkpoint_variant
         self._prediction_root = prediction_root
+        self._gpu = policy.gpu
         self._run_count = 0
         self._cleaned = False
         self._volume_context: Any = modal.Volume.ephemeral()
@@ -277,19 +287,31 @@ class _EphemeralModalSession:
             )
             def infer(request_json: str, row_limit: int | None, run_name: str) -> dict[str, Any]:
                 import json
+                import shutil
                 import sys
+                from pathlib import Path
 
                 sys.path.insert(0, f"{MOUNT_ROOT}/assets/site-packages")
                 sys.path.insert(0, "/root")
                 from workers.rtj.runtime import run_task_inference
 
+                request = json.loads(request_json)
+                task_id = str(request["model_input"]["task"]["task_id"])
+                task_name = task_id.rsplit("/", maxsplit=1)[1]
+                local_run_root = Path(LOCAL_WORK_ROOT) / run_name
                 result = run_task_inference(
                     f"{MOUNT_ROOT}/input",
-                    f"{MOUNT_ROOT}/{run_name}",
+                    str(local_run_root),
                     f"{MOUNT_ROOT}/assets",
-                    json.loads(request_json),
+                    request,
                     row_limit,
                 )
+                local_prediction = local_run_root / "outputs" / task_name / "predictions.parquet"
+                persisted_prediction = (
+                    Path(MOUNT_ROOT) / run_name / "outputs" / task_name / "predictions.parquet"
+                )
+                persisted_prediction.parent.mkdir(parents=True, exist_ok=False)
+                shutil.copyfile(local_prediction, persisted_prediction)
                 volume.commit()
                 return result
 
@@ -320,7 +342,7 @@ class _EphemeralModalSession:
         raw: dict[str, Any] = self._infer.remote(request_json, row_limit, run_name)
         elapsed = time.monotonic() - started
         reference = MaterializedFileReference.model_validate(raw.get("prediction_file"))
-        remote_path = f"/{run_name}/outputs/{self._task_name}/predictions.parquet"
+        remote_path = _volume_prediction_path(self._task_name, run_name)
         self._prediction_root.mkdir(parents=True, exist_ok=True)
         prediction_path = self._prediction_root / "predictions.parquet"
         partial_path = prediction_path.with_suffix(".parquet.part")
@@ -350,7 +372,7 @@ class _EphemeralModalSession:
             config=request.config,
             runtime=RTJRuntimeProvenance(
                 provider="modal",
-                gpu="L4",
+                gpu=self._gpu,
                 duration_seconds=float(raw["duration_seconds"]),
                 source_revision=request.source_revision,
                 checkpoint_revision=request.checkpoint.revision,
@@ -359,7 +381,9 @@ class _EphemeralModalSession:
         return InferenceObservation(
             processed_rows=reference.row_count,
             duration_seconds=Decimal(str(elapsed)),
-            estimated_cost_usd=Decimal(str(elapsed)) * CONSERVATIVE_INFERENCE_USD_PER_SECOND,
+            estimated_cost_usd=(
+                Decimal(str(elapsed)) * CONSERVATIVE_INFERENCE_USD_PER_SECOND[self._gpu]
+            ),
             prediction=prediction,
         )
 

@@ -47,7 +47,7 @@ class RTJInferenceConfig(StrictModel):
     walk_length: Literal[20] = 20
     shuffle_seed: Literal[0] = 0
     context_seed: Literal[101] = 101
-    gpu: Literal["L4"] = "L4"
+    gpu: Literal["L4", "L40S"] = "L4"
 
 
 class RTJInferenceRequest(StrictModel):
@@ -72,7 +72,7 @@ class RTJInferenceRequest(StrictModel):
 
 class RTJRuntimeProvenance(StrictModel):
     provider: Literal["modal", "fake"]
-    gpu: Literal["L4", "none"]
+    gpu: Literal["L4", "L40S", "none"]
     duration_seconds: float = Field(ge=0)
     source_revision: str = Field(pattern=r"^[0-9a-f]{40}$|^synthetic$")
     checkpoint_revision: str = Field(pattern=r"^[0-9a-f]{40}$|^synthetic$")

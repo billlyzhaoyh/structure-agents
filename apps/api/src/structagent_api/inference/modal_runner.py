@@ -7,7 +7,7 @@ import json
 from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
-from typing import Protocol
+from typing import Literal, Protocol
 
 from structagent_api.contracts import CompletedPredictionPackage, RTJInferenceRequest
 from structagent_api.contracts.models import MaterializedFileReference
@@ -27,6 +27,7 @@ SAFETY_FACTOR = Decimal("1.5")
 PROJECTED_COST_GATE_USD = Decimal("23")
 MAX_COMBINED_COST_USD = Decimal("25")
 MAX_COMBINED_DURATION_SECONDS = Decimal(16 * 60 * 60)
+APPROVED_MODAL_GPUS = ("L4", "L40S")
 
 
 class ModalRunnerError(RuntimeError):
@@ -48,7 +49,7 @@ class ModalExecutionPolicy:
     named_volume: bool = False
     modal_secret: bool = False
     asset_staging_network_enabled: bool = True
-    gpu: str = "L4"
+    gpu: Literal["L4", "L40S"] = "L4"
     cpu: int = 8
     memory_mib: int = 32 * 1024
     block_network: bool = True
@@ -212,11 +213,17 @@ def run_modal_inference(
     provider: ModalProvider,
     worker: RTWorker,
     ledger: ProjectionLedger,
+    *,
+    policy: ModalExecutionPolicy | None = None,
 ) -> ModalRunResult:
     """Preflight, budget, and run one task within an ephemeral provider session."""
     uploads = build_upload_manifest(artifact_roots, request)
-    policy = ModalExecutionPolicy()
-    session = provider.create_ephemeral_session(uploads=uploads, policy=policy, worker=worker)
+    selected_policy = policy or ModalExecutionPolicy()
+    if request.config.gpu != selected_policy.gpu:
+        raise ModalRunnerError("gpu_alignment", "Requested and allocated GPUs do not match.")
+    session = provider.create_ephemeral_session(
+        uploads=uploads, policy=selected_policy, worker=worker
+    )
     request_json = request.model_dump_json()
     result: ModalRunResult | None = None
     failure: BaseException | None = None

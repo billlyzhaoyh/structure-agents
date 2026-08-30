@@ -173,13 +173,16 @@ must never be attached through `modal.Secret` or passed to the RT-J worker.
 
 After `materialize-hm-daytona-live` succeeds, a bounded real-data classification cohort can
 exercise the pinned RT-J source and checkpoint on an L4. Pass the pinned database directory,
-the downloaded `user-churn` materialization directory, and a new ignored output directory:
+the downloaded `user-churn` materialization directory, and a new ignored output directory.
+The reviewed default remains an L4; set `RTJ_MODAL_GPU=L40S` for a larger 48 GB inference
+worker when validating resource sensitivity:
 
 ```bash
 STRUCTAGENT_ALLOW_REAL_HM=1 STRUCTAGENT_ALLOW_RTJ_MODAL=1 \
 RTJ_DATASET_ROOT=.artifacts/rel-hm/<revision>/rel-hm/db \
 RTJ_MATERIALIZATION_ROOT=.artifacts/runs/<daytona-run>/tasks/user-churn \
 RTJ_OUTPUT_ROOT=.artifacts/runs/<new-rtj-run> \
+RTJ_MODAL_GPU=L40S \
 make rtj-modal-live
 ```
 

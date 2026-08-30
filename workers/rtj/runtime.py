@@ -142,6 +142,29 @@ def _prediction_file_reference(path: Path, entity_column: str, row_count: int) -
     }
 
 
+def _write_predictions(
+    test_path: Path,
+    prediction_path: Path,
+    entity_column: str,
+    predicted_rows: list[tuple[int, float]],
+) -> None:
+    connection = duckdb.connect(":memory:")
+    try:
+        connection.execute("CREATE TEMP TABLE predicted(row_index BIGINT, prediction DOUBLE)")
+        connection.executemany("INSERT INTO predicted VALUES (?, ?)", predicted_rows)
+        connection.read_parquet(str(test_path)).project(
+            "row_number() OVER () - 1 AS row_index, *"
+        ).create_view("test_rows")
+        connection.execute(
+            f'COPY (SELECT test_rows.timestamp, test_rows."{entity_column}", '
+            "predicted.prediction FROM test_rows JOIN predicted USING(row_index) ORDER BY 1, 2) "
+            "TO ? (FORMAT PARQUET, COMPRESSION ZSTD)",
+            [str(prediction_path)],
+        )
+    finally:
+        connection.close()
+
+
 def run_task_inference(
     input_root: str,
     output_root: str,
@@ -260,25 +283,12 @@ def run_task_inference(
     output_dir = Path(output_root) / "outputs" / task_name
     output_dir.mkdir(parents=True, exist_ok=False)
     prediction_path = output_dir / "predictions.parquet"
-    connection = duckdb.connect(":memory:")
-    try:
-        connection.execute("CREATE TEMP TABLE predicted(row_index BIGINT, prediction DOUBLE)")
-        connection.executemany(
-            "INSERT INTO predicted VALUES (?, ?)",
-            [
-                (int(index), float(value))
-                for index, value in zip(row_indexes, predictions, strict=True)
-            ],
-        )
-        connection.execute(
-            f"COPY (WITH test AS (SELECT row_number() OVER () - 1 AS row_index, * "
-            f'FROM read_parquet(?)) SELECT test.timestamp, test."{entity_column}", '
-            "predicted.prediction FROM test JOIN predicted USING(row_index) ORDER BY 1, 2) "
-            "TO ? (FORMAT PARQUET, COMPRESSION ZSTD)",
-            [str(dataset / "tasks" / task_name / "test.parquet"), str(prediction_path)],
-        )
-    finally:
-        connection.close()
+    _write_predictions(
+        dataset / "tasks" / task_name / "test.parquet",
+        prediction_path,
+        entity_column,
+        [(int(index), float(value)) for index, value in zip(row_indexes, predictions, strict=True)],
+    )
     duration_seconds = time.monotonic() - started
     return {
         "task_id": task_id,
