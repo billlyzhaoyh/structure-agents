@@ -1,8 +1,10 @@
 .DEFAULT_GOAL := help
 
 PRE_COMMIT := uvx --from pre-commit==4.3.0 pre-commit
+PRE_COMMIT_HOME ?= $(CURDIR)/.pre-commit-cache
 UV_CACHE_DIR ?= $(CURDIR)/.uv-cache
 UV_TOOL_DIR ?= $(CURDIR)/.uv-tools
+export PRE_COMMIT_HOME
 export UV_CACHE_DIR
 export UV_TOOL_DIR
 
