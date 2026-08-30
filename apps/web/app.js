@@ -258,7 +258,7 @@ function clarificationForm(objective) {
 function customDraftReview(objective) {
   const draft = objective.taskDraft;
   const contract = taskContractFrom(draft);
-  return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("check")}</span><p><small>SQL validated in Daytona</small><b>Custom task draft ready for human review.</b></p></div><div class="task-preview"><p><small>Entity</small><b>${escapeHtml(contract.entity.table)}</b></p><p><small>Outcome window</small><b>${contract.horizon.value} ${escapeHtml(contract.horizon.unit)}</b></p><p><small>Task</small><b>${escapeHtml(contract.task_type.replaceAll("_", " "))}</b></p></div><div class="sql-review"><header><span>Generated DuckDB SQL</span><i>Review required</i></header><pre>${escapeHtml(draft.sql_artifact.normalized_sql)}</pre><footer>${draft.validation_evidence.row_count.toLocaleString()} validation rows · digest ${escapeHtml(draft.sql_artifact.query_sha256.slice(0, 12))}…</footer></div><div class="fixture-separation"><b>Compilation stops here by design.</b><span>Custom materialization and model inference are not launched until this SQL is reviewed and explicitly approved.</span></div></div>`;
+  return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("check")}</span><p><small>SQL validated in Daytona</small><b>Custom task draft ready for human review.</b></p></div><div class="task-preview"><p><small>Entity</small><b>${escapeHtml(contract.entity.table)}</b></p><p><small>Outcome window</small><b>${contract.horizon.value} ${escapeHtml(contract.horizon.unit)}</b></p><p><small>Task</small><b>${escapeHtml(contract.task_type.replaceAll("_", " "))}</b></p></div><div class="sql-review"><header><span>Generated DuckDB SQL</span><i>Review required</i></header><pre>${escapeHtml(draft.sql_artifact.normalized_sql)}</pre><footer>${draft.validation_evidence.row_count.toLocaleString()} validation rows · digest ${escapeHtml(draft.sql_artifact.query_sha256.slice(0, 12))}…</footer></div><div class="fixture-separation"><b>Demo shortcut.</b><span>The next screen uses seeded pseudo-random metrics. It does not materialize this custom task or run a model.</span></div><button class="agent-action" data-run-simulated>Preview simulated result ${icon("arrow")}</button></div>`;
 }
 
 function materializationReceipt(objective) {
@@ -286,7 +286,9 @@ function objectiveAgentGuidance(objective) {
   }
   if (objective.apiError) {
     const custom = objective.selectedTaskId === "custom";
-    return `<div class="chat agent agent-task data-gap"><div class="agent-task-status"><span>${icon("warning")}</span><p><small>${custom ? "Task compiler" : "Fixture API"}</small><b>${custom ? "The custom task could not be compiled." : "The synthetic evaluation preview is unavailable."}</b></p></div><p>${escapeHtml(objective.apiError)}</p><button class="agent-action" ${custom ? "data-compile-custom" : "data-run-fixture"}>Try again ${icon("arrow")}</button></div>`;
+    const compiled = custom && objective.taskDraft?.outcome === "draft_ready";
+    const simulationError = compiled || !custom;
+    return `<div class="chat agent agent-task data-gap"><div class="agent-task-status"><span>${icon("warning")}</span><p><small>${simulationError ? "Simulation API" : "Task compiler"}</small><b>${simulationError ? "The simulated result is unavailable." : "The custom task could not be compiled."}</b></p></div><p>${escapeHtml(objective.apiError)}</p><button class="agent-action" ${simulationError ? "data-run-simulated" : "data-compile-custom"}>Try again ${icon("arrow")}</button></div>`;
   }
   if (objective.taskDraft?.outcome === "needs_clarification") {
     return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("spark")}</span><p><small>Clarification needed</small><b>I need a little more detail before creating this task.</b></p></div>${clarificationForm(objective)}</div>`;
@@ -302,8 +304,7 @@ function objectiveAgentGuidance(objective) {
     return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("check")}</span><p><small>Objective ready</small><b>The V1 task contract is defined and linked to this objective.</b></p></div><div class="task-preview"><p><small>Entity</small><b>${escapeHtml(contract.entity.table)}</b></p><p><small>Outcome window</small><b>${contract.horizon.value} ${escapeHtml(contract.horizon.unit)}</b></p><p><small>Task</small><b>${escapeHtml(contract.task_type.replaceAll("_", " "))}</b></p></div><button class="agent-action" data-objective-view="insights">Open item insights ${icon("arrow")}</button></div>`;
   }
   if (objective.materialization) {
-    const fixturePreview = objective.selectedTaskId === "rel-hm/item-sales" ? `<button class="agent-action" data-run-fixture>Continue to synthetic evaluation preview ${icon("arrow")}</button>` : `<div class="fixture-separation"><b>Materialization complete.</b><span>No churn evaluation result is available in the current fixture demo.</span></div>`;
-    return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("check")}</span><p><small>Task package verified</small><b>${escapeHtml(task?.display_name ?? objective.selectedTaskId)} completed in Daytona.</b></p></div>${materializationReceipt(objective)}${fixturePreview}</div>`;
+    return `<div class="chat agent agent-task"><div class="agent-task-status"><span>${icon("check")}</span><p><small>Task package verified</small><b>${escapeHtml(task?.display_name ?? objective.selectedTaskId)} completed in Daytona.</b></p></div>${materializationReceipt(objective)}<div class="fixture-separation"><b>Demo shortcut.</b><span>The next screen uses seeded pseudo-random metrics; no model inference is launched.</span></div><button class="agent-action" data-run-simulated>Continue to simulated result ${icon("arrow")}</button></div>`;
   }
   const action = objective.selectedTaskId === "custom"
     ? `<button class="agent-action" data-compile-custom>Compile custom task ${icon("arrow")}</button>`
@@ -313,12 +314,18 @@ function objectiveAgentGuidance(objective) {
 
 function insightsModule(objective) {
   const evaluation = objective.evaluation;
-  const metrics = evaluation?.metrics ?? { mae: "—", rmse: "—", r2: 0 };
+  const classification = evaluation?.task_type === "binary_classification";
+  const metrics = evaluation?.metrics ?? (classification
+    ? { auroc: 0, average_precision: 0, accuracy: 0, f1: 0 }
+    : { mae: "—", rmse: "—", r2: 0 });
   const coverage = evaluation ? `${Math.round(evaluation.coverage * 100)}%` : "—";
-  const fit = evaluation ? `${Math.round(metrics.r2 * 100)}%` : "—";
+  const fit = evaluation ? `${Math.round((classification ? metrics.auroc : metrics.r2) * 100)}%` : "—";
   const checks = evaluation?.integrity_checks ?? [];
-  return `<section class="insights-workspace"><div class="run-context"><div><span>Selected objective</span><b>OBJ-${String(objective.number).padStart(2, "0")} · ${escapeHtml(objective.title)}</b></div>${icon("arrow")}<div><span>Contract run</span><b>${escapeHtml(objective.run?.run_id ?? "Awaiting run")}</b></div><i>${escapeHtml(objective.run?.status ?? "Pending")}</i></div><div class="insights-layout"><div class="insight-summary"><span class="eyebrow">Seven-day regression</span><h2>Useful evidence—with its limits visible.</h2><div class="confidence-ring"><span><b>${fit}</b><small>variance explained</small></span></div><p>The evaluation covers ${coverage} of ${evaluation?.sample_count ?? "—"} eligible articles. Treat this as planning evidence, not an automatic inventory decision.</p><button data-open-decisions>Use this evidence in Decision Studio ${icon("arrow")}</button></div>
-    <div class="feature-panel"><div class="panel-heading"><span>Model evaluation</span><small>Contract metrics</small></div><div class="feature-row"><span>Mean absolute error</span><b></b><small>${metrics.mae}</small></div><div class="feature-row"><span>Root mean squared error</span><b></b><small>${metrics.rmse}</small></div><div class="feature-row"><span>R²</span><b><i style="--width:${Math.max(0, Number(metrics.r2) * 100)}%"></i></b><small>${metrics.r2}</small></div><div class="feature-row"><span>Coverage</span><b><i style="--width:${evaluation ? evaluation.coverage * 100 : 0}%"></i></b><small>${coverage}</small></div><div class="caveat"><b>Provenance</b><span>${escapeHtml(evaluation?.provenance?.model_id ?? "Not available")} · ${escapeHtml(evaluation?.provenance?.dataset_revision ?? "unknown revision")}</span></div></div>
+  const metricRows = classification
+    ? `<div class="feature-row"><span>AUROC</span><b><i style="--width:${Number(metrics.auroc) * 100}%"></i></b><small>${metrics.auroc}</small></div><div class="feature-row"><span>Average precision</span><b><i style="--width:${Number(metrics.average_precision) * 100}%"></i></b><small>${metrics.average_precision}</small></div><div class="feature-row"><span>Accuracy</span><b><i style="--width:${Number(metrics.accuracy) * 100}%"></i></b><small>${metrics.accuracy}</small></div><div class="feature-row"><span>F1</span><b><i style="--width:${Number(metrics.f1) * 100}%"></i></b><small>${metrics.f1}</small></div>`
+    : `<div class="feature-row"><span>Mean absolute error</span><b></b><small>${metrics.mae}</small></div><div class="feature-row"><span>Root mean squared error</span><b></b><small>${metrics.rmse}</small></div><div class="feature-row"><span>R²</span><b><i style="--width:${Math.max(0, Number(metrics.r2) * 100)}%"></i></b><small>${metrics.r2}</small></div>`;
+  return `<section class="insights-workspace"><div class="run-context"><div><span>Selected objective</span><b>OBJ-${String(objective.number).padStart(2, "0")} · ${escapeHtml(objective.title)}</b></div>${icon("arrow")}<div><span>Demo run</span><b>${escapeHtml(objective.run?.run_id ?? "Awaiting run")}</b></div><i>Simulated · not model output</i></div><div class="insights-layout"><div class="insight-summary"><span class="eyebrow">${classification ? "Customer classification" : "Seven-day regression"} · simulated</span><h2>A product-flow preview—not model evidence.</h2><div class="confidence-ring"><span><b>${fit}</b><small>${classification ? "demo AUROC" : "demo variance explained"}</small></span></div><p>The seeded demo covers ${coverage} of ${evaluation?.sample_count ?? "—"} synthetic ${classification ? "customers" : "articles"}. These pseudo-random metrics are for interface testing only.</p><button data-open-decisions>Use this demo in Decision Studio ${icon("arrow")}</button></div>
+    <div class="feature-panel"><div class="panel-heading"><span>Simulated evaluation</span><small>Pseudo-random metrics</small></div>${metricRows}<div class="feature-row"><span>Coverage</span><b><i style="--width:${evaluation ? evaluation.coverage * 100 : 0}%"></i></b><small>${coverage}</small></div><div class="caveat"><b>Provenance</b><span>${escapeHtml(evaluation?.provenance?.model_id ?? "Not available")} · ${escapeHtml(evaluation?.provenance?.dataset_revision ?? "unknown revision")}</span></div></div>
     <div class="cohort-panel"><div class="panel-heading"><span>Integrity checks</span><small>Evaluation contract</small></div>${checks.map((check) => `<button><span><b>${escapeHtml(check.name.replaceAll("_", " "))}</b><small>${escapeHtml(check.detail)}</small></span><strong>${escapeHtml(check.status)}</strong>${icon("arrow")}</button>`).join("")}</div>
   </div></section>`;
 }
@@ -559,28 +566,32 @@ function bind() {
     }
     render();
   });
-  document.querySelector("[data-run-fixture]")?.addEventListener("click", async () => {
+  document.querySelector("[data-run-simulated]")?.addEventListener("click", async () => {
     const objective = getActiveObjective(state);
     objective.apiStatus = "loading";
     objective.apiError = null;
     const minimumWait = minimumInferenceWait();
     render();
     try {
-      const task = selectedDefaultTask(objective);
-      const taskDraft = { contract_version: "v1", outcome: "draft_ready", contract: task };
+      const defaultTask = selectedDefaultTask(objective);
+      const taskDraft = objective.selectedTaskId === "custom"
+        ? objective.taskDraft
+        : { contract_version: "v1", outcome: "draft_ready", contract: defaultTask };
       const contract = taskContractFrom(taskDraft);
-      objective.taskDraft = taskDraft;
+      if (objective.selectedTaskId !== "custom") objective.taskDraft = taskDraft;
       objective.apiStatus = "ready";
       if (!contract) {
         render();
         return;
       }
-      const run = await api.getRun("fixture-hm-run");
-      const evaluation = await api.getEvaluation(run.run_id);
+      const taskId = objective.selectedTaskId === "custom"
+        ? objective.taskDraft.sql_artifact.task_id
+        : contract.task_id;
+      const result = await api.runSimulatedInference(taskId, contract.task_type);
       const latestRun = state.objectives.reduce((highest, item) => Math.max(highest, item.rtjRun ?? 0), 0);
       await minimumWait;
-      objective.run = run;
-      objective.evaluation = evaluation;
+      objective.run = result.run;
+      objective.evaluation = result.evaluation;
       objective.confirmed = true;
       objective.rtjRun = objective.rtjRun ?? latestRun + 1;
       objective.apiStatus = "ready";

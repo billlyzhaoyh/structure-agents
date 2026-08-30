@@ -63,6 +63,15 @@ export function createApiClient({ baseUrl = DEFAULT_API_BASE, fetchImpl = global
       `/v1/task-drafts/${encodeURIComponent(draftId)}/clarifications`,
       { method: "POST", body: JSON.stringify(clarification) },
     ),
+    runSimulatedInference: (taskId, taskType) => request("/v1/inferences/simulated", {
+      method: "POST",
+      body: JSON.stringify({
+        contract_version: "v1",
+        dataset_id: "rel-hm",
+        task_id: taskId,
+        task_type: taskType,
+      }),
+    }),
     getRun: (runId) => request(`/v1/runs/${encodeURIComponent(runId)}`),
     getEvaluation: (runId) => request(`/v1/runs/${encodeURIComponent(runId)}/evaluation`),
   };

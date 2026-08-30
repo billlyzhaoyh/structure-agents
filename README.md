@@ -29,6 +29,8 @@ Implemented today:
 - opt-in SQL materialization in a private ephemeral Daytona CPU sandbox, with network
   blocking, output validation, parity checks, and verified cleanup; and
 - explicit, synthetic-only Daytona launches from the frontend for either reviewed default;
+- an explicitly simulated inference endpoint that returns repeatable pseudo-random metrics for
+  both reviewed task types without calling Modal or presenting the output as model evidence;
 - a revision-pinned RT-J H&M adapter, masked-test preparation, sealed evaluator, and
   deterministic classification/regression vertical slices; and
 - a fakeable Modal controller enforcing exact uploads, isolation policy, preflight projection,
@@ -49,8 +51,9 @@ It does not yet:
 `apps/web` contains a dependency-free interactive Decision OS demo for the hackathon
 journey. Its fashion retail content is a small synthetic placeholder; its SQL database,
 Snowflake, Redshift, and BigQuery connection choices are mock UI only. The demo connects
-to the local API, can explicitly request bounded synthetic Daytona materialization, and uses
-the live task compiler when configured. Catalog, run, and evaluation data remain fixtures.
+to the local API, can explicitly request bounded synthetic Daytona materialization, uses
+the live task compiler when configured, and can continue into a clearly labelled simulated
+result. Simulated metrics are seeded interface fixtures, not model results.
 
 See [architecture](docs/architecture.md), [product flow](docs/product-flow.md), the
 [H&M backend roadmap](docs/backend-roadmap.md), the isolated
@@ -76,6 +79,8 @@ make materialize-hm-local
 
 The local API listens on `http://127.0.0.1:8000`. Alongside `GET /healthz`, it serves the
 reviewed H&M metadata and default-task catalog plus run and evaluation fixtures under `/v1`.
+`POST /v1/inferences/simulated` returns provider-free pseudo-random demo metrics and identifies
+them as simulated in both the response and UI.
 Task-draft routes compile custom H&M tasks only when both provider credentials are configured;
 otherwise they return a sanitized `503`. `POST /v1/materializations/daytona` launches one or
 two explicitly approved reviewed tasks against generated H&M-shaped data. It requires

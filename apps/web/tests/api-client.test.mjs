@@ -54,6 +54,28 @@ test("the client launches an explicitly approved reviewed task in Daytona", asyn
   });
 });
 
+test("the client requests an explicitly simulated inference result", async () => {
+  const calls = [];
+  const client = createApiClient({
+    baseUrl: "http://api.test",
+    fetchImpl: async (...args) => {
+      calls.push(args);
+      return response({ contract_version: "v1", implementation_status: "simulated" });
+    },
+  });
+
+  await client.runSimulatedInference("rel-hm/item-sales", "regression");
+
+  assert.equal(calls[0][0], "http://api.test/v1/inferences/simulated");
+  assert.equal(calls[0][1].method, "POST");
+  assert.deepEqual(JSON.parse(calls[0][1].body), {
+    contract_version: "v1",
+    dataset_id: "rel-hm",
+    task_id: "rel-hm/item-sales",
+    task_type: "regression",
+  });
+});
+
 test("the client loads the reviewed rel-hm default-task catalog", async () => {
   const calls = [];
   const client = createApiClient({

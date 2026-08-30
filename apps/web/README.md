@@ -29,6 +29,7 @@ The frontend boundary also includes:
 - `GET http://127.0.0.1:8000/v1/datasets/rel-hm`; and
 - `GET http://127.0.0.1:8000/v1/tasks/defaults?dataset_id=rel-hm`;
 - `POST http://127.0.0.1:8000/v1/materializations/daytona`;
+- `POST http://127.0.0.1:8000/v1/inferences/simulated`;
 - `POST http://127.0.0.1:8000/v1/task-drafts`; and
 - `POST http://127.0.0.1:8000/v1/task-drafts/{draft_id}/clarifications`.
 
@@ -50,11 +51,14 @@ Default catalog access makes no language-model or compute-provider call. A click
 reviewed task explicitly approves synthetic Daytona SQL materialization; the provider key
 remains in the API environment, and the response arrives only after artifact verification
 and sandbox deletion. This path does not transfer private H&M data or run model inference.
+After materialization, either reviewed default can continue to a seeded pseudo-random result
+screen that is visibly labelled as simulated rather than model evidence.
 
 Selecting **Custom task** or submitting the free-text objective calls the live task-draft
 route. OpenAI receives reviewed schema metadata and aggregate validation evidence only;
 candidate SQL runs in a private Daytona sandbox. Clarification questions are continued through
-the typed stateless route. A successful draft displays its generated SQL and stops for human
-review—custom materialization and inference are not launched by the frontend.
+the typed stateless route. A successful draft displays its generated SQL for human review and
+may continue to the same simulated result screen. Custom materialization and model inference
+are not launched by the frontend.
 
 Run the deterministic API and interaction-model tests with `make test` and `make test-web`.
