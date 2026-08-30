@@ -238,7 +238,7 @@ class RunRecord(FixtureEnvelope):
 
 class IntegrityCheck(StrictModel):
     name: str = Field(min_length=1)
-    passed: bool
+    status: Literal["failed", "not_run", "passed"]
     detail: str = Field(min_length=1)
 
 

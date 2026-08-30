@@ -184,14 +184,19 @@
           "title": "Name",
           "type": "string"
         },
-        "passed": {
-          "title": "Passed",
-          "type": "boolean"
+        "status": {
+          "enum": [
+            "failed",
+            "not_run",
+            "passed"
+          ],
+          "title": "Status",
+          "type": "string"
         }
       },
       "required": [
         "name",
-        "passed",
+        "status",
         "detail"
       ],
       "title": "IntegrityCheck",

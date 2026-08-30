@@ -5,6 +5,7 @@ from typing import Any
 import pytest
 from pydantic import TypeAdapter, ValidationError
 from structagent_api.contracts import DatasetDescriptor, TaskDraftOutcome
+from structagent_api.contracts.models import IntegrityCheck
 
 
 def dataset_payload() -> dict[str, Any]:
@@ -138,3 +139,22 @@ def test_non_generated_query_cannot_contain_sql() -> None:
 
     with pytest.raises(ValidationError, match="cannot contain SQL"):
         TypeAdapter(TaskDraftOutcome).validate_python(draft)
+
+
+def test_integrity_check_distinguishes_not_run_from_passed() -> None:
+    check = IntegrityCheck(
+        name="point_in_time",
+        status="not_run",
+        detail="Synthetic fixture; no validation executed.",
+    )
+
+    assert check.status == "not_run"
+
+    with pytest.raises(ValidationError):
+        IntegrityCheck.model_validate(
+            {
+                "name": "point_in_time",
+                "passed": True,
+                "detail": "Legacy ambiguous representation.",
+            }
+        )
