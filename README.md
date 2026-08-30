@@ -61,7 +61,9 @@ synthetic Daytona materialization. It does not add database or model integration
 See [architecture](docs/architecture.md), [product flow](docs/product-flow.md), the
 [H&M backend roadmap](docs/backend-roadmap.md), the isolated
 [RT-J inference feasibility tests](docs/rtj-inference-feasibility.md), and
-[data and licensing boundaries](docs/data-and-licensing.md).
+[data and licensing boundaries](docs/data-and-licensing.md). The proposed first cached,
+real-run simulation journey is documented in the
+[simulation demo happy path](docs/simulation-demo-happy-path.md).
 
 ## Development
 
