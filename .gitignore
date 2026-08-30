@@ -7,7 +7,6 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 .uv-cache/
-.uv-tools/
 .venv/
 dist/
 build/
