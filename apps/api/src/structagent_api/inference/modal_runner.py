@@ -226,10 +226,14 @@ def run_modal_inference(
         preflight = session.run_inference(request_json, min(PREFLIGHT_ROWS, total_rows))
         projection = _projection(preflight, total_rows)
         _admit(projection, ledger)
-        full = session.run_inference(request_json, None)
-        if full.prediction is None:
+        prediction: CompletedPredictionPackage | None
+        if preflight.processed_rows == total_rows and preflight.prediction is not None:
+            prediction = preflight.prediction
+        else:
+            full = session.run_inference(request_json, None)
+            prediction = full.prediction
+        if prediction is None:
             raise ModalRunnerError("prediction_missing", "Modal returned no sealed prediction.")
-        prediction = full.prediction
         if (
             prediction.task_id != request.model_input.task.task_id
             or prediction.materialization_package_sha256 != request.materialization_package_sha256

@@ -239,6 +239,33 @@ def test_cleanup_runs_when_remote_inference_fails(tmp_path: Path) -> None:
     assert session.cleaned
 
 
+def test_preflight_covering_the_full_cohort_is_not_repeated(tmp_path: Path) -> None:
+    request, roots = _request(tmp_path)
+    rows = request.model_input.test_rows.row_count
+    session = FakeSession(
+        [
+            InferenceObservation(
+                rows,
+                Decimal("1"),
+                Decimal("0.01"),
+                _prediction(request),
+            )
+        ]
+    )
+
+    result = run_modal_inference(
+        request,
+        roots,
+        FakeProvider(session),
+        _worker,
+        ProjectionLedger(),
+    )
+
+    assert result.prediction.task_id == request.model_input.task.task_id
+    assert session.row_limits == [rows]
+    assert session.cleaned
+
+
 def test_cleanup_runs_when_public_asset_staging_fails(tmp_path: Path) -> None:
     request, roots = _request(tmp_path)
 
