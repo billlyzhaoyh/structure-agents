@@ -1,0 +1,50 @@
+{
+  "contract_version": "v1",
+  "fixture": true,
+  "implementation_status": "placeholder",
+  "outcome": "draft_ready",
+  "contract": {
+    "draft_id": "fixture-hm-item-sales",
+    "dataset_id": "rel-hm",
+    "task_type": "regression",
+    "entity": {
+      "table": "article",
+      "key_column": "article_id"
+    },
+    "prediction_time": {
+      "table": "transactions",
+      "column": "t_dat"
+    },
+    "horizon": {
+      "value": 7,
+      "unit": "days"
+    },
+    "target": {
+      "name": "article_sales",
+      "description": "Summed transaction value for an eligible article over the next seven days.",
+      "positive_class": null,
+      "unit": "dataset currency units"
+    },
+    "eligibility_definition": "Articles with at least one transaction in the previous seven days.",
+    "label_definition": "Sum price across the article's transactions during the next seven days.",
+    "query_artifacts": [
+      {
+        "purpose": "eligibility",
+        "status": "not_generated",
+        "dialect": "duckdb",
+        "sql": null
+      },
+      {
+        "purpose": "label",
+        "status": "not_generated",
+        "dialect": "duckdb",
+        "sql": null
+      }
+    ],
+    "recommended_metrics": [
+      "mae",
+      "rmse",
+      "r2"
+    ]
+  }
+}

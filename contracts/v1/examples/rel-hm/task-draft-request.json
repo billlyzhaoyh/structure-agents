@@ -1,0 +1,5 @@
+{
+  "contract_version": "v1",
+  "dataset_id": "rel-hm",
+  "prompt": "How much sales revenue will each article generate over the next seven days?"
+}

@@ -1,0 +1,84 @@
+{
+  "contract_version": "v1",
+  "fixture": true,
+  "implementation_status": "metadata_only",
+  "dataset_id": "rel-amazon",
+  "display_name": "RelBench Amazon",
+  "description": "Metadata-only schema subset for an Amazon review-domain UI fixture.",
+  "supported_task_types": [
+    "binary_classification",
+    "regression"
+  ],
+  "tables": [
+    {
+      "name": "customer",
+      "columns": [
+        {
+          "name": "customer_id",
+          "data_type": "string",
+          "primary_key": true
+        },
+        {
+          "name": "customer_name",
+          "data_type": "string"
+        }
+      ]
+    },
+    {
+      "name": "product",
+      "columns": [
+        {
+          "name": "product_id",
+          "data_type": "string",
+          "primary_key": true
+        },
+        {
+          "name": "title",
+          "data_type": "text"
+        },
+        {
+          "name": "price",
+          "data_type": "number"
+        }
+      ]
+    },
+    {
+      "name": "review",
+      "columns": [
+        {
+          "name": "customer_id",
+          "data_type": "string",
+          "foreign_key": {
+            "table": "customer",
+            "column": "customer_id"
+          }
+        },
+        {
+          "name": "product_id",
+          "data_type": "string",
+          "foreign_key": {
+            "table": "product",
+            "column": "product_id"
+          }
+        },
+        {
+          "name": "review_time",
+          "data_type": "timestamp",
+          "time_column": true
+        },
+        {
+          "name": "rating",
+          "data_type": "number"
+        },
+        {
+          "name": "verified",
+          "data_type": "boolean"
+        },
+        {
+          "name": "review_text",
+          "data_type": "text"
+        }
+      ]
+    }
+  ]
+}

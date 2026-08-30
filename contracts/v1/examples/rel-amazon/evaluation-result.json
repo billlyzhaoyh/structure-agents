@@ -1,0 +1,38 @@
+{
+  "contract_version": "v1",
+  "fixture": true,
+  "implementation_status": "placeholder",
+  "run_id": "fixture-amazon-run",
+  "dataset_id": "rel-amazon",
+  "task_type": "binary_classification",
+  "sample_count": 1000,
+  "coverage": 0.98,
+  "prevalence": 0.42,
+  "metrics": {
+    "auroc": 0.71,
+    "average_precision": 0.68,
+    "log_loss": 0.62,
+    "brier_score": 0.21,
+    "accuracy": 0.66,
+    "f1": 0.64
+  },
+  "provenance": {
+    "dataset_revision": "fixture-only",
+    "model_id": "rt-j-classification-placeholder",
+    "model_revision": "fixture-only",
+    "context_length": 512,
+    "duration_seconds": 0.0
+  },
+  "integrity_checks": [
+    {
+      "name": "point_in_time",
+      "status": "not_run",
+      "detail": "Synthetic fixture; no point-in-time validation executed."
+    },
+    {
+      "name": "prediction_truth_alignment",
+      "status": "not_run",
+      "detail": "Synthetic fixture; no predictions or evaluator truth exist."
+    }
+  ]
+}

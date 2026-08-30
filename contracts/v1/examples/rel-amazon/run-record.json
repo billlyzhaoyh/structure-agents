@@ -1,0 +1,10 @@
+{
+  "contract_version": "v1",
+  "fixture": true,
+  "implementation_status": "placeholder",
+  "run_id": "fixture-amazon-run",
+  "draft_id": "fixture-amazon-churn",
+  "status": "succeeded",
+  "progress_percent": 100,
+  "message": "Synthetic completed-run state for UI development; no execution occurred."
+}

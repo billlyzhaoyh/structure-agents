@@ -1,0 +1,27 @@
+{
+  "contract_version": "v1",
+  "fixture": true,
+  "implementation_status": "placeholder",
+  "outcome": "needs_clarification",
+  "draft_id": "fixture-hm-item-sales",
+  "questions": [
+    {
+      "question_id": "sales_measure",
+      "prompt": "Should article sales mean transaction count or summed transaction value?",
+      "answer_kind": "single_choice",
+      "choices": [
+        "Summed transaction value",
+        "Transaction count"
+      ]
+    },
+    {
+      "question_id": "eligible_articles",
+      "prompt": "Which articles should be eligible for prediction?",
+      "answer_kind": "single_choice",
+      "choices": [
+        "Articles with a transaction in the previous seven days",
+        "All known articles"
+      ]
+    }
+  ]
+}

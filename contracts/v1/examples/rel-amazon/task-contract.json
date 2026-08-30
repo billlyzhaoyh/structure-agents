@@ -1,0 +1,53 @@
+{
+  "contract_version": "v1",
+  "fixture": true,
+  "implementation_status": "placeholder",
+  "outcome": "draft_ready",
+  "contract": {
+    "draft_id": "fixture-amazon-churn",
+    "dataset_id": "rel-amazon",
+    "task_type": "binary_classification",
+    "entity": {
+      "table": "customer",
+      "key_column": "customer_id"
+    },
+    "prediction_time": {
+      "table": "review",
+      "column": "review_time"
+    },
+    "horizon": {
+      "value": 91,
+      "unit": "days"
+    },
+    "target": {
+      "name": "customer_churn",
+      "description": "Whether an eligible customer has no review during the next 91 days.",
+      "positive_class": "no review during the prediction window",
+      "unit": null
+    },
+    "eligibility_definition": "Customers with at least one review in the previous 91 days.",
+    "label_definition": "One when no review occurs in the next 91 days; zero otherwise.",
+    "query_artifacts": [
+      {
+        "purpose": "eligibility",
+        "status": "not_generated",
+        "dialect": "duckdb",
+        "sql": null
+      },
+      {
+        "purpose": "label",
+        "status": "not_generated",
+        "dialect": "duckdb",
+        "sql": null
+      }
+    ],
+    "recommended_metrics": [
+      "auroc",
+      "average_precision",
+      "log_loss",
+      "brier_score",
+      "accuracy",
+      "f1"
+    ]
+  }
+}

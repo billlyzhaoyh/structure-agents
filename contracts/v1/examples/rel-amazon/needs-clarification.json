@@ -1,0 +1,27 @@
+{
+  "contract_version": "v1",
+  "fixture": true,
+  "implementation_status": "placeholder",
+  "outcome": "needs_clarification",
+  "draft_id": "fixture-amazon-churn",
+  "questions": [
+    {
+      "question_id": "churn_definition",
+      "prompt": "What should count as churn during the prediction window?",
+      "answer_kind": "single_choice",
+      "choices": [
+        "No review of any kind",
+        "No verified review"
+      ]
+    },
+    {
+      "question_id": "eligible_population",
+      "prompt": "Which customers should be eligible for prediction?",
+      "answer_kind": "single_choice",
+      "choices": [
+        "Customers with a review in the previous 91 days",
+        "All known customers"
+      ]
+    }
+  ]
+}
