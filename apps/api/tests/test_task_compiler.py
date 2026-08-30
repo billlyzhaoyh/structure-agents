@@ -15,6 +15,7 @@ from structagent_api.compiler.agent import (
     UnsupportedDecision,
     _reviewed_schema_json,
 )
+from structagent_api.compiler.daytona import _SOURCE_FILES
 from structagent_api.compiler.service import TaskCompilerError, draft_id_for
 from structagent_api.compiler.sql import CandidateCache, CandidateSpec
 from structagent_api.contracts import (
@@ -52,6 +53,10 @@ def test_reviewed_compiler_schema_includes_framework_prediction_cutoffs() -> Non
         "EXISTS",
         "SUM",
     ]
+
+
+def test_compiler_sandbox_packages_imported_service_module() -> None:
+    assert "structagent_api/compiler/service.py" in _SOURCE_FILES
 
 
 class FakeEvidenceExecutor:
