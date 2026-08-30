@@ -9,16 +9,17 @@ and no trademark registration or employer affiliation is claimed.
 
 ## Status
 
-This repository is a lightweight monorepo. The initial version contains only a
-health-check API, versioned interface fixtures, and documented extension points for a
-future frontend, task compiler, and RT-J execution worker.
+This repository is a lightweight monorepo. The current version contains a health-check
+API, versioned interface fixtures, a dependency-free frontend demo, and documented
+extension points for a future task compiler and RT-J execution worker.
 
 Implemented today:
 
 - `GET /healthz` in a typed FastAPI application shell;
 - strict V1 Pydantic contracts with generated JSON Schemas;
-- validated, synthetic Amazon classification and H&M regression UI journeys; and
-- explicit placeholders for the frontend and isolated RT-J worker.
+- validated, synthetic Amazon classification and H&M regression interface journeys;
+- an interactive Decision OS frontend demo; and
+- explicit placeholders for the task compiler and isolated RT-J worker.
 
 It does not yet:
 
@@ -28,6 +29,11 @@ It does not yet:
 - ingest a database;
 - generate prediction tasks; or
 - report real model results.
+
+`apps/web` contains a dependency-free interactive Decision OS demo for the hackathon
+journey. Its fashion retail content is a small synthetic placeholder; its SQL database,
+Snowflake, Redshift, and BigQuery connection choices are mock UI only. The demo does
+not add frontend-to-API, database, model, or live-provider integrations.
 
 See [architecture](docs/architecture.md), [product flow](docs/product-flow.md), the
 [H&M backend roadmap](docs/backend-roadmap.md), and
@@ -42,14 +48,14 @@ make sync
 make hooks
 make check-all
 make serve-api
+make serve-web
 make contracts-check
 ```
 
 The local API will listen on `http://127.0.0.1:8000`; its implemented endpoint will be
 `GET /healthz`.
 
-No frontend development server or port is configured. Frontend contributors can start
-from the schemas and clearly marked fixtures under `contracts/v1` without provider keys.
+The frontend demo will listen on `http://127.0.0.1:4173`.
 
 ## Repository workflow
 
