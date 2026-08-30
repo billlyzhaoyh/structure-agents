@@ -13,7 +13,7 @@ authors = [
   { name = "Billy Zhao" },
 ]
 dependencies = [
-  "fastapi==0.116.1",
+  "fastapi==0.141.1",
   "pydantic-settings==2.10.1",
   "uvicorn==0.35.0",
 ]
