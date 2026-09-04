@@ -19,7 +19,7 @@ dependencies = [
   "openai-agents==0.22.0",
   "pydantic-settings==2.10.1",
   "sqlglot==30.17.0",
-  "uvicorn==0.35.0",
+  "uvicorn==0.52.4",
 ]
 
 [tool.hatch.build.targets.wheel]
