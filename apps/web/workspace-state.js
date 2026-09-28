@@ -44,7 +44,7 @@ export function createObjective(state, title = "Define a business outcome") {
     apiStatus: "idle",
     apiError: null,
     collectionPlan: false,
-    strategy: "early",
+    strategy: "member-exclusive",
     chatCount: 2,
     view: "brief",
   };

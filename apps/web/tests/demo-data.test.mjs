@@ -76,15 +76,18 @@ test("business knowledge requires both a success metric and a guardrail", () => 
   assert.equal(businessKnowledgeReady("", ["margin"]), false);
 });
 
-test("a strategy selection exposes concrete demo outcomes", () => {
-  assert.deepEqual(selectStrategy("bundle"), {
-    id: "bundle",
-    name: "Coordinated outfit placement",
-    detail: "Place complementary articles beside predicted high-demand products.",
-    lift: 9.6,
-    margin: 9.1,
-    confidence: 86,
+test("a shortlist selection exposes the ranked simulation profile", () => {
+  assert.deepEqual(selectStrategy("free-shipping"), {
+    id: "free-shipping",
+    rank: 3,
+    name: "Free shipping, plain framing",
+    detail: "No discount depth or purchase threshold attached",
+    stability: 0.64,
   });
+});
+
+test("an unknown shortlist id falls back to the top-ranked profile", () => {
+  assert.equal(selectStrategy("missing").rank, 1);
 });
 
 test("the frontend schema fallback follows the V1 retail table conventions", () => {

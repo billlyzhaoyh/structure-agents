@@ -7,7 +7,12 @@ import {
   integrations,
   moduleNavStatus,
   modules,
+  demoEvaluation,
   selectStrategy,
+  simulationStudy,
+  simulationValidation,
+  simulationDiagnostics,
+  simulationLimitations,
   strategies,
 } from "./demo-data.js";
 import { createApiClient, tableViewModels, taskContractFrom } from "./api-client.js";
@@ -16,6 +21,7 @@ import {
   completeSimulation,
   createObjective,
   createWorkspaceState,
+  WORKSPACE_STORAGE_KEY,
   getActiveObjective,
   loadWorkspaceState,
   saveWorkspaceState,
@@ -44,7 +50,17 @@ const legacyModules = {
 const requestedPage = params.get("module") || legacyModules[params.get("stage")] || null;
 const embeddedObjectiveView = { insights: "insights", decisions: "decisions" }[requestedPage];
 const requestedModule = embeddedObjectiveView ? "objectives" : requestedPage;
-const state = loadWorkspaceState(window.localStorage) ?? createWorkspaceState();
+if (params.get("reset") !== null) {
+  // ?reset starts the demo from the empty setup flow with no stored connection.
+  try {
+    window.localStorage.removeItem(WORKSPACE_STORAGE_KEY);
+  } catch {
+    // A blocked store already means there is nothing to clear.
+  }
+}
+const state = params.get("reset") !== null
+  ? createWorkspaceState()
+  : loadWorkspaceState(window.localStorage) ?? createWorkspaceState();
 let stopWaitingAnimations = () => {};
 if (requestedModule && modules.some((item) => item.id === requestedModule)) state.module = requestedModule;
 if (embeddedObjectiveView || params.get("view")) state.objectiveView = embeddedObjectiveView || params.get("view");
@@ -288,20 +304,35 @@ function insightsModule(objective) {
 
 function decisionsModule(objective) {
   const chosen = selectStrategy(objective.strategy);
+  const banner = `<div class="inheritance-banner"><span>${icon("spark")}</span><p><small>Simulation evidence source</small><b>OBJ-${String(objective.number).padStart(2, "0")} → ${escapeHtml(simulationStudy.id)}</b></p><i>Prediction run · R² ${objective.evaluation?.metrics?.r2 ?? "—"}</i></div>`;
   if (state.simulationStatus === "loading") {
-    return `<section class="decisions-layout simulation-waiting-layout"><div class="inheritance-banner"><span>${icon("spark")}</span><p><small>Simulation evidence source</small><b>OBJ-${String(objective.number).padStart(2, "0")} → ${escapeHtml(objective.run?.run_id ?? "contract run")}</b></p><i>Inherited · R² ${objective.evaluation?.metrics?.r2 ?? "—"}</i></div>${simulationWaitingMarkup()}</section>`;
+    return `<section class="decisions-layout simulation-waiting-layout">${banner}${simulationWaitingMarkup()}</section>`;
   }
-  return `<section class="decisions-layout"><div class="inheritance-banner"><span>${icon("spark")}</span><p><small>Simulation evidence source</small><b>OBJ-${String(objective.number).padStart(2, "0")} → ${escapeHtml(objective.run?.run_id ?? "contract run")}</b></p><i>Inherited · R² ${objective.evaluation?.metrics?.r2 ?? "—"}</i></div><div class="evidence-strip"><p><small>Objective</small><b>${escapeHtml(objective.title)}</b></p><p><small>Planning segment</small><b>High-velocity articles</b></p><p><small>Guardrail</small><b>Protect gross margin</b></p><i>${objective.evaluation?.sample_count ?? "—"} evaluated articles</i></div>
-    <div class="meeting-panel"><header><span>S</span><p><b>Strategy partner</b><small>Model evidence + scenario model</small></p><i>Working session</i></header><div class="chat-thread"><div class="chat agent"><p>The seven-day model indicates demand concentration in a small set of articles. A blanket markdown could trade away margin. Which merchandising lever should we test first?</p><small>Grounded in the selected objective’s evaluation contract</small></div><div class="chat human"><p>Give predicted high-demand articles more prominent placement without discounting them.</p></div>${objective.chatCount > 2 ? `<div class="chat agent"><p>That preserves price integrity. I’d compare featured placement with replenishment priority and monitor stock-out exposure as the guardrail.</p><small>2 assumptions added to the scenario</small></div>` : ""}</div><form class="strategy-compose"><label for="strategy-input">Ask about an action, offer or merchandising change</label><div><input id="strategy-input" value="How can we protect margin?"><button>${icon("arrow")}</button></div></form></div>
-    <div class="intervention-panel"><div class="panel-heading"><span>Candidate interventions</span><small>Scenario layer · ${objective.evaluation?.sample_count ?? "—"} evaluated articles</small></div>${strategies.map((item) => `<button data-strategy="${item.id}" class="intervention ${objective.strategy === item.id ? "selected" : ""}"><span></span><p><b>${item.name}</b><small>${item.detail}</small></p><strong>+${item.lift}%<small>sales</small></strong></button>`).join("")}<div class="strategy-score"><p><small>Expected lift</small><b>+${chosen.lift}%</b></p><p><small>Margin effect</small><b>+${chosen.margin}%</b></p><p><small>Scenario confidence</small><b>${chosen.confidence}%</b></p></div><button class="primary" data-stage-experiment>Stage this experiment ${icon("arrow")}</button></div>
+  const tasks = (simulationStudy.respondents * simulationStudy.tasksPerRespondent).toLocaleString("en-GB");
+  return `<section class="decisions-layout">${banner}<div class="evidence-strip"><p><small>Reviewed study</small><b>${escapeHtml(simulationStudy.title)}</b></p><p><small>Eligible population</small><b>${escapeHtml(simulationStudy.population)}</b></p><p><small>Design</small><b>${simulationStudy.respondents} respondents · ${tasks} choice tasks</b></p><i>Simulated screening evidence</i></div>
+    <div class="meeting-panel"><header><span>S</span><p><b>Strategy partner</b><small>Prediction evidence + discrete-choice study</small></p><i>Working session</i></header><div class="chat-thread"><div class="chat agent"><p>The seven-day model indicates demand concentration in a small set of articles. A blanket markdown could trade away margin. Which promotional offers should we screen before committing to a test?</p><small>Grounded in the selected objective’s evaluation contract</small></div><div class="chat human"><p>Compare member-only pricing against a straight percentage discount, and keep margin protected.</p></div>${objective.chatCount > 2 ? `<div class="chat agent"><p>Screened. Member exclusive pricing ranks first and holds its rank across resamples; urgency cues add little on their own.</p><small>3 offer profiles returned from the reviewed study</small></div>` : ""}</div><form class="strategy-compose"><label for="strategy-input">Ask about an offer, framing or promotional change</label><div><input id="strategy-input" value="Does urgency framing help?"><button>${icon("arrow")}</button></div></form></div>
+    <div class="intervention-panel"><div class="panel-heading"><span>Validation</span><small>Checked before any ranking is shown</small></div><ul class="gate-list">${simulationValidation.map((entry) => `<li class="${entry.status}"><span>${icon("check")}</span><p><b>${escapeHtml(entry.gate)}${entry.hard ? " <i>hard gate</i>" : ""}</b><small>${escapeHtml(entry.summary)}</small></p></li>`).join("")}</ul>
+      <div class="panel-heading shortlist-heading"><span>Shortlist</span><small>Ranked offer profiles · rank stability</small></div>${strategies.map((item) => `<button data-strategy="${item.id}" class="intervention ${objective.strategy === item.id ? "selected" : ""}"><span></span><p><b><em>${item.rank}</em>${escapeHtml(item.name)}</b><small>${escapeHtml(item.detail)}</small></p><strong>${Math.round(item.stability * 100)}%<small>rank stability</small></strong></button>`).join("")}
+      <ul class="limitations">${simulationLimitations.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>
+      <button class="primary" data-stage-experiment>Stage a field experiment for ${escapeHtml(chosen.name)} ${icon("arrow")}</button></div>
+    <div class="diagnostics-panel"><div class="panel-heading"><span>Simulated-choice diagnostics</span><small>Percentage points of simulated choice share against the no-offer baseline — not a business impact estimate</small></div><div class="diagnostic-rows">${simulationDiagnostics.map((row) => diagnosticRow(row)).join("")}</div></div>
   </section>`;
+}
+
+function diagnosticRow(row) {
+  if (row.suppressed) {
+    return `<div class="diagnostic suppressed"><p><small>${escapeHtml(row.attribute)}</small><b>${escapeHtml(row.level)}</b></p><span>Suppressed</span><i>${escapeHtml(row.reason)}</i></div>`;
+  }
+  const scale = 20;
+  const width = Math.min(100, (Math.abs(row.estimate) / scale) * 100);
+  return `<div class="diagnostic"><p><small>${escapeHtml(row.attribute)}</small><b>${escapeHtml(row.level)}</b></p><span><i style="--width:${width}%"></i></span><i>+${row.estimate.toFixed(1)} pp <em>CI ${row.low.toFixed(1)} to ${row.high.toFixed(1)}</em></i></div>`;
 }
 
 function experimentsModule() {
   return `<section class="experiments-layout"><div class="experiments-heading"><div><span class="eyebrow">Experiment portfolio</span><h2>Measure what happened. Keep what the business learned.</h2><p>Monitor active tests against the success metric and guardrails defined in Business Knowledge.</p></div><button class="secondary" data-new-experiment>${icon("plus")} New experiment</button></div>
     ${state.showExperimentForm ? `<div class="experiment-draft"><div><small>New experiment plan</small><h3>Test another intervention</h3></div><p><span>Population</span><b>High-velocity articles</b></p><p><span>Primary metric</span><b>${state.metric}</b></p><button data-launch-experiment>Start demo test ${icon("arrow")}</button></div>` : ""}
-    <div class="active-experiment"><header><div><span></span><p><small>Active · day 6 of 7</small><b>Featured placement</b></p></div><strong>+12.1%<small>item sales</small></strong></header><div class="chart-legend"><span><i></i>Featured placement</span><span><i></i>Business as usual</span></div><svg viewBox="0 0 720 280" preserveAspectRatio="none" aria-label="Experiment performance chart"><g><path d="M0 55H720M0 120H720M0 185H720M0 250H720"/></g><path class="area" d="M0 235 C80 220 90 214 140 205 S230 170 285 178 S370 130 430 140 S520 100 575 90 S665 45 720 50 V280H0Z"/><path class="result" d="M0 235 C80 220 90 214 140 205 S230 170 285 178 S370 130 430 140 S520 100 575 90 S665 45 720 50"/><path class="control" d="M0 240 C90 230 105 223 160 218 S270 205 330 195 S430 184 500 170 S620 160 720 145"/></svg><footer><span>Launch</span><span>Day 2</span><span>Day 4</span><span>Today</span></footer></div>
-    <aside class="learning-card"><span>${state.banked ? icon("check") : icon("spark")}</span><small>${state.banked ? "Learning banked" : "Ready to bank"}</small><h3>${state.banked ? "Featured placement improved sales without margin erosion." : "Featured placement is increasing seven-day item sales."}</h3><p>The experiment remains inside the gross-margin and stock-out guardrails.</p><dl><div><dt>Scenario model</dt><dd>${state.banked ? "v1.1" : "v1.0"}</dd></div><div><dt>Model belief</dt><dd>${state.banked ? "+8%" : "Pending"}</dd></div></dl><button data-bank ${state.banked ? "disabled" : ""}>${state.banked ? "Banked to decision memory" : "Bank this learning"} ${icon(state.banked ? "check" : "arrow")}</button></aside>
+    <div class="active-experiment"><header><div><span></span><p><small>Active · day 6 of 7</small><b>Member exclusive price, 20% off</b></p></div><strong>+12.1%<small>item sales</small></strong></header><div class="chart-legend"><span><i></i>Featured placement</span><span><i></i>Business as usual</span></div><svg viewBox="0 0 720 280" preserveAspectRatio="none" aria-label="Experiment performance chart"><g><path d="M0 55H720M0 120H720M0 185H720M0 250H720"/></g><path class="area" d="M0 235 C80 220 90 214 140 205 S230 170 285 178 S370 130 430 140 S520 100 575 90 S665 45 720 50 V280H0Z"/><path class="result" d="M0 235 C80 220 90 214 140 205 S230 170 285 178 S370 130 430 140 S520 100 575 90 S665 45 720 50"/><path class="control" d="M0 240 C90 230 105 223 160 218 S270 205 330 195 S430 184 500 170 S620 160 720 145"/></svg><footer><span>Launch</span><span>Day 2</span><span>Day 4</span><span>Today</span></footer></div>
+    <aside class="learning-card"><span>${state.banked ? icon("check") : icon("spark")}</span><small>${state.banked ? "Learning banked" : "Ready to bank"}</small><h3>${state.banked ? "Member exclusive pricing improved sales without margin erosion." : "Member exclusive pricing is increasing seven-day item sales."}</h3><p>The experiment remains inside the gross-margin and stock-out guardrails.</p><dl><div><dt>Scenario model</dt><dd>${state.banked ? "v1.1" : "v1.0"}</dd></div><div><dt>Model belief</dt><dd>${state.banked ? "+8%" : "Pending"}</dd></div></dl><button data-bank ${state.banked ? "disabled" : ""}>${state.banked ? "Banked to decision memory" : "Bank this learning"} ${icon(state.banked ? "check" : "arrow")}</button></aside>
   </section>`;
 }
 
@@ -455,7 +486,7 @@ function bind() {
       await minimumWait;
       objective.taskDraft = taskDraft;
       objective.run = run;
-      objective.evaluation = evaluation;
+      objective.evaluation = { ...evaluation, ...demoEvaluation };
       objective.confirmed = true;
       objective.rtjRun = objective.rtjRun ?? latestRun + 1;
       objective.apiStatus = "ready";

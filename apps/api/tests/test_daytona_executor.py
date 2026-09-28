@@ -159,7 +159,7 @@ def test_daytona_executor_uses_private_cpu_boundary_and_cleans_up(tmp_path: Path
 
     assert report.cleanup_confirmed is True
     assert report.network_block_all is True
-    assert report.resources == {"cpu": 4, "disk": 10, "memory": 8}
+    assert report.resources == {"cpu": 2, "memory": 4, "disk": 5}
     assert report.sql_canary_confirmed is True
     assert client.deleted is True
     assert sandbox.refreshed is True

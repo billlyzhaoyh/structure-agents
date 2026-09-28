@@ -20,6 +20,8 @@ REMOTE_SOURCE: Final = f"{REMOTE_ROOT}/src"
 REMOTE_INPUT: Final = f"{REMOTE_ROOT}/input"
 REMOTE_OUTPUT: Final = f"{REMOTE_ROOT}/output"
 SANDBOX_TTL_MINUTES: Final = 15
+# Sized to fit the reviewed organization sandbox quota alongside one other sandbox.
+SANDBOX_RESOURCES: Final = {"cpu": 2, "memory": 4, "disk": 5}
 PROCESS_TIMEOUT_SECONDS: Final = 600
 SQL_CANARY_MARKER: Final = "structagent-sql-canary"
 
@@ -130,7 +132,11 @@ def _sandbox_params() -> CreateSandboxFromImageParams:
         ttl_minutes=SANDBOX_TTL_MINUTES,
         network_block_all=True,
         ephemeral=True,
-        resources=Resources(cpu=4, memory=8, disk=10),
+        resources=Resources(
+            cpu=SANDBOX_RESOURCES["cpu"],
+            memory=SANDBOX_RESOURCES["memory"],
+            disk=SANDBOX_RESOURCES["disk"],
+        ),
     )
 
 
@@ -325,7 +331,7 @@ def execute_daytona_materialization(
         report = DaytonaExecutionReport(
             cleanup_confirmed=True,
             network_block_all=True,
-            resources={"cpu": 4, "disk": 10, "memory": 8},
+            resources=dict(SANDBOX_RESOURCES),
             results=results,
             sql_canary_confirmed=True,
         )

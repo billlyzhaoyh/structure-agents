@@ -32,31 +32,82 @@ export const demoData = {
   ],
 };
 
+// Demo presentation values for the prediction run. The committed API fixture stays
+// synthetic and unexecuted; these are the numbers the demo narrates over it.
+export const demoEvaluation = {
+  sample_count: 9860,
+  coverage: 0.94,
+  metrics: { mae: 8.7, rmse: 14.2, r2: 0.61 },
+  provenance: {
+    dataset_revision: "rel-hm@d8e976fd",
+    model_id: "relational foundation model",
+    model_revision: "demo placeholder",
+    context_length: 512,
+    duration_seconds: 43.8,
+  },
+  integrity_checks: [
+    { name: "point_in_time", status: "passed", detail: "Every feature row is bounded by its own prediction timestamp." },
+    { name: "prediction_truth_alignment", status: "passed", detail: "Predictions and evaluator truth align on article and prediction timestamp." },
+    { name: "masked_test_isolation", status: "passed", detail: "The model package never received evaluator-owned test labels." },
+  ],
+};
+
+export const simulationStudy = {
+  id: "rel-hm/promo-conjoint-v1",
+  title: "H&M promotional offer screening",
+  decision:
+    "Rank promotional offer designs for one eligible customer population to shortlist candidates for a field experiment.",
+  population: "Customers with a transaction before 2020-09-07",
+  respondents: 400,
+  tasksPerRespondent: 10,
+  status: "recommended",
+};
+
 export const strategies = [
   {
-    id: "early",
-    name: "Featured placement",
-    detail: "Give high-velocity articles more prominent placement without discounting.",
-    lift: 11.8,
-    margin: 7.2,
-    confidence: 81,
+    id: "member-exclusive",
+    rank: 1,
+    name: "Member exclusive price, 20% off",
+    detail: "Member perk framing · no urgency cue · no purchase threshold",
+    stability: 0.92,
   },
   {
-    id: "credit",
-    name: "Replenishment priority",
-    detail: "Move predicted high-demand articles forward in replenishment planning.",
-    lift: 16.4,
-    margin: 2.1,
-    confidence: 74,
+    id: "percent-off",
+    rank: 2,
+    name: "Straight 20% off, weekend only",
+    detail: "New-season framing · weekend urgency cue",
+    stability: 0.78,
   },
   {
-    id: "bundle",
-    name: "Coordinated outfit placement",
-    detail: "Place complementary articles beside predicted high-demand products.",
-    lift: 9.6,
-    margin: 9.1,
-    confidence: 86,
+    id: "free-shipping",
+    rank: 3,
+    name: "Free shipping, plain framing",
+    detail: "No discount depth or purchase threshold attached",
+    stability: 0.64,
   },
+];
+
+export const simulationValidation = [
+  { gate: "Certification currency", hard: true, status: "passed", summary: "Certification suite is current for the pinned respondent model." },
+  { gate: "Design invariants", hard: true, status: "passed", summary: "All 4,000 choice tasks satisfied applicability and balance rules." },
+  { gate: "Declared monotonicity", hard: true, status: "passed", summary: "Deeper discounts never reduced simulated choice share." },
+  { gate: "Randomization balance", hard: false, status: "passed", summary: "Maximum level imbalance 0.02 across respondents." },
+  { gate: "Sentinel repeat variance", hard: false, status: "passed", summary: "Repeat sentinel tasks stayed inside the declared bound at 0.031." },
+];
+
+export const simulationDiagnostics = [
+  { attribute: "Discount form", level: "Member exclusive price", estimate: 14.2, low: 10.8, high: 17.6, suppressed: false },
+  { attribute: "Discount form", level: "Percent off", estimate: 11.5, low: 8.1, high: 14.9, suppressed: false },
+  { attribute: "Discount depth", level: "20 percent", estimate: 6.9, low: 4.2, high: 9.6, suppressed: false },
+  { attribute: "Framing", level: "Member perk", estimate: 3.1, low: 0.6, high: 5.6, suppressed: false },
+  { attribute: "Urgency", level: "Weekend only", estimate: 2.4, low: -0.3, high: 5.1, suppressed: false },
+  { attribute: "Purchase threshold", level: "Buy 2", suppressed: true, reason: "Below the declared precision floor" },
+];
+
+export const simulationLimitations = [
+  "Simulated screening evidence from language-model respondents, not observed customer behaviour.",
+  "No causal uplift, incrementality, elasticity or revenue claim is made or implied.",
+  "The ranking shortlists candidates for a field experiment; it does not measure business impact.",
 ];
 
 export function getIntegration(id) {
