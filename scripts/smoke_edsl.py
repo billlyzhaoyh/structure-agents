@@ -14,7 +14,7 @@ from structagent_api.contracts.simulation import SimulationPlanRequest
 from structagent_api.simulation.design import generate_run_plan
 from structagent_api.simulation.edsl import reviewed_edsl_smoke_request
 from structagent_api.simulation.edsl_daytona_executor import (
-    EXPECTED_PARROT_DOMAIN,
+    OPENAI_DOMAIN,
     EdslDaytonaError,
     execute_daytona_edsl_smoke,
 )
@@ -42,22 +42,22 @@ def main() -> int:
     parser.add_argument("--runs-root", type=Path, default=Path(".artifacts/runs"))
     args = parser.parse_args()
 
-    if not os.environ.get("DAYTONA_API_KEY") or not os.environ.get("EXPECTED_PARROT_API_KEY"):
-        parser.error("DAYTONA_API_KEY and EXPECTED_PARROT_API_KEY are required")
+    if not os.environ.get("DAYTONA_API_KEY") or not os.environ.get("OPENAI_API_KEY"):
+        parser.error("DAYTONA_API_KEY and OPENAI_API_KEY are required")
 
     run_root = _run_root(args.runs_root)
     plan = generate_run_plan(_reviewed_request())
     request = reviewed_edsl_smoke_request(plan.tasks[0])
     client = Daytona()
     secret = None
-    secret_name = f"structagent-ep-smoke-{uuid.uuid4().hex[:12]}"
+    secret_name = f"structagent-oai-smoke-{uuid.uuid4().hex[:12]}"
     try:
         secret = client.secret.create(
             CreateSecretParams(
                 name=secret_name,
-                value=os.environ["EXPECTED_PARROT_API_KEY"],
+                value=os.environ["OPENAI_API_KEY"],
                 description="Temporary StructAgent EDSL integration smoke",
-                hosts=[EXPECTED_PARROT_DOMAIN],
+                hosts=[OPENAI_DOMAIN],
             )
         )
         report = execute_daytona_edsl_smoke(

@@ -36,7 +36,8 @@ Implemented today:
 - opt-in execution of the simulation design planner in the same kind of private ephemeral
   Daytona boundary, using placeholder agents and returning a verified canonical run plan;
 - an opt-in, three-repeat EDSL integration smoke using one system-pinned respondent model,
-  opaque Daytona Secret transport, private Expected Parrot results, and synthetic traits;
+  opaque Daytona Secret transport, direct provider inference inside the sandbox, and
+  synthetic traits;
 - a revision-pinned RT-J H&M adapter, masked-test preparation, sealed evaluator, and
   deterministic classification/regression vertical slices;
 - a fakeable Modal controller enforcing exact uploads, isolation policy, preflight projection,
@@ -194,11 +195,22 @@ ignored `.env` and run:
 make simulation-edsl-daytona-smoke
 ```
 
-The smoke creates a short-lived Daytona Secret scoped to Expected Parrot, mounts only its
-opaque placeholder into a domain-allowlisted sandbox, runs three private responses through
-EDSL 1.0.8 and the system-pinned `gpt-5.6-luna`, downloads a canonical sanitized
-result, then deletes both the sandbox and temporary secret. It is a paid integration check,
-not a study result, and does not access H&M rows.
+The smoke creates a short-lived Daytona Secret scoped to `api.openai.com`, mounts only its
+opaque placeholder into a domain-allowlisted sandbox, runs three responses through EDSL 1.0.8
+and the system-pinned `gpt-4.1-mini` using in-sandbox inference, downloads a canonical
+sanitized result, then deletes both the sandbox and temporary secret. It is a paid integration
+check, not a study result, and does not access H&M rows.
+
+To exercise the same boundary across a bounded slice of the reviewed H&M design, with real
+derived personas rather than placeholders, run:
+
+```bash
+make simulation-demo-pilot PILOT_PERSONAS=25
+```
+
+The pilot executes a genuine sub-plan of the approved study and reports response counts, the
+choice distribution, and cleanup evidence. It is never promoted to the artifact cache, because
+a partial population cannot support a population-level estimate.
 
 ## Testing RT-J and the Modal boundary
 

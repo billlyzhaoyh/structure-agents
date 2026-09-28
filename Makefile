@@ -8,10 +8,11 @@ RTJ_DATASET_ROOT ?=
 RTJ_MATERIALIZATION_ROOT ?=
 RTJ_OUTPUT_ROOT ?=
 RTJ_SAMPLE_SIZE ?= 32
+PILOT_PERSONAS ?= 25
 export PRE_COMMIT_HOME
 export UV_CACHE_DIR
 
-.PHONY: help sync lock hooks format format-check lint typecheck test test-web test-materializer test-rtj test-compiler build contracts-export contracts-check quality-all check check-all serve-api serve-web modal-auth-check rtj-modal-live hm-data-sync hm-data-verify materialize-hm-local materialize-hm-daytona-smoke materialize-hm-daytona-live simulation-plan-local simulation-plan-daytona-smoke simulation-edsl-daytona-smoke simulation-demo-refresh simulation-demo-verify
+.PHONY: help sync lock hooks format format-check lint typecheck test test-web test-materializer test-rtj test-compiler build contracts-export contracts-check quality-all check check-all serve-api serve-web modal-auth-check rtj-modal-live hm-data-sync hm-data-verify materialize-hm-local materialize-hm-daytona-smoke materialize-hm-daytona-live simulation-plan-local simulation-plan-daytona-smoke simulation-edsl-daytona-smoke simulation-demo-pilot simulation-demo-refresh simulation-demo-verify
 
 help: ## Show available commands
 	@awk 'BEGIN {FS = ":.*## "}; /^[a-zA-Z_-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -101,6 +102,9 @@ simulation-plan-daytona-smoke: ## Generate and verify the reviewed design in Day
 
 simulation-edsl-daytona-smoke: ## Run three real EDSL responses for one reviewed task
 	uv run $(ENV_FILE_ARGS) --frozen python scripts/smoke_edsl.py
+
+simulation-demo-pilot: ## Run a bounded slice of the reviewed design in Daytona without caching
+	uv run $(ENV_FILE_ARGS) --frozen python scripts/simulation_demo.py pilot --persona-limit $(PILOT_PERSONAS)
 
 simulation-demo-refresh: ## Refresh the real H&M-conditioned simulation artifact cache
 	uv run $(ENV_FILE_ARGS) --frozen python scripts/simulation_demo.py refresh

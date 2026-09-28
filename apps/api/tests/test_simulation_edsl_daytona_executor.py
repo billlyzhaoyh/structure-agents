@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import json
 from collections.abc import Callable
 from pathlib import Path
@@ -20,6 +21,7 @@ from structagent_api.simulation.edsl import (
     reviewed_edsl_smoke_request,
 )
 from structagent_api.simulation.edsl_daytona_executor import (
+    _SOURCE_FILES,
     DOMAIN_ALLOW_LIST,
     REMOTE_REQUEST,
     REMOTE_RESULT,
@@ -71,6 +73,7 @@ class FakeProcess:
                     {
                         "marker": RUNTIME_CANARY_MARKER,
                         "edsl": "1.0.8",
+                        "openai": "3.6.0",
                         "pydantic": "2.13.5",
                     }
                 )
@@ -168,12 +171,12 @@ def test_edsl_executor_mounts_opaque_secret_verifies_result_and_cleans_up(
     report = execute_daytona_edsl_smoke(
         request,
         output_path,
-        "expected-parrot-test-secret",
+        "openai-test-secret",
         client_factory=lambda: client,
     )
 
     assert report.cleanup_confirmed is True
-    assert report.domain_allow_list == ("api.expectedparrot.com", "storage.googleapis.com")
+    assert report.domain_allow_list == ("api.openai.com",)
     assert report.secret_transport == "daytona_opaque_placeholder"
     assert report.result.choices[2].selected == "no_choice"
     assert output_path.read_text(encoding="utf-8") == canonical_contract_json(report.result) + "\n"
@@ -183,14 +186,12 @@ def test_edsl_executor_mounts_opaque_secret_verifies_result_and_cleans_up(
     assert client.created_params.public is False
     assert client.created_params.domain_allow_list == DOMAIN_ALLOW_LIST
     assert client.created_params.network_block_all is None
-    assert client.created_params.secrets == {
-        "EXPECTED_PARROT_API_KEY": "expected-parrot-test-secret"
-    }
+    assert client.created_params.secrets == {"OPENAI_API_KEY": "openai-test-secret"}
     assert client.created_params.env_vars is None
     request_upload = next(src for src, dst in sandbox.fs.uploads if dst == REMOTE_REQUEST)
     assert isinstance(request_upload, bytes)
-    assert b"EXPECTED_PARROT_API_KEY" not in request_upload
-    assert b"expected-parrot-test-secret" not in request_upload
+    assert b"OPENAI_API_KEY" not in request_upload
+    assert b"openai-test-secret" not in request_upload
     assert any(dst.endswith("simulation/edsl_runner.py") for _, dst in sandbox.fs.uploads)
 
 
@@ -206,7 +207,7 @@ def test_edsl_executor_rejects_provider_trace_and_cleans_up(tmp_path: Path) -> N
         execute_daytona_edsl_smoke(
             request,
             tmp_path / "result.json",
-            "expected-parrot-test-secret",
+            "openai-test-secret",
             client_factory=lambda: client,
         )
 
@@ -228,7 +229,7 @@ def test_edsl_executor_rejects_unconfirmed_domain_policy_and_cleans_up(
         execute_daytona_edsl_smoke(
             request,
             tmp_path / "result.json",
-            "expected-parrot-test-secret",
+            "openai-test-secret",
             client_factory=lambda: client,
         )
 
@@ -249,10 +250,49 @@ def test_edsl_executor_rejects_tampered_result_and_cleans_up(tmp_path: Path) -> 
         execute_daytona_edsl_smoke(
             request,
             tmp_path / "result.json",
-            "expected-parrot-test-secret",
+            "openai-test-secret",
             client_factory=lambda: client,
         )
 
     assert raised.value.code == "artifact_integrity"
     assert client.deleted is True
     assert not (tmp_path / "result.json").exists()
+
+
+def test_sandbox_source_list_is_import_closed() -> None:
+    """Every structagent module the sandbox entry points import must be uploaded.
+
+    The sandbox has only the files in _SOURCE_FILES on its PYTHONPATH, so any
+    structagent import reachable from the entry points -- including the package
+    __init__ files Python executes on the way -- has to be in that tuple. A merge
+    that adds a new import to an uploaded module otherwise fails at runtime, in
+    Daytona, after the sandbox and a paid secret already exist.
+    """
+
+    source_root = Path(__file__).resolve().parents[1] / "src"
+    uploaded = set(_SOURCE_FILES)
+    missing: set[str] = set()
+
+    def required_paths(module: str) -> list[str]:
+        parts = module.split(".")
+        needed = ["/".join(parts[:index]) + "/__init__.py" for index in range(1, len(parts))]
+        if (source_root / ("/".join(parts) + ".py")).is_file():
+            needed.append("/".join(parts) + ".py")
+        elif (source_root / "/".join(parts) / "__init__.py").is_file():
+            needed.append("/".join(parts) + "/__init__.py")
+        return needed
+
+    for relative_path in _SOURCE_FILES:
+        tree = ast.parse((source_root / relative_path).read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            modules: list[str] = []
+            if isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
+                modules.append(node.module)
+            elif isinstance(node, ast.Import):
+                modules.extend(alias.name for alias in node.names)
+            for module in modules:
+                if not module.startswith("structagent_api"):
+                    continue
+                missing.update(p for p in required_paths(module) if p not in uploaded)
+
+    assert missing == set(), f"sandbox upload list is missing: {sorted(missing)}"

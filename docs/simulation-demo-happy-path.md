@@ -159,7 +159,7 @@ and verification.
    cache-loading state, validation-first result view, and field-experiment handoff. Remove
    percentage uplift claims from this path.
 7. **Credentialed acceptance run** — refresh the cache with the approved H&M snapshot and
-   `gpt-5.6-luna`, verify cleanup and artifact digests, then rehearse the browser journey with
+   `gpt-4.1-mini`, verify cleanup and artifact digests, then rehearse the browser journey with
    network access disabled after the cache is warm.
 
 ## Acceptance criteria

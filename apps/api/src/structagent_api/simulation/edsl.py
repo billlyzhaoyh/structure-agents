@@ -14,7 +14,7 @@ from structagent_api.contracts.simulation import (
 )
 
 EDSL_VERSION: Final[Literal["1.0.8"]] = "1.0.8"
-RESPONDENT_MODEL_ID: Final[Literal["gpt-5.6-luna"]] = "gpt-5.6-luna"
+RESPONDENT_MODEL_ID: Final[Literal["gpt-4.1-mini"]] = "gpt-4.1-mini"
 RESPONDENT_MODEL_SERVICE: Final[Literal["openai"]] = "openai"
 REPEAT_COUNT: Final[Literal[3]] = 3
 
@@ -35,7 +35,7 @@ class EdslSmokeRequest(StrictModel):
     agent_key: str = Field(min_length=1, max_length=200)
     traits: tuple[AgentTrait, ...]
     task: ChoiceTask
-    respondent_model_id: Literal["gpt-5.6-luna"] = RESPONDENT_MODEL_ID
+    respondent_model_id: Literal["gpt-4.1-mini"] = RESPONDENT_MODEL_ID
     respondent_model_service: Literal["openai"] = RESPONDENT_MODEL_SERVICE
     edsl_version: Literal["1.0.8"] = EDSL_VERSION
     repeats: Literal[3] = REPEAT_COUNT
@@ -78,7 +78,7 @@ class EdslSmokeResult(StrictModel):
     evidence_kind: Literal["simulated"] = "simulated"
     agent_source: Literal["synthetic_placeholder"] = "synthetic_placeholder"
     task_id: str = Field(min_length=1)
-    respondent_model_id: Literal["gpt-5.6-luna"] = RESPONDENT_MODEL_ID
+    respondent_model_id: Literal["gpt-4.1-mini"] = RESPONDENT_MODEL_ID
     respondent_model_service: Literal["openai"] = RESPONDENT_MODEL_SERVICE
     edsl_version: Literal["1.0.8"] = EDSL_VERSION
     choices: tuple[EdslChoiceRecord, EdslChoiceRecord, EdslChoiceRecord]
@@ -165,6 +165,8 @@ def run_edsl_smoke(request: EdslSmokeRequest) -> EdslSmokeResult:
 
     if edsl.__version__ != EDSL_VERSION:
         raise ValueError("the EDSL runtime version is not pinned")
+    if not os.environ.get("OPENAI_API_KEY"):
+        raise ValueError("the OpenAI respondent credential is required")
 
     spec = compile_edsl_interview(request)
     question = QuestionMultipleChoice(
@@ -192,14 +194,9 @@ def run_edsl_smoke(request: EdslSmokeRequest) -> EdslSmokeResult:
             check_api_keys=True,
             verbose=False,
             print_exceptions=False,
-            remote_cache_description="StructAgent synthetic EDSL integration smoke",
-            remote_inference_description="StructAgent synthetic EDSL integration smoke",
-            remote_inference_results_visibility="private",
-            disable_remote_cache=False,
-            disable_remote_inference=False,
-            offload_execution=True,
+            disable_remote_cache=True,
+            disable_remote_inference=True,
             fresh=True,
-            expected_parrot_api_key=os.environ["EXPECTED_PARROT_API_KEY"],
         ),
     )
     results = job.run(config=config)

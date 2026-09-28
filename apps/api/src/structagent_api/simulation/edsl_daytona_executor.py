@@ -27,9 +27,9 @@ REMOTE_SOURCE: Final = f"{REMOTE_ROOT}/src"
 REMOTE_REQUEST: Final = f"{REMOTE_ROOT}/request.json"
 REMOTE_RESULT: Final = f"{REMOTE_ROOT}/result.json"
 REMOTE_CHECKPOINT: Final = f"{REMOTE_ROOT}/checkpoint.json"
-EXPECTED_PARROT_DOMAIN: Final = "api.expectedparrot.com"
-SIGNED_ARTIFACT_DOMAIN: Final = "storage.googleapis.com"
-DOMAIN_ALLOW_LIST: Final = f"{EXPECTED_PARROT_DOMAIN},{SIGNED_ARTIFACT_DOMAIN}"
+OPENAI_DOMAIN: Final = "api.openai.com"
+DOMAIN_ALLOW_LIST: Final = OPENAI_DOMAIN
+OPENAI_VERSION: Final = "3.6.0"
 SANDBOX_TTL_MINUTES: Final = 15
 PROCESS_TIMEOUT_SECONDS: Final = 600
 BATCH_PROCESS_TIMEOUT_SECONDS: Final = 3600
@@ -38,6 +38,8 @@ RUNTIME_CANARY_MARKER: Final = "structagent-edsl-canary"
 _SOURCE_FILES: Final = (
     "structagent_api/__init__.py",
     "structagent_api/contracts/__init__.py",
+    "structagent_api/contracts/compiler.py",
+    "structagent_api/contracts/inference.py",
     "structagent_api/contracts/models.py",
     "structagent_api/contracts/simulation.py",
     "structagent_api/simulation/__init__.py",
@@ -109,7 +111,7 @@ class EdslDaytonaReport(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     cleanup_confirmed: bool
-    domain_allow_list: tuple[str, str]
+    domain_allow_list: tuple[str]
     resources: dict[str, int]
     result: EdslSmokeResult
     result_digest: str
@@ -132,6 +134,7 @@ class EdslBatchDaytonaReport(BaseModel):
 def _runtime_image() -> Image:
     return Image.debian_slim("3.12").pip_install(
         f"edsl=={EDSL_VERSION}",
+        f"openai=={OPENAI_VERSION}",
         "pydantic==2.13.5",
     )
 
@@ -146,7 +149,7 @@ def _sandbox_params(secret_name: str) -> CreateSandboxFromImageParams:
         auto_delete_interval=0,
         ttl_minutes=SANDBOX_TTL_MINUTES,
         domain_allow_list=DOMAIN_ALLOW_LIST,
-        secrets={"EXPECTED_PARROT_API_KEY": secret_name},
+        secrets={"OPENAI_API_KEY": secret_name},
         ephemeral=True,
         resources=Resources(cpu=2, memory=4, disk=5),
     )
@@ -169,9 +172,10 @@ def _create_remote_directories(sandbox: Sandbox) -> None:
 
 def _run_runtime_canary(sandbox: Sandbox) -> None:
     response = sandbox.process.exec(
-        'python -c "import edsl,json,pydantic; '
+        'python -c "import edsl,json,openai,pydantic; '
         f"print(json.dumps({{'marker':'{RUNTIME_CANARY_MARKER}',"
-        "'edsl':edsl.__version__,'pydantic':pydantic.__version__}))\"",
+        "'edsl':edsl.__version__,'openai':openai.__version__,"
+        "'pydantic':pydantic.__version__}))\"",
         cwd=REMOTE_ROOT,
         timeout=30,
     )
@@ -187,6 +191,7 @@ def _run_runtime_canary(sandbox: Sandbox) -> None:
     if evidence != {
         "marker": RUNTIME_CANARY_MARKER,
         "edsl": EDSL_VERSION,
+        "openai": OPENAI_VERSION,
         "pydantic": "2.13.5",
     }:
         raise EdslDaytonaError("sandbox_canary", "Daytona EDSL canary evidence is invalid")
@@ -266,7 +271,7 @@ def execute_daytona_edsl_smoke(
     try:
         sandbox.refresh_data(request_timeout=30)
         allowed = {item.strip() for item in (sandbox.domain_allow_list or "").split(",") if item}
-        if sandbox.public or allowed != {EXPECTED_PARROT_DOMAIN, SIGNED_ARTIFACT_DOMAIN}:
+        if sandbox.public or allowed != {OPENAI_DOMAIN}:
             raise EdslDaytonaError(
                 "sandbox_policy", "Daytona did not confirm the private EDSL domain allowlist"
             )
@@ -291,7 +296,7 @@ def execute_daytona_edsl_smoke(
         output_path.write_bytes(canonical)
         report = EdslDaytonaReport(
             cleanup_confirmed=True,
-            domain_allow_list=(EXPECTED_PARROT_DOMAIN, SIGNED_ARTIFACT_DOMAIN),
+            domain_allow_list=(OPENAI_DOMAIN,),
             resources={"cpu": 2, "disk": 5, "memory": 4},
             result=result,
             result_digest=contract_digest(result),
@@ -336,7 +341,7 @@ def execute_daytona_edsl_batch(
     try:
         sandbox.refresh_data(request_timeout=30)
         allowed = {item.strip() for item in (sandbox.domain_allow_list or "").split(",") if item}
-        if sandbox.public or allowed != {EXPECTED_PARROT_DOMAIN, SIGNED_ARTIFACT_DOMAIN}:
+        if sandbox.public or allowed != {OPENAI_DOMAIN}:
             raise EdslDaytonaError(
                 "sandbox_policy", "Daytona did not confirm the private EDSL domain allowlist"
             )

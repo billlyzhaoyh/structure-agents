@@ -66,7 +66,7 @@ class SimulationChoiceResponse(StrictModel):
 class SimulationResponseBatch(StrictModel):
     schema_version: Literal["1"] = "1"
     evidence_kind: Literal["simulated"] = "simulated"
-    respondent_model_id: Literal["gpt-5.6-luna"] = RESPONDENT_MODEL_ID
+    respondent_model_id: Literal["gpt-4.1-mini"] = RESPONDENT_MODEL_ID
     respondent_model_service: Literal["openai"] = RESPONDENT_MODEL_SERVICE
     edsl_version: Literal["1.0.8"] = EDSL_VERSION
     base_response_count: int = Field(gt=0)
@@ -116,6 +116,8 @@ def run_edsl_batch(
 
     if edsl.__version__ != EDSL_VERSION:
         raise ValueError("the EDSL runtime version is not pinned")
+    if not os.environ.get("OPENAI_API_KEY"):
+        raise ValueError("the OpenAI respondent credential is required")
     from structagent_api.contracts.simulation import contract_digest
 
     request_digest = contract_digest(request)
@@ -189,17 +191,9 @@ def run_edsl_batch(
                 check_api_keys=True,
                 verbose=False,
                 print_exceptions=False,
-                remote_inference_description=(
-                    "StructAgent simulation "
-                    f"{request_digest.removeprefix('sha256:')[:12]} repeat {repeat} "
-                    f"choices {len(task_groups) * question_count}"
-                ),
-                remote_inference_results_visibility="private",
                 disable_remote_cache=True,
-                disable_remote_inference=False,
-                offload_execution=True,
+                disable_remote_inference=True,
                 fresh=True,
-                expected_parrot_api_key=os.environ["EXPECTED_PARROT_API_KEY"],
             ),
         )
         results = job.run(config=config)

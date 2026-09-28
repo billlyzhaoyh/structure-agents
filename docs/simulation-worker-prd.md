@@ -184,9 +184,11 @@ populations.
   400 agents and accepts a bounded 300-to-600 range.
 - EDSL runs with one system-selected and version-pinned respondent language model. Provider
   selection is not user-configurable in version 1.
-- Daytona receives a dedicated internally budgeted Expected Parrot credential at runtime. EDSL
-  remote jobs and results use private visibility. The trusted API's compiler credential and
-  raw provider credentials do not cross into Daytona.
+- Daytona receives a dedicated internally budgeted respondent-provider credential at runtime,
+  transported only as an opaque Daytona Secret scoped to the provider domain. EDSL performs
+  inference inside the sandbox rather than delegating to a hosted job service, so no prompt or
+  response leaves the allowlisted provider boundary. The trusted API's compiler credential does
+  not cross into Daytona.
 - New runs request fresh model responses. A private response ledger checkpoints completed
   agent-task-repeat calls and resumes only missing work within the same run.
 - Full repeat testing occurs during certification. Each run repeats a deterministic sentinel
