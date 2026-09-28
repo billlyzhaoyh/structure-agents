@@ -1,0 +1,482 @@
+{
+  "$defs": {
+    "AttributeApplicability": {
+      "additionalProperties": false,
+      "description": "Condition under which a dependent attribute varies from its baseline.",
+      "properties": {
+        "allowed_levels": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Allowed Levels",
+          "type": "array"
+        },
+        "controlling_attribute": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Controlling Attribute",
+          "type": "string"
+        }
+      },
+      "required": [
+        "controlling_attribute",
+        "allowed_levels"
+      ],
+      "title": "AttributeApplicability",
+      "type": "object"
+    },
+    "CertificationGate": {
+      "description": "Evidence required when the simulation machinery is certified.",
+      "enum": [
+        "order_invariance",
+        "full_repeat_variance",
+        "trait_ablation",
+        "markdown_concordance",
+        "temporal_holdout"
+      ],
+      "title": "CertificationGate",
+      "type": "string"
+    },
+    "DatasetReference": {
+      "additionalProperties": false,
+      "description": "Public metadata for the private dataset snapshot resolved at execution time.",
+      "properties": {
+        "dataset_id": {
+          "const": "rel-hm",
+          "default": "rel-hm",
+          "title": "Dataset Id",
+          "type": "string"
+        },
+        "manifest_digest": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Manifest Digest"
+        },
+        "revision": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Revision"
+        },
+        "status": {
+          "$ref": "#/$defs/DatasetStatus"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "DatasetReference",
+      "type": "object"
+    },
+    "DatasetStatus": {
+      "description": "Whether a dataset reference can be resolved for observed execution.",
+      "enum": [
+        "metadata_only_placeholder",
+        "approved_snapshot"
+      ],
+      "title": "DatasetStatus",
+      "type": "string"
+    },
+    "DiscreteChoiceStudySpec": {
+      "additionalProperties": false,
+      "description": "Executable grammar for the first simulation study family.",
+      "properties": {
+        "alternatives_per_task": {
+          "const": 2,
+          "default": 2,
+          "title": "Alternatives Per Task",
+          "type": "integer"
+        },
+        "attributes": {
+          "items": {
+            "$ref": "#/$defs/StudyAttribute"
+          },
+          "maxItems": 10,
+          "minItems": 1,
+          "title": "Attributes",
+          "type": "array"
+        },
+        "control_profile": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ProfileLevel"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Control Profile"
+        },
+        "include_no_choice": {
+          "const": true,
+          "default": true,
+          "title": "Include No Choice",
+          "type": "boolean"
+        },
+        "monotonicity_constraints": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/MonotonicityConstraint"
+          },
+          "title": "Monotonicity Constraints",
+          "type": "array"
+        },
+        "study_type": {
+          "const": "discrete_choice",
+          "default": "discrete_choice",
+          "title": "Study Type",
+          "type": "string"
+        },
+        "tasks_per_agent": {
+          "default": 10,
+          "maximum": 20,
+          "minimum": 1,
+          "title": "Tasks Per Agent",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "attributes"
+      ],
+      "title": "DiscreteChoiceStudySpec",
+      "type": "object"
+    },
+    "MonotonicityConstraint": {
+      "additionalProperties": false,
+      "description": "A reviewed ordering expected from a meaningful simulated response.",
+      "properties": {
+        "attribute": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Attribute",
+          "type": "string"
+        },
+        "ordered_levels": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Ordered Levels",
+          "type": "array"
+        }
+      },
+      "required": [
+        "attribute",
+        "ordered_levels"
+      ],
+      "title": "MonotonicityConstraint",
+      "type": "object"
+    },
+    "PopulationSpec": {
+      "additionalProperties": false,
+      "description": "Reviewed H&M population semantics and model-visible trait projection.",
+      "properties": {
+        "cohort_description": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Cohort Description",
+          "type": "string"
+        },
+        "cutoff": {
+          "format": "date",
+          "title": "Cutoff",
+          "type": "string"
+        },
+        "entity": {
+          "const": "customer",
+          "default": "customer",
+          "title": "Entity",
+          "type": "string"
+        },
+        "sampling": {
+          "$ref": "#/$defs/SamplingSpec"
+        },
+        "traits": {
+          "items": {
+            "$ref": "#/$defs/TraitName"
+          },
+          "minItems": 1,
+          "title": "Traits",
+          "type": "array"
+        }
+      },
+      "required": [
+        "cutoff",
+        "cohort_description",
+        "traits",
+        "sampling"
+      ],
+      "title": "PopulationSpec",
+      "type": "object"
+    },
+    "ProfileLevel": {
+      "additionalProperties": false,
+      "description": "One named attribute level in a profile.",
+      "properties": {
+        "attribute": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Attribute",
+          "type": "string"
+        },
+        "level": {
+          "minLength": 1,
+          "title": "Level",
+          "type": "string"
+        }
+      },
+      "required": [
+        "attribute",
+        "level"
+      ],
+      "title": "ProfileLevel",
+      "type": "object"
+    },
+    "RespondentModelPolicy": {
+      "additionalProperties": false,
+      "description": "Product-owned selection policy; the resolved model is recorded per run.",
+      "properties": {
+        "models_per_run": {
+          "const": 1,
+          "default": 1,
+          "title": "Models Per Run",
+          "type": "integer"
+        },
+        "selection": {
+          "const": "system_selected",
+          "default": "system_selected",
+          "title": "Selection",
+          "type": "string"
+        }
+      },
+      "title": "RespondentModelPolicy",
+      "type": "object"
+    },
+    "RunValidationGate": {
+      "description": "Evidence checked for each approved simulation run.",
+      "enum": [
+        "certification_currency",
+        "design_invariants",
+        "randomization_balance",
+        "sentinel_repeat_variance",
+        "declared_monotonicity"
+      ],
+      "title": "RunValidationGate",
+      "type": "string"
+    },
+    "SamplingSpec": {
+      "additionalProperties": false,
+      "description": "Bounded population sampling policy for a study.",
+      "properties": {
+        "method": {
+          "const": "proportional",
+          "default": "proportional",
+          "title": "Method",
+          "type": "string"
+        },
+        "seed": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "title": "Seed",
+          "type": "integer"
+        },
+        "target_agents": {
+          "default": 400,
+          "maximum": 600,
+          "minimum": 300,
+          "title": "Target Agents",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "seed"
+      ],
+      "title": "SamplingSpec",
+      "type": "object"
+    },
+    "StudyAttribute": {
+      "additionalProperties": false,
+      "description": "A bounded categorical attribute in a discrete-choice profile.",
+      "properties": {
+        "applicability": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AttributeApplicability"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "baseline_level": {
+          "title": "Baseline Level",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "levels": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10,
+          "minItems": 2,
+          "title": "Levels",
+          "type": "array"
+        },
+        "name": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "label",
+        "levels",
+        "baseline_level"
+      ],
+      "title": "StudyAttribute",
+      "type": "object"
+    },
+    "StudySource": {
+      "description": "How a reviewed study entered the product.",
+      "enum": [
+        "default",
+        "custom"
+      ],
+      "title": "StudySource",
+      "type": "string"
+    },
+    "TraitName": {
+      "description": "Aggregate H&M traits approved for model-visible personas.",
+      "enum": [
+        "age_band",
+        "club_member_status",
+        "fashion_news_frequency",
+        "tenure_band",
+        "frequency_band",
+        "recency_band",
+        "basket_value_band",
+        "primary_category",
+        "index_group",
+        "channel_mix",
+        "markdown_share_band"
+      ],
+      "title": "TraitName",
+      "type": "string"
+    },
+    "ValidationPolicy": {
+      "additionalProperties": false,
+      "description": "Certification and per-run evidence required before a ranking is returned.",
+      "properties": {
+        "certification_gates": {
+          "items": {
+            "$ref": "#/$defs/CertificationGate"
+          },
+          "title": "Certification Gates",
+          "type": "array"
+        },
+        "run_gates": {
+          "items": {
+            "$ref": "#/$defs/RunValidationGate"
+          },
+          "title": "Run Gates",
+          "type": "array"
+        },
+        "sentinel_fraction": {
+          "default": 0.1,
+          "exclusiveMinimum": 0,
+          "maximum": 0.25,
+          "title": "Sentinel Fraction",
+          "type": "number"
+        }
+      },
+      "required": [
+        "certification_gates",
+        "run_gates"
+      ],
+      "title": "ValidationPolicy",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Reviewed, versioned semantics accepted by the simulation worker.",
+  "properties": {
+    "artifact_id": {
+      "pattern": "^[a-z0-9][a-z0-9._/-]*$",
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "dataset": {
+      "$ref": "#/$defs/DatasetReference"
+    },
+    "decision": {
+      "maxLength": 500,
+      "minLength": 1,
+      "title": "Decision",
+      "type": "string"
+    },
+    "population": {
+      "$ref": "#/$defs/PopulationSpec"
+    },
+    "respondent_model": {
+      "$ref": "#/$defs/RespondentModelPolicy"
+    },
+    "schema_version": {
+      "const": "1",
+      "default": "1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/StudySource"
+    },
+    "study": {
+      "$ref": "#/$defs/DiscreteChoiceStudySpec"
+    },
+    "title": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    },
+    "validation": {
+      "$ref": "#/$defs/ValidationPolicy"
+    }
+  },
+  "required": [
+    "artifact_id",
+    "source",
+    "title",
+    "decision",
+    "dataset",
+    "population",
+    "respondent_model",
+    "validation",
+    "study"
+  ],
+  "title": "SimulationStudyArtifact",
+  "type": "object"
+}

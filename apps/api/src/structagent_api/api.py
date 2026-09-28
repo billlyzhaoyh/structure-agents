@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from fastapi import FastAPI
 from pydantic import BaseModel
+from structagent_contracts import SimulationStudyArtifact, hm_promo_conjoint_v1
 
 from structagent_api import __version__
 from structagent_api.settings import Settings
@@ -36,5 +39,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             environment=resolved.environment,
             version=__version__,
         )
+
+    @app.get(
+        "/v1/simulation-studies/defaults",
+        response_model=list[SimulationStudyArtifact],
+        tags=["simulation studies"],
+    )
+    def simulation_study_defaults(
+        dataset_id: Literal["rel-hm"],
+    ) -> list[SimulationStudyArtifact]:
+        """List reviewed simulation studies for the requested dataset."""
+
+        return [hm_promo_conjoint_v1()]
 
     return app

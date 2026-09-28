@@ -10,8 +10,9 @@ and no trademark registration or employer affiliation is claimed.
 ## Status
 
 This repository is being established as a lightweight monorepo. The initial version
-contains only a health-check API, versioned interface fixtures, and documented extension
-points for a future frontend, task compiler, and RT-J execution worker.
+contains a health-check API, versioned simulation contracts, a metadata-only reviewed H&M
+simulation-study definition, and documented extension points for a future frontend, task
+compiler, and execution workers.
 
 It does not yet:
 
@@ -21,6 +22,9 @@ It does not yet:
 - ingest a database;
 - generate prediction tasks; or
 - report real model results.
+
+The reviewed simulation study is metadata-only until an approved H&M snapshot is integrated.
+It is not an executable workflow or a model result.
 
 See `docs/architecture.md` and `docs/product-flow.md` once the contract scaffold lands.
 
@@ -35,8 +39,9 @@ make check-all
 make serve-api
 ```
 
-The local API will listen on `http://127.0.0.1:8000`; its implemented endpoint will be
-`GET /healthz`.
+The local API will listen on `http://127.0.0.1:8000`. Its implemented endpoints are
+`GET /healthz` and
+`GET /v1/simulation-studies/defaults?dataset_id=rel-hm`.
 
 ## Repository workflow
 

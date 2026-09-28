@@ -6,7 +6,7 @@ UV_TOOL_DIR ?= $(CURDIR)/.uv-tools
 export UV_CACHE_DIR
 export UV_TOOL_DIR
 
-.PHONY: help sync lock hooks format format-check lint typecheck test build quality-all check check-all serve-api
+.PHONY: help sync lock hooks format format-check lint typecheck test build contracts-export contracts-check quality-all check check-all serve-api
 
 help: ## Show available commands
 	@awk 'BEGIN {FS = ":.*## "}; /^[a-zA-Z_-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -32,18 +32,25 @@ lint: ## Lint Python
 	uv run ruff check .
 
 typecheck: ## Run strict static type checking
-	uv run mypy apps/api/src apps/api/tests
+	uv run mypy apps/api/src apps/api/tests packages/contracts/src packages/contracts/tests
 
 test: ## Run deterministic unit tests
 	uv run pytest
 
 build: ## Build the API wheel and source distribution
+	uv build --package structagent-contracts --out-dir dist --no-build-isolation
 	uv build --package structagent-api --out-dir dist --no-build-isolation
+
+contracts-export: ## Regenerate versioned JSON Schema snapshots
+	uv run python scripts/export_contracts.py
+
+contracts-check: ## Reject unreviewed contract schema drift
+	uv run python scripts/export_contracts.py --check
 
 serve-api: ## Start the local FastAPI service
 	uv run uvicorn structagent_api.api:create_app --factory
 
-quality-all: format-check lint typecheck test ## Always-run local quality gate
+quality-all: format-check lint typecheck test contracts-check ## Always-run local quality gate
 
 check: ## Run every pre-commit hook over the repository
 	$(PRE_COMMIT) run --all-files --hook-stage manual

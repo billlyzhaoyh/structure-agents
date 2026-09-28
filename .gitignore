@@ -16,6 +16,9 @@ build/
 .env.*
 !.env.example
 
+# Local scratch clones and worktrees
+.pr-work/
+
 # Data, models, and run artifacts
 data/
 datasets/

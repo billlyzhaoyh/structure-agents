@@ -1,0 +1,20 @@
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "structagent-contracts"
+version = "0.1.0"
+description = "Versioned interface contracts shared by StructAgent services and workers."
+requires-python = ">=3.12,<3.13"
+license = "MIT"
+authors = [
+  { name = "Tony Kwok" },
+  { name = "Billy Zhao" },
+]
+dependencies = [
+  "pydantic==2.13.5",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/structagent_contracts"]

@@ -19,7 +19,7 @@ package = false
 required-version = "==0.12.5"
 
 [tool.uv.workspace]
-members = ["apps/api"]
+members = ["apps/api", "packages/contracts"]
 
 [tool.ruff]
 target-version = "py312"
@@ -31,8 +31,8 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 [tool.mypy]
 python_version = "3.12"
 strict = true
-mypy_path = "apps/api/src"
+mypy_path = "apps/api/src:packages/contracts/src"
 
 [tool.pytest.ini_options]
-testpaths = ["apps/api/tests"]
+testpaths = ["apps/api/tests", "packages/contracts/tests"]
 addopts = ["-ra", "--strict-config", "--strict-markers"]
